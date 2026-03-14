@@ -184,7 +184,7 @@ def import_data(file_path=None):
                     stats['errors'].append(f"الصف {idx + 1}: {str(e)}")
                     stats['skipped'] += 1
 
-            # الحفظ النهائي
+            # الحفظ النهائي (هذا السطر كان داخل الحلقة خطأ)
             db.session.commit()
 
             # عرض الإحصائيات
@@ -209,6 +209,8 @@ def import_data(file_path=None):
 
             print("\n" + "=" * 50)
 
+            # إضافة إجمالي الموظفين إلى النتائج
+            stats['total'] = total
             return stats
 
     except Exception as e:
@@ -220,7 +222,13 @@ def import_data(file_path=None):
 
 def import_from_excel(file_path):
     """دالة للاستيراد من مسار ملف محدد"""
-    return import_data(file_path)
+    result = import_data(file_path)
+    # التأكد من وجود total في النتائج
+    if isinstance(result, dict) and 'total' not in result:
+        with app.app_context():
+            from models import Employee
+            result['total'] = Employee.query.count()
+    return result
 
 
 if __name__ == '__main__':
