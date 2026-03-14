@@ -11,6 +11,7 @@ from config import Config
 from forms import LoginForm, EmployeeForm, ShipForm, TeamForm, ReportForm, UserForm, UserEditForm, OperationForm
 from datetime import datetime, timedelta
 from models import db, User, Employee, Team, Ship, Berth, ShipOperation, Report, OperationTeam
+from flask import request  # إذا لم يكن موجوداً
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -53,7 +54,6 @@ def load_user(user_id):
 
 # Create upload folder if not exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-
 
 @app.route('/')
 def index():
@@ -2186,6 +2186,216 @@ def simple_login():
     login_user(user)
     return redirect(url_for('dashboard'))
 
+
+# 🌟 نقطة نهاية لتهيئة قاعدة البيانات (استخدمها مرة واحدة فقط)
+@app.route('/init-db', methods=['GET'])
+def initialize_database():
+    """تهيئة قاعدة البيانات مع التحقق من المفتاح السري"""
+    # مفتاح سري بسيط للتحقق (غيّره بكلمة من اختيارك)
+    SECRET_INIT_KEY = "123456"  # غير هذا الرقم
+
+    # التحقق من المفتاح
+    key = request.args.get('key', '')
+    if key != SECRET_INIT_KEY:
+        return "❌ خطأ: مفتاح التهيئة غير صحيح", 401
+
+    try:
+        # استيراد دالة التهيئة
+        import sys
+        import os
+        from pathlib import Path
+
+        # إضافة المسار الحالي إلى PATH
+        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+        # استيراد وتشغيل init_db
+        import init_db
+
+        # إعادة تحميل الوحدة إذا كانت مستوردة مسبقاً
+        if 'init_db' in sys.modules:
+            import importlib
+            init_db = importlib.reload(init_db)
+
+        # تشغيل التهيئة
+        with app.app_context():
+            result = init_db.init_db()
+
+        return """
+        <html>
+            <head>
+                <title>✅ تهيئة قاعدة البيانات</title>
+                <style>
+                    body { font-family: Arial; padding: 40px; background: #f0f8ff; text-align: center; }
+                    .success { color: green; font-size: 24px; margin: 20px; }
+                    .info { background: white; padding: 20px; border-radius: 10px; margin: 20px auto; max-width: 600px; }
+                    .details { text-align: right; direction: rtl; }
+                </style>
+            </head>
+            <body>
+                <div class="success">✅ تم تهيئة قاعدة البيانات بنجاح!</div>
+                <div class="info">
+                    <div class="details">
+                        <h3>📊 ملخص التهيئة:</h3>
+                        <p>👤 مستخدم admin: admin/admin123</p>
+                        <p>🏢 فرق العمل: 5</p>
+                        <p>👥 الموظفين: 20</p>
+                        <p>🚢 السفن: 5</p>
+                        <p>⚓ الأرصفة: 5</p>
+                    </div>
+                </div>
+                <div class="info">
+                    <p>🔐 <strong>تذكر إزالة نقطة النهاية هذه بعد الاستخدام!</strong></p>
+                    <p><a href="/login">🔑 الذهاب إلى صفحة تسجيل الدخول</a></p>
+                </div>
+            </body>
+        </html>
+        """, 200
+
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        return f"""
+        <html>
+            <head><title>❌ خطأ</title></head>
+            <body>
+                <h1 style="color:red;">❌ فشل تهيئة قاعدة البيانات</h1>
+                <pre style="background:#f0f0f0; padding:20px; text-align:left;">{str(e)}</pre>
+                <pre style="background:#f0f0f0; padding:20px; text-align:left;">{error_details}</pre>
+            </body>
+        </html>
+        """, 500
+
+
+# 📥 نقطة نهاية لاستيراد بيانات الموظفين من Excel
+@app.route('/import-employees', methods=['GET', 'POST'])
+def import_employees():
+    """استيراد بيانات الموظفين من ملف Excel"""
+    # مفتاح سري للتحقق
+    SECRET_KEY = "123456"  # استخدم نفس المفتاح
+
+    # التحقق من المفتاح
+    key = request.args.get('key', '')
+    if key != SECRET_KEY:
+        return "❌ خطأ: مفتاح التهيئة غير صحيح", 401
+
+    if request.method == 'POST':
+        try:
+            # التحقق من رفع ملف
+            if 'file' not in request.files:
+                return "❌ لم يتم رفع ملف", 400
+
+            file = request.files['file']
+            if file.filename == '':
+                return "❌ لم يتم اختيار ملف", 400
+
+            if not file.filename.endswith(('.xlsx', '.xls')):
+                return "❌ الملف يجب أن يكون Excel (.xlsx أو .xls)", 400
+
+            # حفظ الملف مؤقتاً
+            import tempfile
+            import os
+
+            temp_dir = tempfile.gettempdir()
+            temp_path = os.path.join(temp_dir, 'port_employees.xlsx')
+            file.save(temp_path)
+
+            # استيراد البيانات
+            from import_data import import_from_excel
+
+            with app.app_context():
+                result = import_from_excel(temp_path)
+
+            # حذف الملف المؤقت
+            os.remove(temp_path)
+
+            return f"""
+            <html dir="rtl">
+                <head>
+                    <title>✅ نتيجة الاستيراد</title>
+                    <style>
+                        body {{ font-family: 'Arial', sans-serif; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center; }}
+                        .container {{ background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 600px; width: 90%; }}
+                        .success {{ color: #28a745; font-size: 24px; margin: 20px 0; text-align: center; }}
+                        .stats {{ background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; direction: rtl; }}
+                        .stat-item {{ display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }}
+                        .stat-item:last-child {{ border-bottom: none; }}
+                        .btn {{ display: inline-block; background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="success">✅ تم استيراد البيانات بنجاح!</div>
+                        <div class="stats">
+                            <h3>📊 النتائج:</h3>
+                            <div class="stat-item"><span>➕ موظفين جدد:</span> <strong>{result['imported']}</strong></div>
+                            <div class="stat-item"><span>🔄 موظفين محدثين:</span> <strong>{result['updated']}</strong></div>
+                            <div class="stat-item"><span>⚠️ موظفين متخطين:</span> <strong>{result['skipped']}</strong></div>
+                            <div class="stat-item"><span>👥 إجمالي الموظفين:</span> <strong>{result['total']}</strong></div>
+                        </div>
+                        <div style="text-align: center;">
+                            <a href="/employees" class="btn">👥 عرض الموظفين</a>
+                            <a href="/login" class="btn" style="background: #28a745;">🔑 تسجيل الدخول</a>
+                        </div>
+                    </div>
+                </body>
+            </html>
+            """, 200
+
+        except Exception as e:
+            import traceback
+            return f"""
+            <html>
+                <body>
+                    <h1 style="color:red;">❌ خطأ</h1>
+                    <pre>{str(e)}</pre>
+                    <pre>{traceback.format_exc()}</pre>
+                </body>
+            </html>
+            """, 500
+
+    # عرض نموذج رفع الملف
+    return """
+    <html dir="rtl">
+        <head>
+            <title>📥 استيراد الموظفين</title>
+            <style>
+                body { font-family: 'Arial', sans-serif; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center; }
+                .container { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 500px; width: 90%; }
+                h1 { color: #333; text-align: center; margin-bottom: 30px; }
+                .form-group { margin-bottom: 20px; }
+                label { display: block; margin-bottom: 10px; font-weight: bold; }
+                input[type=file] { width: 100%; padding: 10px; border: 2px dashed #667eea; border-radius: 5px; }
+                button { background: #667eea; color: white; padding: 12px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; }
+                button:hover { background: #764ba2; }
+                .note { background: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin-top: 20px; font-size: 14px; }
+                .note h3 { margin-top: 0; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>📥 استيراد بيانات الموظفين</h1>
+                <form method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label>اختر ملف Excel:</label>
+                        <input type="file" name="file" accept=".xlsx,.xls" required>
+                    </div>
+                    <button type="submit">رفع واستيراد</button>
+                </form>
+                <div class="note">
+                    <h3>📌 ملاحظات:</h3>
+                    <ul>
+                        <li>الملف يجب أن يكون بصيغة Excel (.xlsx أو .xls)</li>
+                        <li>يجب أن يحتوي على شيت باسم "الكشف الكلي (9)"</li>
+                        <li>البيانات تبدأ من الصف الثالث</li>
+                        <li>الأعمدة: الرقم الوطني، الاسم، سنة الميلاد، مكان الميلاد، العنوان الحالي، المهنة، رقم الفرقة</li>
+                    </ul>
+                </div>
+            </div>
+        </body>
+    </html>
+    """
+
+# ✅ نهاية الكود المضاف
 
 
 if __name__ == '__main__':
