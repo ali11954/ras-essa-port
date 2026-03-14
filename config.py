@@ -7,7 +7,7 @@ load_dotenv()
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-secret-key-change-in-production'
 
-    # دعم PostgreSQL في الإنتاج و SQLite في التطوير
+    # دعم PostgreSQL في الإنتاج
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///ras_essa_port.db'
 
     # تعديل رابط PostgreSQL إذا كان موجوداً
