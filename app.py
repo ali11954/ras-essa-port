@@ -1,6 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 import os
+from sqlalchemy import func
 import json
 import plotly
 import plotly.express as px
@@ -24,6 +25,45 @@ login_manager.login_view = 'login'
 # ============================================
 # Helper Functions for Permissions
 # ============================================
+@app.context_processor
+def inject_now():
+    """إتاحة دالة now() في جميع القوالب"""
+    from datetime import datetime
+    return {'now': datetime.now}
+
+@app.context_processor
+def inject_utilities():
+    """إتاحة دوال مساعدة في جميع القوالب"""
+    from datetime import datetime
+
+    def format_date(date, format='%Y-%m-%d'):
+        """تنسيق التاريخ"""
+        if date:
+            return date.strftime(format)
+        return ''
+
+    def format_datetime(date, format='%Y-%m-%d %H:%M'):
+        """تنسيق التاريخ والوقت"""
+        if date:
+            return date.strftime(format)
+        return ''
+
+    def calculate_age(birth_date):
+        """حساب العمر من تاريخ الميلاد"""
+        if birth_date:
+            today = datetime.now().date()
+            age = today.year - birth_date.year
+            if today.month < birth_date.month or (today.month == birth_date.month and today.day < birth_date.day):
+                age -= 1
+            return age
+        return ''
+
+    return {
+        'now': datetime.now,
+        'format_date': format_date,
+        'format_datetime': format_datetime,
+        'calculate_age': calculate_age
+    }
 
 def admin_required(f):
     """Decorator to require admin privileges"""
@@ -1441,42 +1481,6 @@ def get_team_current_operations(team_id):
 
     return jsonify(current_ops)
 
-@app.route('/reports/operations-duration')
-@login_required
-def operations_duration_report():
-    """تقرير مدة العمليات"""
-    from sqlalchemy import func
-
-    # الحصول على جميع العمليات
-    operations = ShipOperation.query.order_by(ShipOperation.start_time.desc()).all()
-
-    # إحصائيات
-    total_operations = len(operations)
-    completed_operations = len([op for op in operations if op.end_time])
-    ongoing_operations = total_operations - completed_operations
-
-    # حساب متوسط المدة
-    total_duration = 0
-    completed_count = 0
-    for op in operations:
-        if op.duration:
-            total_duration += op.duration
-            completed_count += 1
-
-    avg_duration = round(total_duration / completed_count, 2) if completed_count > 0 else 0
-
-    stats = {
-        'total': total_operations,
-        'completed': completed_operations,
-        'ongoing': ongoing_operations,
-        'avg_duration': avg_duration
-    }
-
-    return render_template('reports/operations_duration.html',
-                           operations=operations,
-                           stats=stats)
-
-
 @app.route('/team-pass/<int:team_id>')
 @login_required
 def team_pass_page(team_id):
@@ -1703,9 +1707,16 @@ def generate_teams_report(date_from, date_to, format):
 
 def generate_operations_report(date_from, date_to, format):
     """تقرير العمليات"""
+    # تأكد من أن التواريخ تشمل كامل اليوم
+    date_from_start = datetime.combine(date_from, datetime.min.time())
+    date_to_end = datetime.combine(date_to, datetime.max.time())
+
+    # جلب جميع العمليات في التاريخ المحدد
     data = ShipOperation.query.filter(
-        ShipOperation.start_time.between(date_from, date_to)
-    ).all()
+        ShipOperation.start_time.between(date_from_start, date_to_end)
+    ).order_by(ShipOperation.start_time.desc()).all()
+
+    print(f"📊 عدد العمليات في التقرير: {len(data)}")  # للتشخيص
 
     if format == 'excel':
         return generate_excel_report(data, 'operations', date_from, date_to)
@@ -1717,6 +1728,59 @@ def generate_operations_report(date_from, date_to, format):
                                date_from=date_from,
                                date_to=date_to)
 
+
+@app.route('/reports/operations-duration')
+@login_required
+def operations_duration_report():
+    """تقرير مدة العمليات"""
+    from sqlalchemy import func
+    from datetime import datetime
+
+    # استلام التواريخ من الـ request (اختياري)
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+
+    query = ShipOperation.query
+
+    if date_from and date_to:
+        try:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(ShipOperation.start_time.between(date_from_obj, date_to_obj))
+        except:
+            pass
+
+    operations = query.order_by(ShipOperation.start_time.desc()).all()
+
+    print(f"📊 عدد العمليات في التقرير: {len(operations)}")  # للتشخيص
+
+    # إحصائيات
+    total_operations = len(operations)
+    completed_operations = len([op for op in operations if op.end_time])
+    ongoing_operations = total_operations - completed_operations
+
+    # حساب متوسط المدة
+    total_duration = 0
+    completed_count = 0
+    for op in operations:
+        if op.duration:
+            total_duration += op.duration
+            completed_count += 1
+
+    avg_duration = round(total_duration / completed_count, 2) if completed_count > 0 else 0
+
+    stats = {
+        'total': total_operations,
+        'completed': completed_operations,
+        'ongoing': ongoing_operations,
+        'avg_duration': avg_duration
+    }
+
+    return render_template('reports/operations_duration.html',
+                           operations=operations,
+                           stats=stats,
+                           date_from=date_from,
+                           date_to=date_to)
 
 @app.route('/export/berths/excel')
 @login_required
@@ -1767,6 +1831,11 @@ def export_berths_pdf():
     from datetime import datetime
 
     berths = Berth.query.all()
+
+    # تجهيز بيانات السفن لكل رصيف
+    for berth in berths:
+        berth.ships_list = Ship.query.filter_by(berth_number=berth.number).order_by(Ship.arrival_date.desc()).all()
+
     stats = {
         'total': len(berths),
         'active': sum(1 for b in berths if b.is_available),
@@ -1777,7 +1846,8 @@ def export_berths_pdf():
     html_string = render_template('reports/berths_pdf.html',
                                   berths=berths,
                                   stats=stats,
-                                  current_date=datetime.now())
+                                  current_date=datetime.now(),
+                                  current_user=current_user)
 
     pdf_file = BytesIO()
     HTML(string=html_string, encoding='utf-8').write_pdf(pdf_file)
@@ -2059,46 +2129,129 @@ def generate_teams_pdf(teams_data, date_from, date_to):
         mimetype='application/pdf'
     )
 
+
 def generate_pdf_report(data, report_type, date_from, date_to):
     """توليد تقرير PDF باستخدام HTML"""
     from weasyprint import HTML
     from datetime import datetime
 
-    # تجهيز البيانات حسب النوع
-    if report_type == 'ships':
-        html_string = render_template('reports/ships_pdf.html',
-                                      data=data,
-                                      date_from=date_from,
-                                      date_to=date_to,
-                                      current_date=datetime.now())
-    elif report_type == 'employees':
-        html_string = render_template('reports/employees_pdf.html',
-                                      data=data,
-                                      date_from=date_from,
-                                      date_to=date_to,
-                                      current_date=datetime.now())
-    elif report_type == 'operations':
-        html_string = render_template('reports/operations_pdf.html',
-                                      data=data,
-                                      date_from=date_from,
-                                      date_to=date_to,
-                                      current_date=datetime.now())
-    else:
-        html_string = '<h1>تقرير</h1><p>لا توجد بيانات</p>'
+    try:
+        # حساب الإحصائيات الأساسية
+        total_cargo = 0
+        total_hours = 0
+        durations = []
+        ships_set = set()
+        teams_set = set()
 
-    # تحويل HTML إلى PDF
-    pdf_file = BytesIO()
-    HTML(string=html_string, encoding='utf-8').write_pdf(pdf_file)
-    pdf_file.seek(0)
+        # تجهيز البيانات وحساب الإحصائيات
+        for item in data:
+            if report_type == 'operations':
+                if hasattr(item, 'cargo_quantity') and item.cargo_quantity:
+                    try:
+                        total_cargo += float(item.cargo_quantity)
+                    except:
+                        pass
+                if hasattr(item, 'duration') and item.duration:
+                    try:
+                        total_hours += float(item.duration)
+                        durations.append(float(item.duration))
+                    except:
+                        pass
+                if hasattr(item, 'ship') and item.ship:
+                    ships_set.add(item.ship.id)
+                if hasattr(item, 'operation_teams'):
+                    for ot in item.operation_teams:
+                        if hasattr(ot, 'team') and ot.team:
+                            teams_set.add(ot.team.id)
 
-    filename = f'report_{report_type}_{date_from.strftime("%Y%m%d")}_{date_to.strftime("%Y%m%d")}.pdf'
+            elif report_type == 'employees':
+                if hasattr(item, 'team') and item.team:
+                    teams_set.add(item.team.id)
 
-    return send_file(
-        pdf_file,
-        as_attachment=True,
-        download_name=filename,
-        mimetype='application/pdf'
-    )
+            elif report_type == 'ships':
+                if hasattr(item, 'berth_number') and item.berth_number:
+                    ships_set.add(item.id)
+
+        # حساب الإحصائيات
+        completed_items = len([item for item in data if hasattr(item, 'end_time') and item.end_time])
+        ongoing_items = len([item for item in data if hasattr(item, 'end_time') and not item.end_time])
+
+        stats = {
+            'total': len(data),
+            'completed': completed_items,
+            'ongoing': ongoing_items,
+            'avg_duration': round(total_hours / len(durations), 2) if durations else 0
+        }
+
+        # تجهيز البيانات حسب النوع
+        if report_type == 'ships':
+            html_string = render_template('reports/ships_pdf.html',
+                                          data=data,
+                                          stats=stats,
+                                          date_from=date_from,
+                                          date_to=date_to,
+                                          current_date=datetime.now(),
+                                          ships_count=len(ships_set))
+        elif report_type == 'employees':
+            html_string = render_template('reports/employees_pdf.html',
+                                          data=data,
+                                          stats=stats,
+                                          date_from=date_from,
+                                          date_to=date_to,
+                                          current_date=datetime.now(),
+                                          teams_count=len(teams_set))
+        elif report_type == 'operations':
+            html_string = render_template('reports/operations_pdf.html',
+                                          data=data,
+                                          stats=stats,
+                                          date_from=date_from,
+                                          date_to=date_to,
+                                          current_date=datetime.now(),
+                                          total_cargo=round(total_cargo, 2),
+                                          total_hours=round(total_hours, 2),
+                                          max_duration=round(max(durations), 2) if durations else 0,
+                                          min_duration=round(min(durations), 2) if durations else 0,
+                                          completion_rate=round((completed_items / len(data) * 100), 2) if len(
+                                              data) > 0 else 0,
+                                          ships_count=len(ships_set),
+                                          teams_count=len(teams_set))
+        elif report_type == 'teams':
+            html_string = render_template('reports/teams_pdf.html',
+                                          data=data,
+                                          stats=stats,
+                                          date_from=date_from,
+                                          date_to=date_to,
+                                          current_date=datetime.now())
+        elif report_type == 'berths':
+            html_string = render_template('reports/berths_pdf.html',
+                                          data=data,
+                                          stats=stats,
+                                          date_from=date_from,
+                                          date_to=date_to,
+                                          current_date=datetime.now())
+        else:
+            html_string = '<h1>تقرير</h1><p>لا توجد بيانات</p>'
+
+        # تحويل HTML إلى PDF
+        pdf_file = BytesIO()
+        HTML(string=html_string, encoding='utf-8').write_pdf(pdf_file)
+        pdf_file.seek(0)
+
+        filename = f'report_{report_type}_{date_from.strftime("%Y%m%d")}_{date_to.strftime("%Y%m%d")}.pdf'
+
+        return send_file(
+            pdf_file,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
+
+    except Exception as e:
+        print(f"❌ خطأ في إنشاء PDF: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'❌ حدث خطأ في إنشاء ملف PDF: {str(e)}', 'danger')
+        return redirect(url_for('reports_index'))
 
 # API routes for AJAX requests
 @app.route('/api/employees/search')
@@ -2419,6 +2572,87 @@ def initialize_database():
         </html>
         """, 500
 
+@app.errorhandler(405)
+def method_not_allowed(e):
+    """معالج خطأ 405 - Method Not Allowed"""
+    return f"""
+    <html dir="rtl">
+        <head>
+            <title>405 - طريقة غير مسموحة</title>
+            <style>
+                body {{
+                    font-family: 'Cairo', Arial, sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    height: 100vh;
+                    margin: 0;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    text-align: center;
+                }}
+                .error-container {{
+                    background: white;
+                    border-radius: 20px;
+                    padding: 50px;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                    max-width: 500px;
+                    width: 90%;
+                }}
+                h1 {{
+                    font-size: 80px;
+                    margin: 0;
+                    color: #667eea;
+                    line-height: 1;
+                }}
+                h2 {{
+                    color: #333;
+                    margin: 15px 0;
+                }}
+                p {{
+                    color: #666;
+                    margin-bottom: 25px;
+                    line-height: 1.6;
+                }}
+                .btn {{
+                    display: inline-block;
+                    padding: 12px 30px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 50px;
+                    font-weight: bold;
+                    transition: transform 0.3s;
+                    margin: 5px;
+                }}
+                .btn:hover {{
+                    transform: translateY(-3px);
+                }}
+                .btn-secondary {{
+                    background: #6c757d;
+                }}
+                i {{
+                    margin-left: 8px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="error-container">
+                <h1>405</h1>
+                <h2><i class="fas fa-ban" style="color: #dc3545;"></i> طريقة غير مسموحة</h2>
+                <p>عذراً، الطريقة التي استخدمتها غير مسموحة لهذه الصفحة.</p>
+                <p><small>ربما حاولت الدخول إلى صفحة بطريقة خاطئة.</small></p>
+                <div>
+                    <a href="javascript:history.back()" class="btn btn-secondary">
+                        <i class="fas fa-arrow-right"></i> العودة
+                    </a>
+                    <a href="/login" class="btn">
+                        <i class="fas fa-sign-in-alt"></i> تسجيل الدخول
+                    </a>
+                </div>
+            </div>
+        </body>
+    </html>
+    """, 405
 
 # 📥 نقطة نهاية لاستيراد بيانات الموظفين من Excel
 @app.route('/import-employees', methods=['GET', 'POST'])
@@ -2550,7 +2784,143 @@ def import_employees():
     """
 
 # ✅ نهاية الكود المضاف
+# 📥 نقطة نهاية لاستيراد بيانات السفن من Excel
+@app.route('/import-ships', methods=['GET', 'POST'])
+def import_ships_route():
+    """استيراد بيانات السفن من ملف Excel"""
+    # مفتاح سري للتحقق
+    SECRET_KEY = "123456"  # استخدم نفس المفتاح
 
+    # التحقق من المفتاح
+    key = request.args.get('key', '')
+    if key != SECRET_KEY:
+        return "❌ خطأ: مفتاح التهيئة غير صحيح", 401
+
+    if request.method == 'POST':
+        try:
+            # التحقق من رفع ملف
+            if 'file' not in request.files:
+                return "❌ لم يتم رفع ملف", 400
+
+            file = request.files['file']
+            if file.filename == '':
+                return "❌ لم يتم اختيار ملف", 400
+
+            if not file.filename.endswith(('.xlsx', '.xls')):
+                return "❌ الملف يجب أن يكون Excel (.xlsx أو .xls)", 400
+
+            # حفظ الملف مؤقتاً
+            import tempfile
+            import os
+
+            temp_dir = tempfile.gettempdir()
+            temp_path = os.path.join(temp_dir, 'ships_data.xlsx')
+            file.save(temp_path)
+
+            # استيراد البيانات
+            from import_ships import import_ships_from_excel
+
+            with app.app_context():
+                result = import_ships_from_excel(temp_path)
+
+            # حذف الملف المؤقت
+            os.remove(temp_path)
+
+            if 'error' in result:
+                return f"""
+                <html>
+                    <body>
+                        <h1 style="color:red;">❌ خطأ في الاستيراد</h1>
+                        <pre>{result['error']}</pre>
+                    </body>
+                </html>
+                """, 500
+
+            return f"""
+            <html dir="rtl">
+                <head>
+                    <title>✅ نتيجة استيراد السفن</title>
+                    <style>
+                        body {{ font-family: 'Arial', sans-serif; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center; }}
+                        .container {{ background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 600px; width: 90%; }}
+                        .success {{ color: #28a745; font-size: 24px; margin: 20px 0; text-align: center; }}
+                        .stats {{ background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; direction: rtl; }}
+                        .stat-item {{ display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }}
+                        .stat-item:last-child {{ border-bottom: none; }}
+                        .btn {{ display: inline-block; background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="success">✅ تم استيراد بيانات السفن بنجاح!</div>
+                        <div class="stats">
+                            <h3>📊 النتائج:</h3>
+                            <div class="stat-item"><span>➕ سفن جديدة:</span> <strong>{result['imported']}</strong></div>
+                            <div class="stat-item"><span>🔄 سفن محدثة:</span> <strong>{result['updated']}</strong></div>
+                            <div class="stat-item"><span>⚠️ سفن متخطية:</span> <strong>{result['skipped']}</strong></div>
+                            <div class="stat-item"><span>🚢 إجمالي السفن:</span> <strong>{result['imported'] + result['updated']}</strong></div>
+                        </div>
+                        <div style="text-align: center;">
+                            <a href="/ships" class="btn">🚢 عرض السفن</a>
+                            <a href="/" class="btn" style="background: #28a745;">🏠 الرئيسية</a>
+                        </div>
+                    </div>
+                </body>
+            </html>
+            """, 200
+
+        except Exception as e:
+            import traceback
+            return f"""
+            <html>
+                <body>
+                    <h1 style="color:red;">❌ خطأ</h1>
+                    <pre>{str(e)}</pre>
+                    <pre>{traceback.format_exc()}</pre>
+                </body>
+            </html>
+            """, 500
+
+    # عرض نموذج رفع الملف
+    return """
+    <html dir="rtl">
+        <head>
+            <title>📥 استيراد السفن</title>
+            <style>
+                body { font-family: 'Arial', sans-serif; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center; }
+                .container { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 500px; width: 90%; }
+                h1 { color: #333; text-align: center; margin-bottom: 30px; }
+                .form-group { margin-bottom: 20px; }
+                label { display: block; margin-bottom: 10px; font-weight: bold; }
+                input[type=file] { width: 100%; padding: 10px; border: 2px dashed #667eea; border-radius: 5px; }
+                button { background: #667eea; color: white; padding: 12px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; }
+                button:hover { background: #764ba2; }
+                .note { background: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin-top: 20px; font-size: 14px; }
+                .note h3 { margin-top: 0; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>📥 استيراد بيانات السفن</h1>
+                <form method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label>اختر ملف Excel:</label>
+                        <input type="file" name="file" accept=".xlsx,.xls" required>
+                    </div>
+                    <button type="submit">رفع واستيراد</button>
+                </form>
+                <div class="note">
+                    <h3>📌 ملاحظات:</h3>
+                    <ul>
+                        <li>الملف يجب أن يحتوي على عمود "الرقم" (IMO)</li>
+                        <li>سيتم تحديث السفن الموجودة بناءً على رقم IMO</li>
+                        <li>القيم الصفرية في الأبعاد سيتم تجاهلها</li>
+                    </ul>
+                </div>
+            </div>
+        </body>
+    </html>
+    """
 
 if __name__ == '__main__':
     with app.app_context():
