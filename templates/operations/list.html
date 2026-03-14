@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+
+{% block title %}العمليات - ميناء رأس عيسى{% endblock %}
+
+{% block page_title %}إدارة العمليات{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item active">العمليات</li>
+{% endblock %}
+
+{% block page_actions %}
+{% if current_user.is_admin() %}
+<a href="{{ url_for('add_operation') }}" class="btn btn-primary">
+    <i class="fas fa-plus-circle"></i> إضافة عملية جديدة
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- بطاقات الإحصائيات -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-calendar-day stat-icon"></i>
+            <div class="stat-title">عمليات اليوم</div>
+            <div class="stat-value" id="todayCount">{{ stats.today if stats else 0 }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-calendar-week stat-icon"></i>
+            <div class="stat-title">آخر 7 أيام</div>
+            <div class="stat-value" id="weekCount">{{ stats.week if stats else 0 }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-upload stat-icon"></i>
+            <div class="stat-title">عمليات تحميل</div>
+            <div class="stat-value" id="loadingCount">{{ stats.loading if stats else 0 }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-download stat-icon"></i>
+            <div class="stat-title">عمليات تفريغ</div>
+            <div class="stat-value" id="unloadingCount">{{ stats.unloading if stats else 0 }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-white">
+            <i class="fas fa-tasks"></i> قائمة العمليات
+        </h5>
+        <span class="badge bg-light text-primary">{{ operations|length }} عملية</span>
+    </div>
+
+    <div class="card-body">
+        <!-- فلتر البحث -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" id="searchInput" placeholder="🔍 بحث في اسم السفينة أو نوع البضاعة...">
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="typeFilter">
+                    <option value="">كل أنواع العمليات</option>
+                    <option value="تحميل">تحميل</option>
+                    <option value="تفريغ">تفريغ</option>
+                    <option value="صيانة">صيانة</option>
+                    <option value="تزويد وقود">تزويد وقود</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="teamFilter">
+                    <option value="">كل الفرق</option>
+                    {% for team in teams %}
+                    <option value="{{ team.name }}">{{ team.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-secondary w-100" onclick="resetFilters()">
+                    <i class="fas fa-redo-alt"></i> إعادة تعيين
+                </button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover" id="operationsTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th><i class="fas fa-ship"></i> السفينة</th>
+                        <th><i class="fas fa-tag"></i> نوع العملية</th>
+                        <th><i class="fas fa-clock"></i> تاريخ البدء</th>
+                        <th><i class="fas fa-clock"></i> تاريخ الانتهاء</th>
+                        <th><i class="fas fa-hourglass-half"></i> المدة</th>
+                        <th><i class="fas fa-users"></i> الفرق المنفذة</th>
+                        <th><i class="fas fa-box"></i> نوع البضاعة</th>
+                        <th><i class="fas fa-weight-hanging"></i> الكمية</th>
+                        <th><i class="fas fa-sticky-note"></i> ملاحظات</th>
+                        {% if current_user.is_admin() %}
+                        <th><i class="fas fa-cogs"></i> الإجراءات</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for op in operations %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <strong>{{ op.ship.name if op.ship else '—' }}</strong>
+                            <br>
+                            <small class="text-muted">{{ op.ship.imo_number if op.ship else '' }}</small>
+                        </td>
+                        <td>
+                            {% if op.operation_type == 'تحميل' %}
+                                <span class="badge bg-success">{{ op.operation_type }}</span>
+                            {% elif op.operation_type == 'تفريغ' %}
+                                <span class="badge bg-warning text-dark">{{ op.operation_type }}</span>
+                            {% elif op.operation_type == 'صيانة' %}
+                                <span class="badge bg-info">{{ op.operation_type }}</span>
+                            {% elif op.operation_type == 'تزويد وقود' %}
+                                <span class="badge bg-danger">{{ op.operation_type }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ op.operation_type }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ op.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ op.end_time.strftime('%Y-%m-%d %H:%M') if op.end_time else '—' }}</td>
+                        <td>
+                            {% if op.duration %}
+                                <span class="badge bg-info" title="{{ op.duration_text }}">
+                                    {{ op.duration }} ساعة
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning">جارية</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% for ot in op.operation_teams %}
+                                <span class="badge bg-primary mb-1" title="قائد: {{ ot.team.leader.name if ot.team.leader else 'لا يوجد' }}">
+                                    {{ ot.team.name }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endfor %}
+                        </td>
+                        <td>{{ op.cargo_type or '—' }}</td>
+                        <td>
+                            {% if op.cargo_quantity %}
+                                {{ op.cargo_quantity }} طن
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if op.notes %}
+                            <i class="fas fa-comment text-muted" title="{{ op.notes }}"></i>
+                            {% else %}
+                            —
+                            {% endif %}
+                        </td>
+                        {% if current_user.is_admin() %}
+                        <td class="action-buttons">
+                            <a href="{{ url_for('edit_operation', id=op.id) }}" class="btn btn-sm btn-warning" title="تعديل">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-info" title="عرض التفاصيل"
+                                    onclick="showOperationDetails({{ op.id }})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <a href="{{ url_for('delete_operation', id=op.id) }}" class="btn btn-sm btn-danger"
+                               onclick="return confirm('⚠️ هل أنت متأكد من حذف هذه العملية؟\nسيتم حذف جميع الفرق المرتبطة بها')" title="حذف">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Operation Details -->
+<div class="modal fade" id="operationDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>
+                    تفاصيل العملية
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="operationDetailsContent">
+                <!-- سيتم تعبئتها عبر JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        // تحميل الإحصائيات (للتحديث المباشر)
+        $.get('/api/operations/stats', function(data) {
+            $('#todayCount').text(data.today);
+            $('#weekCount').text(data.week);
+            $('#loadingCount').text(data.loading);
+            $('#unloadingCount').text(data.unloading);
+        }).fail(function() {
+            console.log('فشل تحميل الإحصائيات');
+        });
+
+        // تفعيل DataTable
+        var table = $('#operationsTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
+            },
+            pageLength: 25,
+            order: [[3, 'desc']],  // ترتيب حسب تاريخ البدء
+            columnDefs: [
+                { orderable: false, targets: [5, 9, 10] }  // أعمدة غير قابلة للترتيب
+            ]
+        });
+
+        // البحث
+        $('#searchInput').on('keyup', function() {
+            table.search(this.value).draw();
+        });
+
+        // تصفية حسب نوع العملية
+        $('#typeFilter').on('change', function() {
+            table.column(2).search(this.value).draw();
+        });
+
+        // تصفية حسب اسم الفريق
+        $('#teamFilter').on('change', function() {
+            table.column(6).search(this.value).draw();
+        });
+    });
+
+    function resetFilters() {
+        $('#searchInput').val('');
+        $('#typeFilter').val('');
+        $('#teamFilter').val('');
+        $('#operationsTable').DataTable().search('').columns().search('').draw();
+    }
+
+    function showOperationDetails(operationId) {
+        // الحصول على بيانات العملية من الصف
+        var row = event.target.closest('tr');
+        var cells = row.getElementsByTagName('td');
+
+        // تجميع أسماء الفرق
+        var teamsHtml = '';
+        var teamsCell = cells[6].innerHTML;
+        var tempDiv = document.createElement('div');
+        tempDiv.innerHTML = teamsCell;
+        var badges = tempDiv.getElementsByClassName('badge');
+
+        if (badges.length > 0) {
+            teamsHtml = '<ul>';
+            for (var i = 0; i < badges.length; i++) {
+                teamsHtml += '<li>' + badges[i].innerText + '</li>';
+            }
+            teamsHtml += '</ul>';
+        } else {
+            teamsHtml = '—';
+        }
+
+        var details = `
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th><i class="fas fa-ship text-primary"></i> السفينة:</th>
+                            <td>${cells[1].innerText}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="fas fa-tag text-primary"></i> نوع العملية:</th>
+                            <td>${cells[2].innerText.replace(/<[^>]*>/g, '')}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="fas fa-clock text-primary"></i> تاريخ البدء:</th>
+                            <td>${cells[3].innerText}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="fas fa-clock text-primary"></i> تاريخ الانتهاء:</th>
+                            <td>${cells[4].innerText}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="fas fa-hourglass-half text-primary"></i> المدة:</th>
+                            <td>${cells[5].innerText}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th><i class="fas fa-users text-primary"></i> الفرق المنفذة:</th>
+                            <td>${teamsHtml}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="fas fa-box text-primary"></i> نوع البضاعة:</th>
+                            <td>${cells[7].innerText}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="fas fa-weight-hanging text-primary"></i> الكمية:</th>
+                            <td>${cells[8].innerText}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="fas fa-sticky-note text-primary"></i> ملاحظات:</th>
+                            <td>${cells[9].innerText}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('operationDetailsContent').innerHTML = details;
+        new bootstrap.Modal(document.getElementById('operationDetailsModal')).show();
+    }
+</script>
+
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    }
+
+    .stat-icon {
+        position: absolute;
+        left: 20px;
+        top: 20px;
+        font-size: 3rem;
+        opacity: 0.2;
+    }
+
+    .stat-title {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .action-buttons .btn {
+        margin: 0 2px;
+    }
+
+    .badge {
+        font-size: 0.85rem;
+        padding: 0.5em 0.7em;
+        margin: 2px;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}

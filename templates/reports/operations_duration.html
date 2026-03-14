@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير مدة العمليات - ميناء رأس عيسى{% endblock %}
+
+{% block page_title %}تقرير مدة العمليات{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('reports_index') }}">التقارير</a></li>
+<li class="breadcrumb-item active">تقرير مدة العمليات</li>
+{% endblock %}
+
+{% block content %}
+<!-- إحصائيات سريعة -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-tasks stat-icon"></i>
+            <div class="stat-title">إجمالي العمليات</div>
+            <div class="stat-value">{{ stats.total }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-check-circle stat-icon"></i>
+            <div class="stat-title">مكتملة</div>
+            <div class="stat-value">{{ stats.completed }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-clock stat-icon"></i>
+            <div class="stat-title">جارية</div>
+            <div class="stat-value">{{ stats.ongoing }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-hourglass-half stat-icon"></i>
+            <div class="stat-title">متوسط المدة</div>
+            <div class="stat-value">{{ stats.avg_duration }}</div>
+            <div class="stat-title">ساعة</div>
+        </div>
+    </div>
+</div>
+
+<!-- جدول العمليات -->
+<div class="card">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-clock me-2"></i>
+            تفاصيل مدة العمليات
+        </h5>
+        <div>
+            <button class="btn btn-sm btn-light" onclick="window.print()">
+                <i class="fas fa-print"></i> طباعة
+            </button>
+            <a href="{{ url_for('generate_report') }}" class="btn btn-sm btn-light">
+                <i class="fas fa-file-export"></i> تصدير
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="operationsTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th><i class="fas fa-ship"></i> السفينة</th>
+                        <th><i class="fas fa-tag"></i> نوع العملية</th>
+                        <th><i class="fas fa-clock"></i> تاريخ البدء</th>
+                        <th><i class="fas fa-clock"></i> تاريخ الانتهاء</th>
+                        <th><i class="fas fa-hourglass-half"></i> المدة</th>
+                        <th><i class="fas fa-users"></i> الفرق المنفذة</th>
+                        <th><i class="fas fa-box"></i> البضاعة</th>
+                        <th><i class="fas fa-weight-hanging"></i> الكمية</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for op in operations %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ op.ship.name if op.ship else '—' }}</td>
+                        <td>
+                            <span class="badge {% if op.operation_type == 'تحميل' %}bg-success
+                                           {% elif op.operation_type == 'تفريغ' %}bg-warning text-dark
+                                           {% else %}bg-info{% endif %}">
+                                {{ op.operation_type }}
+                            </span>
+                        </td>
+                        <td>{{ op.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ op.end_time.strftime('%Y-%m-%d %H:%M') if op.end_time else '—' }}</td>
+                        <td>
+                            {% if op.duration %}
+                                <strong>{{ op.duration }}</strong> ساعة
+                                <br>
+                                <small class="text-muted">{{ op.duration_text }}</small>
+                            {% else %}
+                                <span class="badge bg-warning">جارية</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% for ot in op.operation_teams %}
+                                <span class="badge bg-primary mb-1">{{ ot.team.name }}</span>
+                            {% else %}
+                                —
+                            {% endfor %}
+                        </td>
+                        <td>{{ op.cargo_type or '—' }}</td>
+                        <td>{{ op.cargo_quantity or '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-icon {
+        position: absolute;
+        left: 20px;
+        top: 20px;
+        font-size: 3rem;
+        opacity: 0.2;
+    }
+
+    .stat-title {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #333;
+    }
+</style>
+
+<script>
+    $(document).ready(function() {
+        $('#operationsTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
+            },
+            pageLength: 25,
+            order: [[3, 'desc']]
+        });
+    });
+</script>
+{% endblock %}

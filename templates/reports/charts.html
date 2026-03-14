@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+{% block title %}الرسومات البيانية - ميناء رأس عيسى{% endblock %}
+
+{% block page_title %}الرسومات البيانية{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('reports_index') }}">التقارير</a></li>
+<li class="breadcrumb-item active">الرسومات البيانية</li>
+{% endblock %}
+
+{% block content %}
+<!-- Date Range Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <label class="form-label">من تاريخ</label>
+                <input type="date" class="form-control" id="dateFrom" value="{{ last_month }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">إلى تاريخ</label>
+                <input type="date" class="form-control" id="dateTo" value="{{ today }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">&nbsp;</label>
+                <button class="btn btn-primary w-100" onclick="updateCharts()">
+                    <i class="fas fa-sync-alt me-2"></i>
+                    تحديث
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-pie me-2"></i>
+                توزيع السفن حسب النوع
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="shipTypesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-bar me-2"></i>
+                توزيع الموظفين حسب الفرق
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="employeesByTeamChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-line me-2"></i>
+                حركة السفن الشهرية
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="monthlyShipsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-bar me-2"></i>
+                العمليات اليومية
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="dailyOperationsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 3 -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-area me-2"></i>
+                إشغال الأرصفة
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="berthOccupancyChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // بيانات حقيقية من الخادم
+    const shipTypesData = {{ ship_types_data|tojson }};
+    const shipTypesLabels = {{ ship_types_labels|tojson }};
+    const employeesByTeamData = {{ employees_by_team_data|tojson }};
+    const employeesByTeamLabels = {{ employees_by_team_labels|tojson }};
+    const monthlyShipsData = {{ monthly_ships_data|tojson }};
+    const monthlyShipsLabels = {{ monthly_ships_labels|tojson }};
+    const dailyOperationsData = {{ daily_operations_data|tojson }};
+    const dailyOperationsLabels = {{ daily_operations_labels|tojson }};
+    const berthOccupancyData = {{ berth_occupancy_data|tojson }};
+    const berthOccupancyLabels = {{ berth_occupancy_labels|tojson }};
+
+    // Initialize charts when page loads
+    $(document).ready(function() {
+        initializeAllCharts();
+    });
+
+    function initializeAllCharts() {
+        // Ship Types Chart - بيانات حقيقية
+        if (shipTypesData && shipTypesData.length > 0) {
+            const shipTypesCtx = document.getElementById('shipTypesChart').getContext('2d');
+            new Chart(shipTypesCtx, {
+                type: 'pie',
+                data: {
+                    labels: shipTypesLabels,
+                    datasets: [{
+                        data: shipTypesData,
+                        backgroundColor: [
+                            '#667eea',
+                            '#764ba2',
+                            '#f39c12',
+                            '#2ecc71',
+                            '#95a5a6'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Employees by Team Chart - بيانات حقيقية
+        if (employeesByTeamData && employeesByTeamData.length > 0) {
+            const employeesTeamCtx = document.getElementById('employeesByTeamChart').getContext('2d');
+            new Chart(employeesTeamCtx, {
+                type: 'bar',
+                data: {
+                    labels: employeesByTeamLabels,
+                    datasets: [{
+                        label: 'عدد الموظفين',
+                        data: employeesByTeamData,
+                        backgroundColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Monthly Ships Chart - بيانات حقيقية
+        if (monthlyShipsData && monthlyShipsData.length > 0) {
+            const monthlyShipsCtx = document.getElementById('monthlyShipsChart').getContext('2d');
+            new Chart(monthlyShipsCtx, {
+                type: 'line',
+                data: {
+                    labels: monthlyShipsLabels,
+                    datasets: [{
+                        label: 'عدد السفن',
+                        data: monthlyShipsData,
+                        borderColor: '#764ba2',
+                        backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        // Daily Operations Chart - بيانات حقيقية
+        if (dailyOperationsData && dailyOperationsData.length > 0) {
+            const dailyOpsCtx = document.getElementById('dailyOperationsChart').getContext('2d');
+            new Chart(dailyOpsCtx, {
+                type: 'bar',
+                data: {
+                    labels: dailyOperationsLabels,
+                    datasets: [
+                        {
+                            label: 'تحميل',
+                            data: dailyOperationsData.loading || [0,0,0,0,0,0,0],
+                            backgroundColor: '#2ecc71'
+                        },
+                        {
+                            label: 'تفريغ',
+                            data: dailyOperationsData.unloading || [0,0,0,0,0,0,0],
+                            backgroundColor: '#f39c12'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Berth Occupancy Chart - بيانات حقيقية
+        if (berthOccupancyData && berthOccupancyData.length > 0) {
+            const berthCtx = document.getElementById('berthOccupancyChart').getContext('2d');
+
+            // تجهيز البيانات
+            const datasets = [];
+            const colors = ['#667eea', '#764ba2', '#2ecc71', '#f39c12', '#e74c3c'];
+
+            berthOccupancyData.forEach((berth, index) => {
+                datasets.push({
+                    label: `الرصيف ${berth.number}`,
+                    data: berth.occupancy,
+                    borderColor: colors[index % colors.length],
+                    tension: 0.4
+                });
+            });
+
+            new Chart(berthCtx, {
+                type: 'line',
+                data: {
+                    labels: berthOccupancyLabels || ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1,
+                            ticks: {
+                                stepSize: 1,
+                                callback: function(value) {
+                                    return value === 1 ? 'مشغول' : 'متاح';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    function updateCharts() {
+        var dateFrom = $('#dateFrom').val();
+        var dateTo = $('#dateTo').val();
+
+        if (!dateFrom || !dateTo) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'تنبيه',
+                text: 'الرجاء تحديد نطاق التاريخ'
+            });
+            return;
+        }
+
+        // إرسال طلب للحصول على بيانات محدثة
+        fetch(`/api/charts-data?from=${dateFrom}&to=${dateTo}`)
+            .then(response => response.json())
+            .then(data => {
+                // تحديث البيانات وإعادة رسم الرسوم البيانية
+                location.reload(); // أو تحديث ديناميكي
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'حدث خطأ في تحديث البيانات'
+                });
+            });
+    }
+</script>
+{% endblock %}

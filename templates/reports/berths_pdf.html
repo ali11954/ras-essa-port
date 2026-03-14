@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تقرير الأرصفة - ميناء رأس عيسى</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm;
+            @top-center {
+                content: "ميناء رأس عيسى - تقرير الأرصفة";
+            }
+            @bottom-center {
+                content: "الصفحة " counter(page) " من " counter(pages);
+            }
+        }
+        body {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .header-info {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th {
+            background-color: #667eea;
+            color: white;
+            padding: 10px;
+            text-align: center;
+        }
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: right;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .badge-success {
+            background-color: #28a745;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 3px;
+        }
+        .badge-danger {
+            background-color: #dc3545;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 3px;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 تقرير الأرصفة</h1>
+
+    <div class="header-info">
+        <p>تاريخ التقرير: {{ current_date.strftime('%Y-%m-%d %H:%M') }}</p>
+    </div>
+
+    <div class="stats">
+        <div class="stat-item">
+            <div class="stat-number">{{ stats.total }}</div>
+            <div class="stat-label">إجمالي الأرصفة</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">{{ stats.active }}</div>
+            <div class="stat-label">أرصفة متاحة</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">{{ stats.occupied }}</div>
+            <div class="stat-label">أرصفة مشغولة</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">{{ stats.total_ships }}</div>
+            <div class="stat-label">إجمالي السفن</div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>رقم الرصيف</th>
+                <th>الطول (م)</th>
+                <th>العمق (م)</th>
+                <th>عدد السفن</th>
+                <th>السفينة الحالية</th>
+                <th>الحالة</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for berth in berths %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ berth.number }}</td>
+                <td>{{ berth.length or '—' }}</td>
+                <td>{{ berth.depth or '—' }}</td>
+                <td>{{ berth.ships_count }}</td>
+                <td>{{ berth.current_ship.name if berth.current_ship else '—' }}</td>
+                <td>
+                    {% if berth.is_available %}
+                        <span class="badge-success">متاح</span>
+                    {% else %}
+                        <span class="badge-danger">غير متاح</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+                <p>تم إنشاء هذا التقرير بواسطة نظام مكتب عمال  ميناء رأس عيسى</p>
+
+    </div>
+</body>
+</html>

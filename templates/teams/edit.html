@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل بيانات الفرقة - ميناء رأس عيسى{% endblock %}
+
+{% block page_title %}تعديل بيانات الفرقة{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('team_list') }}">فرق العمل</a></li>
+<li class="breadcrumb-item active">تعديل الفرقة</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>
+                    تعديل بيانات الفرقة: {{ team.name }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="teamForm" class="needs-validation" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-tag text-primary me-1"></i>
+                                اسم الفرقة <span class="text-danger">*</span>
+                            </label>
+                            {{ form.name(class="form-control", placeholder="أدخل اسم الفرقة") }}
+                            {% if form.name.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.name.errors %}
+                                        <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-tasks text-primary me-1"></i>
+                                نوع الفرقة <span class="text-danger">*</span>
+                            </label>
+                            {{ form.team_type(class="form-select") }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-user-tie text-primary me-1"></i>
+                                قائد الفرقة
+                            </label>
+                            {{ form.leader_id(class="form-select") }}
+                            <small class="text-muted">اختر قائداً للفرقة (اختياري)</small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-info-circle text-primary me-1"></i>
+                                الحالة
+                            </label>
+                            <div class="form-check mt-2">
+                                <input type="checkbox" class="form-check-input" id="is_active" name="is_active"
+                                       {% if team.is_active %}checked{% endif %}>
+                                <label class="form-check-label" for="is_active">
+                                    <i class="fas fa-check-circle text-success me-1"></i>
+                                    الفرقة نشطة
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- اختيار وتعديل الأعضاء -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-user-edit me-2"></i>
+                                إدارة أعضاء الفرقة
+                            </h6>
+                            <p class="text-muted small">اختر الموظفين الذين تريد إضافتهم إلى هذه الفرقة أو إزالتهم</p>
+
+                            <div class="mb-3">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-primary text-white">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="searchMembers" placeholder="ابحث عن موظف بالاسم أو المهنة...">
+                                </div>
+                            </div>
+
+                            <!-- إحصائيات سريعة -->
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <div class="alert alert-info py-2 mb-0">
+                                        <i class="fas fa-users me-2"></i>
+                                        إجمالي الأعضاء: <strong>{{ team.members|length }}</strong>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="alert alert-success py-2 mb-0" id="selectedCountBox" style="display: none;">
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        تم اختيار: <strong id="selectedCountText">0</strong>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllMembers()">
+                                        <i class="fas fa-check-double me-1"></i>تحديد الكل
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllMembers()">
+                                        <i class="fas fa-times me-1"></i>إلغاء التحديد
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- قائمة الأعضاء للاختيار -->
+                            <div class="members-selection border rounded p-3" style="max-height: 400px; overflow-y: auto;">
+                                {% for employee in employees %}
+                                <div class="form-check member-item mb-2 p-2 {% if employee.team_id == team.id %}bg-light{% endif %}"
+                                     data-name="{{ employee.name }}"
+                                     data-profession="{{ employee.profession }}">
+                                    <input class="form-check-input" type="checkbox" name="members" value="{{ employee.id }}"
+                                           id="member_{{ employee.id }}"
+                                           {% if employee.team_id == team.id %}checked{% endif %}>
+                                    <label class="form-check-label d-flex justify-content-between align-items-center w-100" for="member_{{ employee.id }}">
+                                        <span>
+                                            <i class="fas fa-user-circle text-primary me-2"></i>
+                                            <strong>{{ employee.name }}</strong>
+                                            <small class="text-muted me-2">({{ employee.profession }})</small>
+                                        </span>
+                                        <span>
+                                            {% if employee.id == team.leader_id %}
+                                                <span class="badge bg-warning me-2">
+                                                    <i class="fas fa-crown me-1"></i>قائد
+                                                </span>
+                                            {% endif %}
+                                            {% if employee.team_id == team.id %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check me-1"></i>عضو حالي
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="fas fa-plus me-1"></i>غير عضو
+                                                </span>
+                                            {% endif %}
+                                        </span>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i>
+                                    ✅ الأعضاء المحددون سيبقون في الفرقة، والأعضاء غير المحددين سيتم إزالتهم
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="mt-4">
+
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-warning px-5">
+                            <i class="fas fa-save me-2"></i>
+                            تحديث البيانات
+                        </button>
+
+                        <a href="{{ url_for('team_list') }}" class="btn btn-secondary px-5">
+                            <i class="fas fa-times me-2"></i>
+                            إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Additional Info Card -->
+        <div class="card mt-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">
+                    <i class="fas fa-clock me-2"></i>
+                    معلومات إضافية
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-2">
+                            <i class="fas fa-calendar-plus text-primary me-2"></i>
+                            <strong>تاريخ الإنشاء:</strong>
+                            {{ team.created_at.strftime('%Y-%m-%d') if team.created_at else 'غير محدد' }}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-2">
+                            <i class="fas fa-history text-primary me-2"></i>
+                            <strong>آخر تحديث:</strong>
+                            {{ team.created_at.strftime('%Y-%m-%d') if team.created_at else 'غير محدد' }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // تحديث عداد الأعضاء المختارين
+        function updateSelectedCount() {
+            const selectedCount = $('input[name="members"]:checked').length;
+            if (selectedCount > 0) {
+                $('#selectedCountBox').show();
+                $('#selectedCountText').text(selectedCount);
+            } else {
+                $('#selectedCountBox').hide();
+            }
+        }
+
+        // البحث في قائمة الأعضاء
+        $('#searchMembers').on('keyup', function() {
+            const searchText = $(this).val().toLowerCase();
+            $('.member-item').each(function() {
+                const memberName = $(this).data('name').toLowerCase();
+                const memberProfession = $(this).data('profession').toLowerCase();
+                if (memberName.includes(searchText) || memberProfession.includes(searchText)) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        });
+
+        // تحديث العداد عند تغيير الاختيار
+        $('input[name="members"]').on('change', function() {
+            updateSelectedCount();
+        });
+
+        // تهيئة العداد عند تحميل الصفحة
+        updateSelectedCount();
+
+        // التحقق من صحة النموذج
+        $('#teamForm').on('submit', function(e) {
+            let isValid = true;
+            let errorMessage = '';
+
+            const teamName = $('input[name="name"]').val();
+            if (!teamName || teamName.trim() === '') {
+                isValid = false;
+                errorMessage += '❌ اسم الفرقة مطلوب\n';
+            }
+
+            if (!isValid) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ في التحقق',
+                    text: errorMessage,
+                    confirmButtonText: 'حسناً'
+                });
+                return false;
+            }
+
+            // عرض رسالة تأكيد قبل الإرسال
+            const selectedCount = $('input[name="members"]:checked').length;
+            const currentCount = {{ team.members|length }};
+            const changeCount = selectedCount - currentCount;
+
+            let changeMessage = '';
+            if (changeCount > 0) {
+                changeMessage = `سيتم إضافة ${changeCount} عضو جديد`;
+            } else if (changeCount < 0) {
+                changeMessage = `سيتم إزالة ${Math.abs(changeCount)} عضو`;
+            } else {
+                changeMessage = 'لا تغيير في عدد الأعضاء';
+            }
+
+            e.preventDefault(); // منع الإرسال المباشر
+
+            Swal.fire({
+                title: 'تأكيد التحديث',
+                html: `
+                    <p>هل أنت متأكد من تحديث بيانات الفرقة <strong>"${teamName}"</strong>؟</p>
+                    <p class="text-${changeCount > 0 ? 'success' : changeCount < 0 ? 'danger' : 'secondary'}">
+                        ${changeMessage}
+                    </p>
+                    <p class="text-muted small">إجمالي الأعضاء بعد التحديث: ${selectedCount}</p>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'نعم، تحديث',
+                cancelButtonText: 'إلغاء'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // إزالة مستمع beforeunload
+                    $(window).off('beforeunload');
+                    // إرسال النموذج
+                    $('#teamForm')[0].submit();
+                }
+            });
+        });
+
+        // تحذير قبل المغادرة مع تغييرات غير محفوظة
+        let formChanged = false;
+        $('#teamForm input, #teamForm select, #teamForm input[type="checkbox"]').on('change', function() {
+            formChanged = true;
+        });
+
+        $(window).on('beforeunload', function() {
+            if (formChanged) {
+                return 'لديك تغييرات غير محفوظة. هل أنت متأكد من المغادرة؟';
+            }
+        });
+
+        $('#teamForm').on('submit', function() {
+            $(window).off('beforeunload');
+        });
+    });
+
+    // دوال مساعدة
+    function selectAllMembers() {
+        $('input[name="members"]').prop('checked', true).trigger('change');
+    }
+
+    function deselectAllMembers() {
+        $('input[name="members"]').prop('checked', false).trigger('change');
+    }
+</script>
+{% endblock %}

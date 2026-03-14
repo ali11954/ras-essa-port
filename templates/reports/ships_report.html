@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير السفن - ميناء رأس عيسى{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">تقرير السفن</h4>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                الفترة من {{ date_from.strftime('%Y-%m-%d') }} إلى {{ date_to.strftime('%Y-%m-%d') }}
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>اسم السفينة</th>
+                            <th>رقم IMO</th>
+                            <th>العلم</th>
+                            <th>النوع</th>
+                            <th>تاريخ الوصول</th>
+                            <th>رقم الرصيف</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ship in data %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ ship.name }}</td>
+                            <td>{{ ship.imo_number }}</td>
+                            <td>{{ ship.flag }}</td>
+                            <td>{{ ship.ship_type }}</td>
+                            <td>{{ ship.arrival_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ ship.berth_number or '—' }}</td>
+                            <td>{{ ship.status }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="text-center mt-3">
+                <button onclick="window.print()" class="btn btn-primary">
+                    <i class="fas fa-print"></i> طباعة
+                </button>
+                <a href="{{ url_for('reports_index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-right"></i> عودة
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

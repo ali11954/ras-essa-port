@@ -1,0 +1,688 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة التحكم - ميناء رأس عيسى{% endblock %}
+
+{% block page_title %}لوحة التحكم{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">لوحة التحكم</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Stats Cards - الصف الأول -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-users stat-icon"></i>
+                <div class="stat-title">إجمالي الموظفين</div>
+                <div class="stat-value">{{ total_employees }}</div>
+                <div class="stat-change positive">
+                    <i class="fas fa-user-check"></i> جميع الموظفين المسجلين
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-ship stat-icon" style="color: #28a745;"></i>
+                <div class="stat-title">سفن نشطة (جاري العمل)</div>
+                <div class="stat-value">{{ active_ships }}</div>
+                <div class="stat-change positive">
+                    <i class="fas fa-play"></i> لديها عمليات جارية
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-clock stat-icon" style="color: #ffc107;"></i>
+                <div class="stat-title">سفن في انتظار</div>
+                <div class="stat-value">{{ waiting_ships }}</div>
+                <div class="stat-change">
+                    <i class="fas fa-pause"></i> في الميناء بدون عمليات
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-check-circle stat-icon" style="color: #6c757d;"></i>
+                <div class="stat-title">سفن مغادرة</div>
+                <div class="stat-value">{{ departed_ships }}</div>
+                <div class="stat-change">
+                    <i class="fas fa-check"></i> انتهت عملياتها
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards - الصف الثاني -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <i class="fas fa-people-arrows stat-icon" style="color: #6610f2;"></i>
+                <div class="stat-title">إجمالي فرق العمل</div>
+                <div class="stat-value">{{ total_teams }}</div>
+                <div class="stat-change">
+                    <i class="fas fa-users"></i> جميع الفرق المسجلة
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="stat-card">
+                <i class="fas fa-hard-hat stat-icon" style="color: #fd7e14;"></i>
+                <div class="stat-title">فرق تعمل حالياً</div>
+                <div class="stat-value">{{ active_teams }}</div>
+                <div class="stat-change positive">
+                    <i class="fas fa-bolt"></i> تعمل على سفن نشطة
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="stat-card">
+                <i class="fas fa-calendar-check stat-icon"></i>
+                <div class="stat-title">عمليات اليوم</div>
+                <div class="stat-value">{{ operations_today }}</div>
+                <div class="stat-change positive">
+                    <i class="fas fa-clock"></i> عمليات مسجلة اليوم
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row - الرسوم البيانية للسفن -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-chart-line me-2"></i>
+                    حركة السفن خلال الشهر
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="shipsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    توزيع السفن حسب النوع
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="shipTypesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Ships - آخر السفن -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-ship me-2"></i>
+                        آخر السفن الواصلة
+                    </div>
+                    <a href="{{ url_for('ship_list') }}" class="btn btn-sm btn-primary">
+                        عرض الكل <i class="fas fa-arrow-left me-1"></i>
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>اسم السفينة</th>
+                                    <th>رقم IMO</th>
+                                    <th>النوع</th>
+                                    <th>تاريخ الوصول</th>
+                                    <th>رقم الرصيف</th>
+                                    <th>الفرق العاملة</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ship in ships %}
+                                <tr>
+                                    <td>{{ ship.name }}</td>
+                                    <td>{{ ship.imo_number }}</td>
+                                    <td>
+                                        {% if ship.ship_type == 'cargo' %}بضائع
+                                        {% elif ship.ship_type == 'tanker' %}ناقلة نفط
+                                        {% elif ship.ship_type == 'container' %}حاويات
+                                        {% elif ship.ship_type == 'passenger' %}ركاب
+                                        {% else %}أخرى
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ ship.arrival_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ ship.berth_number or 'غير محدد' }}</td>
+                                    <td>
+                                        {% set ongoing_ops = ship.ongoing_operations %}
+                                        {% if ongoing_ops %}
+                                            {% for op in ongoing_ops[:2] %}
+                                                {% for ot in op.operation_teams %}
+                                                    <span class="badge bg-info mb-1" title="عملية {{ op.operation_type }}">
+                                                        {{ ot.team.name }}
+                                                    </span>
+                                                {% endfor %}
+                                            {% endfor %}
+                                            {% if ongoing_ops|length > 2 %}
+                                                <span class="badge bg-secondary">+{{ ongoing_ops|length - 2 }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% set has_ongoing = ship.ongoing_operations|length > 0 %}
+
+                                        {% if ship.status == 'departed' %}
+                                            <span class="badge bg-secondary">مغادرة</span>
+                                        {% elif has_ongoing %}
+                                            <span class="badge bg-success">نشط (جاري العمل)</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">في انتظار</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center">لا توجد سفن مسجلة</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Teams and Recent Employees -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-hard-hat me-2 text-warning"></i>
+                        الفرق العاملة حالياً
+                    </div>
+                    <a href="{{ url_for('team_list') }}" class="btn btn-sm btn-outline-primary">
+                        عرض الكل
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        {% for team in active_teams_list %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <i class="fas fa-users me-2 text-success"></i>
+                                    <strong>{{ team.name }}</strong>
+                                    <span class="badge bg-info me-2">{{ team.team_type }}</span>
+                                </div>
+                                <span class="badge bg-primary">{{ team.current_operations|length }} عملية</span>
+                            </div>
+
+                            <!-- السفن التي تعمل عليها الفرق -->
+                            <div class="ms-4 mt-2">
+                                {% for op in team.current_operations %}
+                                <div class="d-flex align-items-center mb-1">
+                                    <i class="fas fa-ship text-muted me-2" style="font-size: 0.8rem;"></i>
+                                    <span>{{ op.ship.name }}</span>
+                                    <span class="badge bg-secondary me-2">رصيف {{ op.ship.berth_number }}</span>
+                                    <small class="text-muted">{{ op.operation_type }}</small>
+                                </div>
+                                {% else %}
+                                <div class="text-muted small">لا توجد عمليات حالية</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="list-group-item text-center text-muted">
+                            لا توجد فرق تعمل حالياً
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-user-plus me-2"></i>
+                    أحدث الموظفين
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        {% for employee in employees %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-user-circle me-2 text-primary"></i>
+                                {{ employee.name }}
+                                {% if employee.team %}
+                                <span class="badge bg-info me-2">{{ employee.team.name }}</span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <span class="badge bg-secondary">{{ employee.profession }}</span>
+                                <small class="text-muted me-2">{{ employee.hire_date.strftime('%Y-%m-%d') }}</small>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="list-group-item text-center text-muted">
+                            لا يوجد موظفين مسجلين
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee Statistics Row - إحصائيات الموظفين -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-birthday-cake me-2 text-primary"></i>
+                    توزيع الموظفين حسب الأعمار
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="ageChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-calendar-alt me-2 text-info"></i>
+                    توزيع الموظفين حسب سنة الميلاد
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="birthYearChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-map-marker-alt me-2 text-success"></i>
+                    أكثر أماكن الميلاد شيوعاً
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="birthPlacesChart"></canvas>
+                    </div>
+                    <div class="mt-2 text-center">
+                        <span class="badge bg-info">إجمالي الأماكن: {{ unique_birth_places }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-home me-2 text-warning"></i>
+                    أكثر أماكن السكن شيوعاً
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="residenceChart"></canvas>
+                    </div>
+                    <div class="mt-2 text-center">
+                        <span class="badge bg-info">إجمالي الأماكن: {{ unique_residences }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // تحديث البيانات كل 30 ثانية (اختياري)
+    setTimeout(function() {
+        location.reload();
+    }, 30000); // 30 ثانية
+
+    // Ships Chart - حركة السفن الشهرية
+    const shipsCtx = document.getElementById('shipsChart').getContext('2d');
+    new Chart(shipsCtx, {
+        type: 'line',
+        data: {
+            labels: {{ months_labels|tojson }},
+            datasets: [{
+                label: 'عدد السفن',
+                data: {{ months_data|tojson }},
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                datalabels: {
+                    color: '#667eea',
+                    font: {
+                        weight: 'bold',
+                        size: 11
+                    },
+                    formatter: (value) => {
+                        return value;
+                    },
+                    align: 'top',
+                    offset: 5
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+
+    // Ship Types Chart - توزيع السفن حسب النوع
+    const typesCtx = document.getElementById('shipTypesChart').getContext('2d');
+    new Chart(typesCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ ship_types_labels|tojson }},
+            datasets: [{
+                data: {{ ship_types_data|tojson }},
+                backgroundColor: [
+                    '#667eea',
+                    '#764ba2',
+                    '#f39c12',
+                    '#2ecc71',
+                    '#95a5a6'
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.raw || 0;
+                            let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            let percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                },
+                datalabels: {
+                    color: 'white',
+                    font: {
+                        weight: 'bold',
+                        size: 14
+                    },
+                    formatter: (value, context) => {
+                        let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        let percentage = Math.round((value / total) * 100);
+                        return `${value}\n(${percentage}%)`;
+                    },
+                    align: 'center',
+                    offset: 0
+                }
+            }
+        }
+    });
+
+    // Age Distribution Chart (Pie) - توزيع الأعمار مع عرض الأرقام
+    {% if age_labels and age_data %}
+    const ageCtx = document.getElementById('ageChart').getContext('2d');
+    new Chart(ageCtx, {
+        type: 'pie',
+        data: {
+            labels: {{ age_labels|tojson }},
+            datasets: [{
+                data: {{ age_data|tojson }},
+                backgroundColor: [
+                    '#667eea',
+                    '#764ba2',
+                    '#f39c12',
+                    '#2ecc71',
+                    '#e74c3c'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.raw || 0;
+                            let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            let percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                },
+                datalabels: {
+                    color: 'white',
+                    font: {
+                        weight: 'bold',
+                        size: 14
+                    },
+                    formatter: (value, context) => {
+                        let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        let percentage = Math.round((value / total) * 100);
+                        return `${value}\n(${percentage}%)`;
+                    },
+                    align: 'center',
+                    offset: 0
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    // Birth Year Chart (Line) - سنوات الميلاد مع عرض الأرقام
+    {% if birth_year_labels and birth_year_data %}
+    const yearCtx = document.getElementById('birthYearChart').getContext('2d');
+    new Chart(yearCtx, {
+        type: 'line',
+        data: {
+            labels: {{ birth_year_labels|tojson }},
+            datasets: [{
+                label: 'عدد الموظفين',
+                data: {{ birth_year_data|tojson }},
+                borderColor: '#f39c12',
+                backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `عدد الموظفين: ${context.raw}`;
+                        }
+                    }
+                },
+                datalabels: {
+                    color: '#f39c12',
+                    font: {
+                        weight: 'bold',
+                        size: 12
+                    },
+                    formatter: (value) => {
+                        return value;
+                    },
+                    align: 'top',
+                    offset: 5
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    // Birth Places Chart (Bar) - أماكن الميلاد مع عرض الأرقام
+    {% if birth_places_labels and birth_places_data %}
+    const birthCtx = document.getElementById('birthPlacesChart').getContext('2d');
+    new Chart(birthCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ birth_places_labels|tojson }},
+            datasets: [{
+                label: 'عدد الموظفين',
+                data: {{ birth_places_data|tojson }},
+                backgroundColor: '#667eea',
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `عدد الموظفين: ${context.raw}`;
+                        }
+                    }
+                },
+                datalabels: {
+                    color: '#667eea',
+                    font: {
+                        weight: 'bold',
+                        size: 12
+                    },
+                    formatter: (value) => {
+                        return value;
+                    },
+                    align: 'top',
+                    offset: 5
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    // Residence Chart (Bar) - أماكن السكن مع عرض الأرقام
+    {% if residence_labels and residence_data %}
+    const residenceCtx = document.getElementById('residenceChart').getContext('2d');
+    new Chart(residenceCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ residence_labels|tojson }},
+            datasets: [{
+                label: 'عدد الموظفين',
+                data: {{ residence_data|tojson }},
+                backgroundColor: '#28a745',
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `عدد الموظفين: ${context.raw}`;
+                        }
+                    }
+                },
+                datalabels: {
+                    color: '#28a745',
+                    font: {
+                        weight: 'bold',
+                        size: 12
+                    },
+                    formatter: (value) => {
+                        return value;
+                    },
+                    align: 'top',
+                    offset: 5
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}

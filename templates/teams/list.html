@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}فرق العمل - ميناء رأس عيسى{% endblock %}
+
+{% block page_title %}إدارة فرق العمل{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item active">فرق العمل</li>
+{% endblock %}
+
+{% block page_actions %}
+{% if current_user.is_admin() %}
+<a href="{{ url_for('add_team') }}" class="btn btn-primary">
+    <i class="fas fa-plus-circle"></i> إضافة فرقة جديدة
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    {% for team in teams %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header
+                {% if team.is_active %}bg-primary{% else %}bg-secondary{% endif %}
+                text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>
+                    {{ team.name }}
+                </h5>
+                <span class="badge bg-light text-dark">{{ team.members|length }} عضو</span>
+            </div>
+
+            <div class="card-body">
+                <!-- نوع الفرقة والحالة -->
+                <div class="mb-3">
+                    <span class="badge bg-info">{{ team.team_type }}</span>
+                    {% if team.is_active %}
+                        <span class="badge bg-success">نشطة</span>
+                    {% else %}
+                        <span class="badge bg-danger">غير نشطة</span>
+                    {% endif %}
+                </div>
+
+                <!-- معلومات القائد -->
+                <div class="mb-3 p-2 bg-light rounded">
+                    <h6 class="text-primary mb-2">
+                        <i class="fas fa-crown"></i> قائد الفرقة
+                    </h6>
+
+                    {% set leader_found = false %}
+                    {% for member in team.members %}
+                        {% if 'رئيس' in member.profession %}
+                            {% set leader_found = true %}
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="avatar-circle bg-warning text-white me-2">
+                                    {{ member.name[0] }}
+                                </div>
+                                <div>
+                                    <strong>{{ member.name }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        <i class="fas fa-briefcase me-1"></i> {{ member.profession }}
+                                    </small>
+                                </div>
+                            </div>
+                            {% if member.phone %}
+                            <div class="mt-1">
+                                <i class="fas fa-phone text-primary ms-1"></i>
+                                <a href="tel:{{ member.phone }}" class="text-decoration-none">
+                                    {{ member.phone }}
+                                </a>
+                            </div>
+                            {% else %}
+                            <div class="mt-1 text-muted">
+                                <i class="fas fa-phone-slash ms-1"></i>
+                                لا يوجد رقم هاتف
+                            </div>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if not leader_found %}
+                        <div class="text-muted">
+                            <i class="fas fa-user-slash me-1"></i>
+                            لم يتم تعيين قائد للفرقة
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- معلومات إضافية -->
+                <div class="small text-muted">
+                    <p class="mb-1">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        تاريخ الإنشاء: {{ team.created_at.strftime('%Y-%m-%d') }}
+                    </p>
+                    <p class="mb-0">
+                        <i class="fas fa-clock me-1"></i>
+                        آخر تحديث: {{ team.created_at.strftime('%Y-%m-%d') }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- أزرار الإجراءات -->
+            <div class="card-footer bg-transparent">
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('edit_team', id=team.id) }}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit"></i> تعديل
+                    </a>
+
+                    <button type="button" class="btn btn-info btn-sm" onclick="showTeamDetails({{ team.id }})">
+                        <i class="fas fa-eye"></i> عرض
+                    </button>
+
+                    {% if current_user.is_admin() %}
+                    <a href="{{ url_for('delete_team', id=team.id) }}" class="btn btn-danger btn-sm"
+                       onclick="return confirm('⚠️ هل أنت متأكد من حذف فرقة {{ team.name }}؟\nسيتم إزالة جميع أعضاء هذه الفرقة')">
+                        <i class="fas fa-trash"></i> حذف
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal for Team Details -->
+<div class="modal fade" id="teamDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-users me-2"></i>
+                    تفاصيل الفرقة
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="teamDetailsContent">
+                <!-- سيتم تعبئتها عبر JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 18px;
+    }
+
+    .card {
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+
+    .card-footer {
+        border-top: 1px solid rgba(0,0,0,0.1);
+    }
+</style>
+
+<script>
+    function showTeamDetails(teamId) {
+        // البحث عن بيانات الفرقة في الجدول (سنقوم بتحسينها لاحقاً)
+        fetch(`/api/teams/${teamId}`)
+            .then(response => response.json())
+            .then(data => {
+                let membersHtml = '';
+                data.members.forEach(member => {
+                    const isLeader = member.profession.includes('رئيس');
+                    membersHtml += `
+                        <tr>
+                            <td>${member.name}</td>
+                            <td>${member.profession}</td>
+                            <td>${member.phone || '—'}</td>
+                            <td>${isLeader ? '👑' : ''}</td>
+                        </tr>
+                    `;
+                });
+
+                const details = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">معلومات الفرقة</h6>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th>اسم الفرقة:</th>
+                                    <td>${data.name}</td>
+                                </tr>
+                                <tr>
+                                    <th>نوع الفرقة:</th>
+                                    <td>${data.team_type}</td>
+                                </tr>
+                                <tr>
+                                    <th>الحالة:</th>
+                                    <td>${data.is_active ? 'نشطة' : 'غير نشطة'}</td>
+                                </tr>
+                                <tr>
+                                    <th>تاريخ الإنشاء:</th>
+                                    <td>${data.created_at}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-primary">قائد الفرقة</h6>
+                            ${data.leader ? `
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="avatar-circle bg-warning text-white me-2">
+                                        ${data.leader.name[0]}
+                                    </div>
+                                    <div>
+                                        <strong>${data.leader.name}</strong><br>
+                                        <small>${data.leader.phone || 'لا يوجد هاتف'}</small>
+                                    </div>
+                                </div>
+                            ` : '<p>لا يوجد قائد</p>'}
+                        </div>
+                    </div>
+                    <hr>
+                    <h6 class="text-primary">أعضاء الفرقة (${data.members.length})</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>الاسم</th>
+                                    <th>المهنة</th>
+                                    <th>رقم الهاتف</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${membersHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                document.getElementById('teamDetailsContent').innerHTML = details;
+                new bootstrap.Modal(document.getElementById('teamDetailsModal')).show();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ في تحميل بيانات الفرقة');
+            });
+    }
+</script>
+{% endblock %}

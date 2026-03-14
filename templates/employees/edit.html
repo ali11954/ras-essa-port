@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل بيانات الموظف - ميناء رأس عيسى{% endblock %}
+
+{% block page_title %}تعديل بيانات الموظف{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('employee_list') }}">الموظفين</a></li>
+<li class="breadcrumb-item active">تعديل موظف</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-edit me-2"></i>
+                    تعديل بيانات الموظف: {{ employee.name }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="employeeForm">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">الاسم الكامل</label>
+                            {{ form.name(class="form-control", placeholder="أدخل الاسم الكامل") }}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">الرقم الوطني</label>
+                            {{ form.national_id(class="form-control", placeholder="أدخل الرقم الوطني") }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">مكان الميلاد</label>
+                            {{ form.birth_place(class="form-control", placeholder="أدخل مكان الميلاد") }}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">السكن الحالي</label>
+                            {{ form.current_address(class="form-control", placeholder="أدخل عنوان السكن") }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">تاريخ الميلاد</label>
+                            {{ form.birth_date(class="form-control", type="date") }}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">المهنة</label>
+                            {{ form.profession(class="form-control", placeholder="أدخل المهنة") }}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">الفرقة</label>
+                            {{ form.team_id(class="form-select") }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+    <label class="form-label">رقم الهاتف</label>
+    {{ form.phone(class="form-control", placeholder="أدخل رقم الهاتف") }}
+</div>
+                    </div>
+
+                    <hr>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+                                       {% if employee.is_active %}checked{% endif %}>
+                                <label class="form-check-label" for="is_active">
+                                    الموظف نشط
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mt-1">
+                                إذا كان الموظف غير نشط، لن يظهر في قوائم الفرق النشطة
+                            </small>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-warning px-5">
+                            <i class="fas fa-save me-2"></i>
+                            تحديث البيانات
+                        </button>
+                        <a href="{{ url_for('employee_list') }}" class="btn btn-secondary px-5">
+                            <i class="fas fa-times me-2"></i>
+                            إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Additional Info Card -->
+        <div class="card mt-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">
+                    <i class="fas fa-clock me-2"></i>
+                    معلومات إضافية
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-2">
+                            <i class="fas fa-calendar-plus text-primary me-2"></i>
+                            <strong>تاريخ الإضافة:</strong>
+                            {{ employee.hire_date.strftime('%Y-%m-%d') if employee.hire_date else 'غير محدد' }}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-2">
+                            <i class="fas fa-user-tag text-primary me-2"></i>
+                            <strong>الحالة:</strong>
+                            {% if employee.is_active %}
+                                <span class="badge bg-success">نشط</span>
+                            {% else %}
+                                <span class="badge bg-danger">غير نشط</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // لا يوجد أي تحقق - النموذج سيرسل مباشرة
+        // تم إزالة كل التحقق من الأرقام
+
+        // تحذير قبل المغادرة مع تغييرات غير محفوظة
+        let formChanged = false;
+        $('#employeeForm input, #employeeForm select').on('change', function() {
+            formChanged = true;
+        });
+
+        $(window).on('beforeunload', function() {
+            if (formChanged) {
+                return 'لديك تغييرات غير محفوظة. هل أنت متأكد من المغادرة؟';
+            }
+        });
+
+        $('#employeeForm').on('submit', function() {
+            $(window).off('beforeunload');
+        });
+    });
+</script>
+{% endblock %}

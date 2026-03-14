@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة عملية جديدة - ميناء رأس عيسى{% endblock %}
+
+{% block page_title %}إضافة عملية جديدة{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('operation_list') }}">العمليات</a></li>
+<li class="breadcrumb-item active">إضافة عملية</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    إضافة عملية جديدة
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="operationForm">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-ship text-primary me-1"></i>
+                                السفينة <span class="text-danger">*</span>
+                            </label>
+                            {{ form.ship_id(class="form-select") }}
+                            {% if form.ship_id.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.ship_id.errors %}
+                                        <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-tag text-primary me-1"></i>
+                                نوع العملية <span class="text-danger">*</span>
+                            </label>
+                            {{ form.operation_type(class="form-select") }}
+                            {% if form.operation_type.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.operation_type.errors %}
+                                        <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-clock text-primary me-1"></i>
+                                تاريخ البدء <span class="text-danger">*</span>
+                            </label>
+                            {{ form.start_time(class="form-control", type="datetime-local") }}
+                            {% if form.start_time.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.start_time.errors %}
+                                        <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> اختر التاريخ والوقت
+                            </small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-clock text-primary me-1"></i>
+                                تاريخ الانتهاء
+                            </label>
+                            {{ form.end_time(class="form-control", type="datetime-local") }}
+                            {% if form.end_time.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.end_time.errors %}
+                                        <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> اتركه فارغاً إذا لم تنتهِ العملية
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- اختيار الفرق - بنفس أسلوب اختيار الأعضاء -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-users me-2"></i>
+                                الفرق المنفذة للعملية
+                            </h6>
+                            <p class="text-muted small">اختر الفرق المشاركة في تنفيذ هذه العملية</p>
+
+                            <div class="mb-3">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-primary text-white">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="searchTeams" placeholder="ابحث عن فريق...">
+                                </div>
+                            </div>
+
+                            <div class="teams-selection border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                                {% for team in teams %}
+                                <div class="form-check team-item mb-2 p-2" data-name="{{ team.name }}">
+                                    <input class="form-check-input" type="checkbox" name="team_ids" value="{{ team.id }}" id="team_{{ team.id }}">
+                                    <label class="form-check-label d-flex justify-content-between align-items-center w-100" for="team_{{ team.id }}">
+                                        <span>
+                                            <i class="fas fa-users text-primary me-2"></i>
+                                            <strong>{{ team.name }}</strong>
+                                            <small class="text-muted me-2">({{ team.team_type }})</small>
+                                        </span>
+                                        <span>
+                                            <span class="badge bg-info">{{ team.members|length }} عضو</span>
+                                            {% if team.leader %}
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-crown me-1"></i> {{ team.leader.name }}
+                                                </span>
+                                            {% endif %}
+                                        </span>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="mt-2 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle"></i>
+                                        يمكنك اختيار عدة فرق للعملية الواحدة
+                                    </small>
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllTeams()">
+                                        <i class="fas fa-check-double me-1"></i>تحديد الكل
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllTeams()">
+                                        <i class="fas fa-times me-1"></i>إلغاء التحديد
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="selectedTeamsCount" class="alert alert-info mt-2 py-2" style="display: none;">
+                                <i class="fas fa-users me-2"></i>
+                                <span id="selectedTeamsCountText">0</span> فريق تم اختيارهم
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-box text-primary me-1"></i>
+                                نوع البضاعة
+                            </label>
+                            {{ form.cargo_type(class="form-control", placeholder="أدخل نوع البضاعة") }}
+                            <small class="text-muted">مثال: حبوب، حاويات، نفط</small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-weight-hanging text-primary me-1"></i>
+                                الكمية (طن)
+                            </label>
+                            {{ form.cargo_quantity(class="form-control", placeholder="أدخل الكمية", step="0.1") }}
+                            <small class="text-muted">أدخل الكمية بالطن (اختياري)</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-sticky-note text-primary me-1"></i>
+                            ملاحظات
+                        </label>
+                        {{ form.notes(class="form-control", rows="3", placeholder="أي ملاحظات إضافية عن العملية...") }}
+                    </div>
+
+                    <hr>
+
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary px-5">
+                            <i class="fas fa-save me-2"></i>
+                            حفظ العملية
+                        </button>
+
+                        <a href="{{ url_for('operation_list') }}" class="btn btn-secondary px-5">
+                            <i class="fas fa-times me-2"></i>
+                            إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // تحديث عداد الفرق المختارة
+        function updateSelectedTeamsCount() {
+            const selectedCount = $('input[name="team_ids"]:checked').length;
+            if (selectedCount > 0) {
+                $('#selectedTeamsCount').show();
+                $('#selectedTeamsCountText').text(selectedCount);
+            } else {
+                $('#selectedTeamsCount').hide();
+            }
+        }
+
+        // البحث في قائمة الفرق
+        $('#searchTeams').on('keyup', function() {
+            const searchText = $(this).val().toLowerCase();
+            $('.team-item').each(function() {
+                const teamName = $(this).data('name').toLowerCase();
+                if (teamName.includes(searchText)) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        });
+
+        // تحديث العداد عند تغيير الاختيار
+        $('input[name="team_ids"]').on('change', function() {
+            updateSelectedTeamsCount();
+        });
+
+        // التحقق من صحة النموذج
+        $('#operationForm').on('submit', function(e) {
+            var startTime = new Date($('input[name="start_time"]').val());
+            var endTime = $('input[name="end_time"]').val() ? new Date($('input[name="end_time"]').val()) : null;
+
+            // التحقق من وجود تاريخ البدء
+            if (!$('input[name="start_time"]').val()) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'يرجى إدخال تاريخ البدء'
+                });
+                return false;
+            }
+
+            // التحقق من أن تاريخ الانتهاء بعد تاريخ البدء (إذا تم إدخاله)
+            if (endTime && endTime < startTime) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ في التواريخ',
+                    text: 'تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء'
+                });
+                return false;
+            }
+
+            // عرض رسالة تأكيد قبل الحفظ
+            var selectedTeams = $('input[name="team_ids"]:checked').length;
+            var confirmMessage = 'هل أنت متأكد من إضافة هذه العملية؟';
+
+            if (selectedTeams > 0) {
+                confirmMessage = `سيتم إضافة العملية مع ${selectedTeams} فرق`;
+            } else {
+                confirmMessage = `سيتم إضافة العملية بدون فرق`;
+            }
+
+            e.preventDefault(); // منع الإرسال المباشر
+
+            Swal.fire({
+                title: 'تأكيد الإضافة',
+                text: confirmMessage,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'نعم، أضف',
+                cancelButtonText: 'إلغاء'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $(window).off('beforeunload');
+                    $('#operationForm')[0].submit();
+                }
+            });
+        });
+
+        // تحذير قبل المغادرة مع تغييرات غير محفوظة
+        let formChanged = false;
+        $('#operationForm input, #operationForm select, #operationForm textarea, #operationForm input[type="checkbox"]').on('change', function() {
+            formChanged = true;
+        });
+
+        $(window).on('beforeunload', function() {
+            if (formChanged) {
+                return 'لديك تغييرات غير محفوظة. هل أنت متأكد من المغادرة؟';
+            }
+        });
+
+        $('#operationForm').on('submit', function() {
+            $(window).off('beforeunload');
+        });
+    });
+
+    // دوال مساعدة
+    function selectAllTeams() {
+        $('input[name="team_ids"]').prop('checked', true).trigger('change');
+    }
+
+    function deselectAllTeams() {
+        $('input[name="team_ids"]').prop('checked', false).trigger('change');
+    }
+</script>
+{% endblock %}

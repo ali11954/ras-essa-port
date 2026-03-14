@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+
+{% block title %}الأرصفة - ميناء رأس عيسى{% endblock %}
+
+{% block page_title %}إدارة الأرصفة{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item active">الأرصفة</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    {% if current_user.is_admin() %}
+    <a href="{{ url_for('add_berth') }}" class="btn btn-primary">
+        <i class="fas fa-plus-circle"></i> إضافة رصيف جديد
+    </a>
+    {% endif %}
+    <button class="btn btn-success" onclick="exportToExcel()">
+        <i class="fas fa-file-excel"></i> تصدير Excel
+    </button>
+    <button class="btn btn-danger" onclick="exportToPDF()">
+        <i class="fas fa-file-pdf"></i> تصدير PDF
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- إحصائيات سريعة -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-anchor stat-icon"></i>
+            <div class="stat-title">إجمالي الأرصفة</div>
+            <div class="stat-value">{{ stats.total }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-check-circle stat-icon" style="color: #28a745;"></i>
+            <div class="stat-title">أرصفة متاحة</div>
+            <div class="stat-value">{{ stats.active }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-times-circle stat-icon" style="color: #dc3545;"></i>
+            <div class="stat-title">أرصفة مشغولة</div>
+            <div class="stat-value">{{ stats.occupied }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-ship stat-icon"></i>
+            <div class="stat-title">إجمالي السفن</div>
+            <div class="stat-value">{{ stats.total_ships }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>
+            قائمة الأرصفة
+        </h5>
+        <span class="badge bg-light text-primary">{{ berths|length }} رصيف</span>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="berthsTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th><i class="fas fa-hashtag"></i> رقم الرصيف</th>
+                        <th><i class="fas fa-ruler"></i> الطول (م)</th>
+                        <th><i class="fas fa-water"></i> العمق (م)</th>
+                        <th><i class="fas fa-ship"></i> السفن المرتبطة</th>
+                        <th><i class="fas fa-info-circle"></i> الحالة</th>
+                        <th><i class="fas fa-sticky-note"></i> ملاحظات</th>
+                        {% if current_user.is_admin() %}
+                        <th><i class="fas fa-cogs"></i> الإجراءات</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for berth in berths %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <strong>{{ berth.number }}</strong>
+                        </td>
+                        <td>{{ berth.length or '—' }}</td>
+                        <td>{{ berth.depth or '—' }}</td>
+                        <td>
+                            {% if berth.is_occupied %}
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-ship me-1"></i>
+                                    {{ berth.current_ship.name if berth.current_ship else 'سفينة' }}
+                                </span>
+                                <br>
+                                <small class="text-muted">مشغول حالياً</small>
+                            {% else %}
+                                <span class="badge bg-success">متاح</span>
+                                <br>
+                                <small class="text-muted">لا توجد سفن</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if berth.is_available %}
+                                <span class="badge bg-success">متاح</span>
+                            {% else %}
+                                <span class="badge bg-danger">غير متاح</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if berth.notes %}
+                                <i class="fas fa-comment text-muted" title="{{ berth.notes }}"></i>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        {% if current_user.is_admin() %}
+                        <td class="action-buttons">
+                            <a href="{{ url_for('edit_berth', id=berth.id) }}" class="btn btn-sm btn-warning" title="تعديل">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button class="btn btn-sm btn-info" title="عرض السفن"
+                                    onclick="showBerthShips({{ berth.id }})">
+                                <i class="fas fa-ship"></i>
+                            </button>
+                            <a href="{{ url_for('toggle_berth', id=berth.id) }}" class="btn btn-sm btn-secondary"
+                               title="{% if berth.is_available %}تعطيل{% else %}تفعيل{% endif %}">
+                                <i class="fas {% if berth.is_available %}fa-ban{% else %}fa-check-circle{% endif %}"></i>
+                            </a>
+                            <a href="{{ url_for('delete_berth', id=berth.id) }}" class="btn btn-sm btn-danger"
+                               onclick="return confirm('⚠️ هل أنت متأكد من حذف الرصيف {{ berth.number }}؟')" title="حذف">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Berth Ships -->
+<div class="modal fade" id="berthShipsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-ship me-2"></i>
+                    السفن المرتبطة بالرصيف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="berthShipsContent">
+                <!-- سيتم تعبئتها عبر JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('#berthsTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
+            },
+            pageLength: 25,
+            order: [[1, 'asc']]
+        });
+    });
+
+    function showBerthShips(berthId) {
+        fetch(`/api/berths/${berthId}/ships`)
+            .then(response => response.json())
+            .then(data => {
+                let shipsHtml = '';
+
+                if (data.ships.length > 0) {
+                    shipsHtml = `
+                        <h6 class="text-primary mb-3">الرصيف ${data.berth_number} - إجمالي السفن: ${data.ships_count}</h6>
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>اسم السفينة</th>
+                                    <th>رقم IMO</th>
+                                    <th>تاريخ الوصول</th>
+                                    <th>تاريخ المغادرة</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    data.ships.forEach((ship, index) => {
+                        shipsHtml += `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td>${ship.name}</td>
+                                <td>${ship.imo_number}</td>
+                                <td>${ship.arrival_date}</td>
+                                <td>${ship.departure_date}</td>
+                                <td>
+                                    <span class="badge ${ship.status == 'arrived' ? 'bg-success' : 'bg-secondary'}">
+                                        ${ship.status == 'arrived' ? 'واصلة' : 'مغادرة'}
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    shipsHtml += '</tbody></table>';
+                } else {
+                    shipsHtml = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            لا توجد سفن مرتبطة بالرصيف ${data.berth_number}
+                        </div>
+                    `;
+                }
+
+                document.getElementById('berthShipsContent').innerHTML = shipsHtml;
+                new bootstrap.Modal(document.getElementById('berthShipsModal')).show();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'حدث خطأ في تحميل بيانات السفن'
+                });
+            });
+    }
+
+    function exportToExcel() {
+        // تصدير الجدول إلى Excel
+        const table = document.getElementById('berthsTable');
+        const wb = XLSX.utils.table_to_book(table, { sheet: "الأرصفة" });
+        XLSX.writeFile(wb, `تقرير_الأرصفة_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+        Swal.fire({
+            icon: 'success',
+            title: 'تم التصدير',
+            text: 'تم تصدير التقرير بنجاح',
+            timer: 2000
+        });
+    }
+
+    function exportToPDF() {
+        // تحضير محتوى PDF
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+
+        // عنوان التقرير
+        doc.setFont('arial', 'bold');
+        doc.setFontSize(18);
+        doc.text('ميناء رأس عيسى - تقرير الأرصفة', 105, 20, { align: 'center' });
+
+        // تاريخ التقرير
+        doc.setFontSize(10);
+        doc.text(`تاريخ التقرير: ${new Date().toLocaleDateString('ar-EG')}`, 105, 30, { align: 'center' });
+
+        // إحصائيات
+        doc.setFontSize(12);
+        doc.text('إحصائيات:', 20, 45);
+        doc.setFontSize(10);
+        doc.text(`إجمالي الأرصفة: {{ stats.total }}`, 30, 52);
+        doc.text(`أرصفة متاحة: {{ stats.active }}`, 30, 58);
+        doc.text(`أرصفة مشغولة: {{ stats.occupied }}`, 30, 64);
+        doc.text(`إجمالي السفن: {{ stats.total_ships }}`, 30, 70);
+
+        // جدول الأرصفة
+        const tableColumn = ["#", "رقم الرصيف", "الطول", "العمق", "الحالة", "ملاحظات"];
+        const tableRows = [];
+
+        {% for berth in berths %}
+        tableRows.push([
+            "{{ loop.index }}",
+            "{{ berth.number }}",
+            "{{ berth.length or '—' }}",
+            "{{ berth.depth or '—' }}",
+            "{{ 'متاح' if berth.is_available else 'غير متاح' }}",
+            "{{ berth.notes or '—' }}"
+        ]);
+        {% endfor %}
+
+        doc.autoTable({
+            head: [tableColumn],
+            body: tableRows,
+            startY: 80,
+            theme: 'striped',
+            styles: {
+                font: 'arial',
+                fontSize: 8,
+                halign: 'right',
+                cellPadding: 3
+            },
+            headStyles: {
+                fillColor: [102, 126, 234],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold'
+            },
+            columnStyles: {
+                0: { cellWidth: 10 },
+                1: { cellWidth: 25 },
+                2: { cellWidth: 20 },
+                3: { cellWidth: 20 },
+                4: { cellWidth: 25 },
+                5: { cellWidth: 40 }
+            }
+        });
+
+        // حفظ الملف
+        doc.save(`تقرير_الأرصفة_${new Date().toISOString().split('T')[0]}.pdf`);
+
+        Swal.fire({
+            icon: 'success',
+            title: 'تم التصدير',
+            text: 'تم تصدير التقرير بنجاح',
+            timer: 2000
+        });
+    }
+</script>
+
+<!-- إضافة مكتبة jsPDF و autoTable -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+<!-- إضافة مكتبة SheetJS لتصدير Excel -->
+<script src="https://cdn.sheetjs.com/xlsx-0.19.2/package/dist/xlsx.full.min.js"></script>
+
+{% endblock %}

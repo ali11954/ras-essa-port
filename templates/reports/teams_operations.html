@@ -1,0 +1,722 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير فرق العمل مع العمليات - ميناء رأس عيسى{% endblock %}
+
+{% block page_title %}تقرير فرق العمل مع العمليات{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('reports_index') }}">التقارير</a></li>
+<li class="breadcrumb-item active">تقرير فرق العمل مع العمليات</li>
+{% endblock %}
+
+{% block content %}
+<!-- إحصائيات سريعة -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-users stat-icon"></i>
+            <div class="stat-title">إجمالي الفرق</div>
+            <div class="stat-value">{{ report_data|length }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-tasks stat-icon"></i>
+            <div class="stat-title">إجمالي العمليات (الفريدة)</div>
+            <div class="stat-value">{{ unique_operations }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-clock stat-icon"></i>
+            <div class="stat-title">إجمالي ساعات العمل (الفريدة)</div>
+            <div class="stat-value">{{ "%.2f"|format(unique_hours) }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-chart-line stat-icon"></i>
+            <div class="stat-title">متوسط العمليات لكل فريق</div>
+            <div class="stat-value">{{ "%.1f"|format(report_data|sum(attribute='total_operations') / report_data|length if report_data else 0) }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- جدول ملخص الفرق -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>
+            ملخص أداء الفرق
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="teamsSummaryTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th><i class="fas fa-users"></i> اسم الفرقة</th>
+                        <th><i class="fas fa-tag"></i> نوع الفرقة</th>
+                        <th><i class="fas fa-user-tie"></i> القائد</th>
+                        <th><i class="fas fa-tasks"></i> إجمالي العمليات</th>
+                        <th><i class="fas fa-check-circle"></i> المكتملة</th>
+                        <th><i class="fas fa-hourglass-half"></i> إجمالي الساعات</th>
+                        <th><i class="fas fa-chart-bar"></i> متوسط المدة</th>
+                        <th><i class="fas fa-info-circle"></i> التفاصيل</th>
+                        <th><i class="fas fa-print"></i> تصدير</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in report_data %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <strong>{{ item.team.name }}</strong>
+                            {% if not item.team.is_active %}
+                                <span class="badge bg-danger">غير نشطة</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.team.team_type }}</td>
+                        <td>
+                            {% if item.team.leader %}
+                                <span title="هاتف: {{ item.team.leader.phone }}">
+                                    {{ item.team.leader.name }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-info">{{ item.total_operations }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-success">{{ item.completed_operations }}</span>
+                        </td>
+                        <td class="text-center">
+                            <strong>{{ "%.2f"|format(item.total_hours) }}</strong> ساعة
+                        </td>
+                        <td class="text-center">
+                            {{ "%.2f"|format(item.avg_duration) }} ساعة
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-info" onclick="showTeamDetails({{ item.team.id }})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                        <td>
+    <a href="{{ url_for('team_pass_page', team_id=item.team.id) }}" target="_blank" class="btn btn-sm btn-success">
+        <i class="fas fa-print"></i> تصريح
+    </a>
+</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- تفاصيل العمليات لكل فريق -->
+<div class="card">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-clock me-2"></i>
+            آخر 10 عمليات لكل فريق
+        </h5>
+        <span class="badge bg-light text-primary">اضغط على الفرقة لعرض التفاصيل</span>
+    </div>
+    <div class="card-body">
+        <div class="accordion" id="teamsAccordion">
+            {% for item in report_data %}
+            <div class="accordion-item mb-3">
+                <h2 class="accordion-header" id="heading{{ item.team.id }}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#collapse{{ item.team.id }}"
+                            aria-expanded="false" aria-controls="collapse{{ item.team.id }}">
+                        <div class="d-flex justify-content-between align-items-center w-100">
+                            <span>
+                                <i class="fas fa-users text-primary me-2"></i>
+                                <strong>{{ item.team.name }}</strong>
+                                <span class="badge bg-info me-2">{{ item.team.team_type }}</span>
+                                {% if item.team.leader %}
+                                    <small class="text-muted">
+                                        (قائد: {{ item.team.leader.name }})
+                                    </small>
+                                {% endif %}
+                            </span>
+                            <span class="me-3">
+                                <span class="badge bg-primary me-1">إجمالي: {{ item.total_operations }}</span>
+                                <span class="badge bg-success me-1">مكتمل: {{ item.completed_operations }}</span>
+                                <span class="badge bg-warning">{{ "%.2f"|format(item.total_hours) }} ساعة</span>
+                            </span>
+                        </div>
+                    </button>
+                </h2>
+                <div id="collapse{{ item.team.id }}" class="accordion-collapse collapse"
+                     aria-labelledby="heading{{ item.team.id }}" data-bs-parent="#teamsAccordion">
+                    <div class="accordion-body">
+                        {% if item.operations %}
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>السفينة</th>
+                                            <th>نوع العملية</th>
+                                            <th>تاريخ البدء</th>
+                                            <th>تاريخ الانتهاء</th>
+                                            <th>المدة</th>
+                                            <th>البضاعة</th>
+                                            <th>الكمية</th>
+                                            <th>الرصيف</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for op in item.operations %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>{{ op.ship.name if op.ship else '—' }}</td>
+                                            <td>
+                                                <span class="badge {% if op.operation_type == 'تحميل' %}bg-success
+                                                              {% elif op.operation_type == 'تفريغ' %}bg-warning
+                                                              {% elif op.operation_type == 'صيانة' %}bg-info
+                                                              {% else %}bg-secondary{% endif %}">
+                                                    {{ op.operation_type }}
+                                                </span>
+                                            </td>
+                                            <td>{{ op.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                            <td>{{ op.end_time.strftime('%Y-%m-%d %H:%M') if op.end_time else '—' }}</td>
+                                            <td>
+                                                {% if op.duration %}
+                                                    {{ op.duration }} ساعة
+                                                    <br>
+                                                    <small class="text-muted">{{ op.duration_text }}</small>
+                                                {% else %}
+                                                    <span class="badge bg-warning">جارية</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ op.cargo_type or '—' }}</td>
+                                            <td>{{ op.cargo_quantity or '—' }}</td>
+                                            <td>{{ op.ship.berth_number if op.ship else '—' }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info mb-0">
+                                <i class="fas fa-info-circle"></i>
+                                لا توجد عمليات لهذه الفرقة
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Team Details -->
+<div class="modal fade" id="teamDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>
+                    تفاصيل الفرقة
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="teamDetailsContent">
+                <!-- سيتم تعبئتها عبر JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Team Pass -->
+<div class="modal fade" id="teamPassModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-id-card me-2"></i>
+                    تصريح دخول الفرقة - الرصيف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="teamPassContent">
+                <!-- سيتم تعبئتها عبر JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="window.print()">
+                    <i class="fas fa-print me-2"></i> طباعة
+                </button>
+                <button type="button" class="btn btn-success" onclick="exportToPDF()">
+                    <i class="fas fa-file-pdf me-2"></i> تصدير PDF
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- توضيح طريقة الحساب -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>ملاحظة حول الإحصائيات:</strong>
+            <ul class="mb-0 mt-2">
+                <li>📊 <strong>إجمالي العمليات (الفريدة)</strong>: إجمالي عدد العمليات المختلفة في النظام (كل عملية تحسب مرة واحدة)</li>
+                <li>⏱️ <strong>إجمالي ساعات العمل (الفريدة)</strong>: مجموع ساعات جميع العمليات المختلفة</li>
+                <li>👥 <strong>في جدول الفرق</strong>: عدد العمليات لكل فريق يمثل عدد العمليات التي شارك فيها هذا الفريق</li>
+                <li>⚡ العملية الواحدة قد تشارك فيها عدة فرق، وتحسب لكل فريق على حدة في جدول الفرق</li>
+                <li>🖨️ <strong>زر التصريح</strong>: يطبع كشف للفرقة مع بيانات السفينة والرصيف لتسليمه لبوابة الرصيف</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        // تفعيل DataTable لجدول الملخص
+        $('#teamsSummaryTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
+            },
+            pageLength: 25,
+            order: [[4, 'desc']]
+        });
+    });
+
+    function showTeamDetails(teamId) {
+        fetch(`/api/teams/${teamId}`)
+            .then(response => response.json())
+            .then(data => {
+                let membersHtml = '';
+                data.members.forEach(member => {
+                    const isLeader = member.is_leader;
+                    membersHtml += `
+                        <tr>
+                            <td>${member.name}</td>
+                            <td>${member.profession}</td>
+                            <td>${member.phone || '—'}</td>
+                            <td>${isLeader ? '👑' : ''}</td>
+                        </tr>
+                    `;
+                });
+
+                const details = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">معلومات الفرقة</h6>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th>اسم الفرقة:</th>
+                                    <td>${data.name}</td>
+                                </tr>
+                                <tr>
+                                    <th>نوع الفرقة:</th>
+                                    <td>${data.team_type}</td>
+                                </tr>
+                                <tr>
+                                    <th>الحالة:</th>
+                                    <td>${data.is_active ? 'نشطة' : 'غير نشطة'}</td>
+                                </tr>
+                                <tr>
+                                    <th>تاريخ الإنشاء:</th>
+                                    <td>${data.created_at}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-primary">قائد الفرقة</h6>
+                            ${data.leader ? `
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="avatar-circle bg-warning text-white me-2">
+                                        ${data.leader.name[0]}
+                                    </div>
+                                    <div>
+                                        <strong>${data.leader.name}</strong><br>
+                                        <small>${data.leader.phone || 'لا يوجد هاتف'}</small>
+                                    </div>
+                                </div>
+                            ` : '<p>لا يوجد قائد</p>'}
+                        </div>
+                    </div>
+                    <hr>
+                    <h6 class="text-primary">أعضاء الفرقة (${data.members.length})</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>الاسم</th>
+                                    <th>المهنة</th>
+                                    <th>رقم الهاتف</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${membersHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                document.getElementById('teamDetailsContent').innerHTML = details;
+                new bootstrap.Modal(document.getElementById('teamDetailsModal')).show();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'حدث خطأ في تحميل بيانات الفرقة'
+                });
+            });
+    }
+
+    function printTeamPass(teamId) {
+        // إعادة تعيين محتوى المودال
+        document.getElementById('teamPassContent').innerHTML = '<div style="text-align: center; padding: 20px;">جاري تحميل البيانات...</div>';
+
+        // إعادة تعيين أنماط المودال
+        const modalBody = document.querySelector('#teamPassModal .modal-body');
+        if (modalBody) {
+            modalBody.style.maxHeight = 'none';
+            modalBody.style.overflowY = 'visible';
+            modalBody.style.padding = '10px';
+        }
+
+        fetch(`/api/teams/${teamId}`)
+            .then(response => response.json())
+            .then(data => {
+                fetch(`/api/teams/${teamId}/current-operations`)
+                    .then(res => res.json())
+                    .then(ops => {
+                        const now = new Date();
+                        const dateStr = now.toLocaleDateString('ar-EG').replace(/\//g, '-');
+
+                        let shipInfo = '';
+                        if (ops.length > 0) {
+                            const firstOp = ops[0];
+                            shipInfo = `
+                                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px; border-radius: 3px; margin-bottom: 4px;">
+                                    <div style="display: flex; flex-wrap: wrap; gap: 5px; font-size: 10px;">
+                                        <span><strong>🚢</strong> ${firstOp.ship_name}</span>
+                                        <span><strong>⚓</strong> ${firstOp.berth_number || '—'}</span>
+                                        <span><strong>🔧</strong> ${firstOp.operation_type}</span>
+                                        <span><strong>📦</strong> ${firstOp.cargo_type || '—'}</span>
+                                        <span><strong>⚖️</strong> ${firstOp.cargo_quantity || '—'} طن</span>
+                                        <span><strong>📅</strong> ${firstOp.start_time.split(' ')[0]}</span>
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        let membersHtml = '';
+                        data.members.forEach((member, index) => {
+                            const isLeader = member.is_leader;
+                            membersHtml += `
+                                <tr style="border-bottom: 1px solid #eee;">
+                                    <td style="padding: 2px 1px; text-align: center; font-size: 9px;">${index + 1}</td>
+                                    <td style="padding: 2px 1px; font-size: 10px; font-weight: ${isLeader ? 'bold' : 'normal'};">${member.name}</td>
+                                    <td style="padding: 2px 1px; font-size: 9px;">${member.profession}</td>
+                                    <td style="padding: 2px 1px; font-size: 9px; direction: ltr; text-align: left;">${member.phone || '—'}</td>
+                                    <td style="padding: 2px 1px; font-size: 10px; text-align: center;">${isLeader ? '👑' : ''}</td>
+                                </tr>
+                            `;
+                        });
+
+                        const passContent = `
+                            <div style="font-family: 'Cairo', sans-serif; max-width: 800px; margin: 0 auto; padding: 3px; background: white; font-size: 10px;">
+                                <!-- رأس التصريح -->
+                                <div style="text-align: center; margin-bottom: 2px; border-bottom: 1px solid #28a745; padding-bottom: 2px;">
+                                    <h1 style="color: #28a745; margin: 0; font-size: 14px;">ميناء رأس عيسى</h1>
+                                    <h2 style="color: #333; margin: 1px 0; font-size: 11px;">تصريح دخول الفرق - الرصيف</h2>
+                                    <div style="background-color: #f0f0f0; padding: 2px; border-radius: 3px;">
+                                        <span style="font-weight: bold; font-size: 8px;">رقم:</span>
+                                        <span style="color: #28a745; font-size: 8px; margin-right: 2px;">PASS-${teamId}</span>
+                                        <span style="margin: 0 2px; font-size: 7px;">|</span>
+                                        <span style="font-size: 7px;">${dateStr}</span>
+                                    </div>
+                                </div>
+
+                                ${shipInfo}
+
+                                <!-- معلومات القائد والفرقة -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-bottom: 3px;">
+                                    <div style="background: #fff3cd; padding: 2px; border-radius: 3px; border-right: 2px solid #ffc107;">
+                                        <div style="display: flex; align-items: center; gap: 2px;">
+                                            <span style="font-size: 8px;">👑</span>
+                                            <span style="font-size: 9px; font-weight: bold; overflow: hidden; white-space: nowrap;">${data.leader ? data.leader.name : '—'}</span>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 2px;">
+                                            <span style="font-size: 7px;">📞</span>
+                                            <span style="font-size: 7px; direction: ltr;">${data.leader ? data.leader.phone : '—'}</span>
+                                        </div>
+                                    </div>
+                                    <div style="background: #d4edda; padding: 2px; border-radius: 3px; border-right: 2px solid #28a745;">
+                                        <div style="display: flex; align-items: center; gap: 2px;">
+                                            <span style="font-size: 8px;">ℹ️</span>
+                                            <span style="font-size: 9px; font-weight: bold; overflow: hidden; white-space: nowrap;">${data.name}</span>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 2px;">
+                                            <span style="font-size: 7px;">${data.team_type}</span>
+                                            <span style="font-size: 7px;">|</span>
+                                            <span style="font-size: 7px;">${data.members.length} عضو</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- قائمة الأعضاء -->
+                                <div style="margin-bottom: 3px;">
+                                    <div style="background: #007bff; color: white; padding: 2px 4px; border-radius: 3px; font-size: 10px;">
+                                        <span>قائمة الأعضاء (${data.members.length})</span>
+                                    </div>
+                                    <div style="border: 1px solid #ddd; border-radius: 3px; overflow-x: auto;">
+                                        <table style="width: 100%; border-collapse: collapse;">
+                                            <thead style="background: #f8f9fa;">
+                                                <tr>
+                                                    <th style="padding: 2px; text-align: center; width: 20px; font-size: 8px;">#</th>
+                                                    <th style="padding: 2px; text-align: right; font-size: 8px;">الاسم</th>
+                                                    <th style="padding: 2px; text-align: right; font-size: 8px;">الوظيفة</th>
+                                                    <th style="padding: 2px; text-align: left; font-size: 8px;">الهاتف</th>
+                                                    <th style="padding: 2px; text-align: center; width: 15px;"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${membersHtml}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- الفقرة -->
+                                <div style="background: #f8f9fa; padding: 3px; border-radius: 3px; margin-bottom: 3px; border: 1px solid #ddd;">
+                                    <p style="margin: 0; font-size: 8px; line-height: 1.2;">
+                                        <strong>الأخ/ مدير امن الميناء المحترم</strong><br>
+                                        اليكم كشف أسماء العمال أعلاه للتوجيه بالسماح لهم بالدخول بعد اتخاذ الإجراءات الأمنية اللازمة،، وشكراً
+                                    </p>
+                                </div>
+
+                                <!-- التوقيعات -->
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 3px; padding-top: 3px; border-top: 1px solid #333;">
+                                    <div style="text-align: center;">
+                                        <div style="border-bottom: 1px solid #333; height: 15px; margin-bottom: 1px;"></div>
+                                        <p style="margin: 0; font-size: 7px; font-weight: bold;">مكتب عمال</p>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="border-bottom: 1px solid #333; height: 15px; margin-bottom: 1px;"></div>
+                                        <p style="margin: 0; font-size: 7px; font-weight: bold;">مدير الأرصفة</p>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="border-bottom: 1px solid #333; height: 15px; margin-bottom: 1px;"></div>
+                                        <p style="margin: 0; font-size: 7px; font-weight: bold;">مدير الميناء</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+
+                        document.getElementById('teamPassContent').innerHTML = passContent;
+
+                        const modal = new bootstrap.Modal(document.getElementById('teamPassModal'));
+                        modal.show();
+
+                        setTimeout(() => {
+                            const modalBody = document.querySelector('#teamPassModal .modal-body');
+                            if (modalBody) {
+                                modalBody.style.maxHeight = 'none';
+                                modalBody.style.overflowY = 'visible';
+                                modalBody.style.padding = '5px';
+                            }
+                        }, 100);
+                    });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'حدث خطأ في تحميل بيانات التصريح'
+                });
+            });
+    }
+
+    function exportToPDF() {
+        const element = document.getElementById('teamPassContent');
+        const opt = {
+            margin: [0.3, 0.3, 0.3, 0.3],
+            filename: 'تصريح_دخول_الفرقة.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        if (window.html2pdf) {
+            html2pdf().set(opt).from(element).save();
+        } else {
+            window.print();
+        }
+    }
+</script>
+
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    }
+
+    .stat-icon {
+        position: absolute;
+        left: 20px;
+        top: 20px;
+        font-size: 3rem;
+        opacity: 0.2;
+    }
+
+    .stat-title {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 18px;
+    }
+
+    .accordion-button:not(.collapsed) {
+        background-color: #e7f1ff;
+        color: #0d6efd;
+    }
+
+    .badge {
+        font-size: 0.85rem;
+        padding: 0.5em 0.7em;
+    }
+
+    /* أنماط المودال */
+    .modal-dialog {
+        max-width: 95% !important;
+        margin: 0.5rem auto !important;
+    }
+
+    @media (min-width: 992px) {
+        .modal-dialog {
+            max-width: 900px !important;
+        }
+    }
+
+    #teamPassModal .modal-body {
+        max-height: none !important;
+        overflow-y: visible !important;
+        padding: 5px !important;
+    }
+
+    #teamPassModal .modal-content {
+        border: none;
+        border-radius: 8px;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .modal-open {
+        overflow: auto !important;
+        padding-right: 0 !important;
+    }
+
+    @media print {
+        @page {
+            size: A4;
+            margin: 0.3cm;
+        }
+
+        body * {
+            visibility: hidden;
+        }
+
+        #teamPassModal .modal-content,
+        #teamPassModal .modal-content * {
+            visibility: visible;
+        }
+
+        #teamPassModal .modal-content {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0;
+            padding: 0.2cm;
+            box-shadow: none;
+            border: none;
+            background: white;
+        }
+
+        #teamPassModal .modal-body {
+            padding: 0 !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        .modal-footer,
+        .btn-close,
+        .modal-header,
+        .btn,
+        .navbar,
+        .footer,
+        .breadcrumb,
+        .dataTables_wrapper .dt-buttons,
+        .dataTables_length,
+        .dataTables_filter,
+        .dataTables_paginate {
+            display: none !important;
+        }
+
+        table, tr, td, th {
+            page-break-inside: avoid;
+        }
+
+        th {
+            background-color: #f0f0f0 !important;
+            color: black !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .badge, [style*="background"] {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
+</style>
+{% endblock %}

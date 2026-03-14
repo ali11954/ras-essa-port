@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تصريح دخول الفرقة - ميناء رأس عيسى</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background: white;
+            padding: 5px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .pass-container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            padding: 5px;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 1px solid #28a745;
+            padding-bottom: 3px;
+            margin-bottom: 4px;
+        }
+
+        .header h1 {
+            color: #28a745;
+            font-size: 18px;
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .header h2 {
+            color: #333;
+            font-size: 13px;
+            margin: 1px 0;
+            line-height: 1.2;
+        }
+
+        .pass-info {
+            background: #f0f0f0;
+            padding: 3px 5px;
+            border-radius: 3px;
+            margin-top: 3px;
+            font-size: 10px;
+        }
+
+        .ship-section {
+            margin-bottom: 5px;
+        }
+
+        .ship-title {
+            background: linear-gradient(135deg, #667eea 0%, #5a67d8 100%);
+            color: white;
+            padding: 3px 6px;
+            border-radius: 4px 4px 0 0;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .ship-headers {
+            background: #e2e8f0;
+            color: #2d3748;
+            padding: 3px 6px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 5px;
+            font-size: 9px;
+            font-weight: bold;
+            border-bottom: 1px solid #cbd5e0;
+        }
+
+        .ship-headers span {
+            white-space: nowrap;
+            flex: 1;
+            text-align: center;
+        }
+
+        .ship-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 6px;
+            border-radius: 0 0 4px 4px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+        .ship-info span {
+            white-space: nowrap;
+            flex: 1;
+            text-align: center;
+        }
+
+        .leader-team {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3px;
+            margin-bottom: 5px;
+        }
+
+        .leader-box {
+            background: #fff3cd;
+            padding: 3px 5px;
+            border-radius: 4px;
+            border-right: 2px solid #ffc107;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+        .leader-box div {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .team-box {
+            background: #d4edda;
+            padding: 3px 5px;
+            border-radius: 4px;
+            border-right: 2px solid #28a745;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+        .team-box div {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .section-title {
+            background: #007bff;
+            color: white;
+            padding: 3px 5px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+            font-size: 10px;
+        }
+
+        th {
+            background: #007bff;
+            color: white;
+            padding: 3px;
+            text-align: center;
+            font-size: 10px;
+        }
+
+        td {
+            padding: 2px 3px;
+            border: 1px solid #ddd;
+            text-align: right;
+            font-size: 10px;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .footer-text {
+            background: #f8f9fa;
+            padding: 4px 6px;
+            border-radius: 4px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+        .signatures {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin-top: 3px;
+        }
+
+        .signature-box {
+            text-align: center;
+        }
+
+        .signature-line {
+            border-bottom: 1px solid #333;
+            height: 20px;
+            margin-bottom: 2px;
+        }
+
+        .signature-title {
+            font-size: 8px;
+            font-weight: bold;
+            line-height: 1.2;
+        }
+
+        .print-button {
+            text-align: center;
+            margin: 5px 0;
+        }
+
+        .print-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        .print-btn:hover {
+            background: #218838;
+        }
+
+        @media print {
+            .print-button {
+                display: none;
+            }
+            body {
+                padding: 0;
+            }
+            .pass-container {
+                border: none;
+                box-shadow: none;
+                padding: 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="pass-container">
+        <div class="print-button">
+            <button class="print-btn" onclick="window.print()">
+                <i class="fas fa-print"></i> طباعة التصريح
+            </button>
+        </div>
+
+        <div class="header">
+            <h1>ميناء رأس عيسى</h1>
+            <h2>تصريح دخول الفرق - الرصيف</h2>
+            <div class="pass-info">
+                <strong>رقم التصريح:</strong> PASS-{{ team.id }}-{{ now.timestamp()|int }} |
+                <strong>التاريخ:</strong> {{ now.strftime('%Y-%m-%d') }}
+            </div>
+        </div>
+
+        {% if operations %}
+        <div class="ship-section">
+            <div class="ship-title">🚢 بيانات السفينة والعملية</div>
+            <div class="ship-headers">
+                <span>اسم السفينة</span>
+                <span>رقم الرصيف</span>
+                <span>نوع العملية</span>
+                <span>نوع البضاعة</span>
+                <span>الكمية</span>
+                <span>التاريخ</span>
+            </div>
+            <div class="ship-info">
+                <span>{{ operations[0].ship.name }}</span>
+                <span>{{ operations[0].ship.berth_number or '—' }}</span>
+                <span>{{ operations[0].operation_type }}</span>
+                <span>{{ operations[0].cargo_type or '—' }}</span>
+                <span>{{ operations[0].cargo_quantity or '—' }} طن</span>
+                <span>{{ operations[0].start_time.strftime('%Y-%m-%d') }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="leader-team">
+            <div class="leader-box">
+                <div><strong>👑 قائد:</strong> {{ team.leader.name if team.leader else '—' }}</div>
+                <div><span style="color: #007bff;">📞 {{ team.leader.phone if team.leader else '—' }}</span></div>
+            </div>
+            <div class="team-box">
+                <div><strong>ℹ️ {{ team.name }}</strong></div>
+                <div>{{ team.team_type }} | {{ team.members|length }} عضو</div>
+            </div>
+        </div>
+
+        <div class="section-title">📋 قائمة أعضاء الفرقة ({{ team.members|length }})</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th width="5%">#</th>
+                    <th width="35%">الاسم</th>
+                    <th width="25%">الوظيفة</th>
+                    <th width="25%">الهاتف</th>
+                    <th width="10%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in team.members %}
+                <tr>
+                    <td style="text-align: center;">{{ loop.index }}</td>
+                    <td>{{ member.name }}</td>
+                    <td>{{ member.profession }}</td>
+                    <td style="direction: ltr;">{{ member.phone or '—' }}</td>
+                    <td style="text-align: center;">{% if member.id == team.leader_id %}👑{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="footer-text">
+            <strong>الأخ/ مدير امن الميناء المحترم</strong><br>
+            اليكم كشف أسماء العمال أعلاه للتوجيه بالسماح لهم بالدخول بعد اتخاذ الإجراءات الأمنية اللازمة،، وشكراً
+        </div>
+
+        <div class="signatures">
+            <div class="signature-box">
+                <div class="signature-line"></div>
+                <div class="signature-title">مكتب عمال-ميناء راس عيسى</div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-line"></div>
+                <div class="signature-title">مدير إدارة الأرصفة والساحات</div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-line"></div>
+                <div class="signature-title">مدير ميناء راس عيسى</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة التحكم - ميناء رأس عيسى{% endblock %}
+
+{% block page_title %}لوحة التحكم{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">لوحة التحكم</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-users stat-icon"></i>
+                <div class="stat-title">إجمالي الموظفين</div>
+                <div class="stat-value">{{ total_employees }}</div>
+                <div class="stat-change positive">
+                    <i class="fas fa-arrow-up"></i> +12% عن الشهر الماضي
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-ship stat-icon"></i>
+                <div class="stat-title">السفن النشطة</div>
+                <div class="stat-value">{{ active_ships }}</div>
+                <div class="stat-change positive">
+                    <i class="fas fa-arrow-up"></i> +5% عن الأمس
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-people-arrows stat-icon"></i>
+                <div class="stat-title">فرق العمل</div>
+                <div class="stat-value">{{ total_teams }}</div>
+                <div class="stat-change">
+                    <i class="fas fa-minus"></i> 0 تغيير
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-calendar-check stat-icon"></i>
+                <div class="stat-title">عمليات اليوم</div>
+                <div class="stat-value">{{ operations_today }}</div>
+                <div class="stat-change positive">
+                    <i class="fas fa-arrow-up"></i> +3 عن الأمس
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-chart-line me-2"></i>
+                    حركة السفن خلال الشهر
+                </div>
+                <div class="card-body">
+                    <canvas id="shipsChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    توزيع السفن حسب النوع
+                </div>
+                <div class="card-body">
+                    <canvas id="shipTypesChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Ships -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-ship me-2"></i>
+                        آخر السفن الواصلة
+                    </div>
+                    <a href="{{ url_for('ship_list') }}" class="btn btn-sm btn-primary">
+                        عرض الكل <i class="fas fa-arrow-left me-1"></i>
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>اسم السفينة</th>
+                                    <th>رقم IMO</th>
+                                    <th>نوع السفينة</th>
+                                    <th>تاريخ الوصول</th>
+                                    <th>رقم الرصيف</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ship in ships[:5] %}
+                                <tr>
+                                    <td>{{ ship.name }}</td>
+                                    <td>{{ ship.imo_number }}</td>
+                                    <td>{{ ship.ship_type }}</td>
+                                    <td>{{ ship.arrival_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ ship.berth_number or 'غير محدد' }}</td>
+                                    <td>
+                                        <span class="badge bg-success">نشط</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Employees and Teams -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-user-plus me-2"></i>
+                    أحدث الموظفين
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        {% for employee in employees[:5] %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-user-circle me-2 text-primary"></i>
+                                {{ employee.name }}
+                            </div>
+                            <div>
+                                <span class="badge bg-info">{{ employee.profession }}</span>
+                                <small class="text-muted me-2">{{ employee.hire_date.strftime('%Y-%m-%d') }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-tasks me-2"></i>
+                    فرق العمل النشطة
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        {% for team in teams %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-users me-2 text-success"></i>
+                                {{ team.name }}
+                            </div>
+                            <div>
+                                <span class="badge bg-primary">{{ team.members|length }} عضو</span>
+                                <span class="badge bg-secondary">{{ team.team_type }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Ships Chart
+    const shipsCtx = document.getElementById('shipsChart').getContext('2d');
+    new Chart(shipsCtx, {
+        type: 'line',
+        data: {
+            labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'],
+            datasets: [{
+                label: 'عدد السفن',
+                data: [12, 19, 15, 17, 24, 23, 25, 28, 30, 26, 22, 24],
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // Ship Types Chart
+    const typesCtx = document.getElementById('shipTypesChart').getContext('2d');
+    new Chart(typesCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['بضائع', 'ناقلات نفط', 'حاويات', 'أخرى'],
+            datasets: [{
+                data: [45, 30, 20, 5],
+                backgroundColor: [
+                    '#667eea',
+                    '#764ba2',
+                    '#f39c12',
+                    '#95a5a6'
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

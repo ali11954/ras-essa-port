@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تقرير السفن</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1.5cm;
+            @top-center {
+                content: "ميناء رأس عيسى - تقرير السفن";
+            }
+            @bottom-center {
+                content: "الصفحة " counter(page) " من " counter(pages);
+            }
+        }
+        body {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 12px;
+        }
+        th {
+            background-color: #667eea;
+            color: white;
+            padding: 8px;
+            text-align: center;
+        }
+        td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: right;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .header-info {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+        .status-badge {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+        .status-arrived { background-color: #28a745; color: white; }
+        .status-berthed { background-color: #17a2b8; color: white; }
+        .status-departed { background-color: #6c757d; color: white; }
+    </style>
+</head>
+<body>
+    <h1>🚢 تقرير السفن</h1>
+
+    <div class="header-info">
+        <p>الفترة من: {{ date_from.strftime('%Y-%m-%d') }} إلى: {{ date_to.strftime('%Y-%m-%d') }}</p>
+        <p>تاريخ التقرير: {{ current_date.strftime('%Y-%m-%d %H:%M') }}</p>
+    </div>
+
+    <div class="stats">
+        <div class="stat-item">
+            <div class="stat-number">{{ data|length }}</div>
+            <div class="stat-label">إجمالي السفن</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">{{ data|selectattr('status', 'equalto', 'arrived')|list|length }}</div>
+            <div class="stat-label">سفن واصلة</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">{{ data|selectattr('status', 'equalto', 'departed')|list|length }}</div>
+            <div class="stat-label">سفن مغادرة</div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>اسم السفينة</th>
+                <th>رقم IMO</th>
+                <th>العلم</th>
+                <th>النوع</th>
+                <th>الطول (م)</th>
+                <th>العرض (م)</th>
+                <th>تاريخ الوصول</th>
+                <th>رقم الرصيف</th>
+                <th>الحالة</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ship in data %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ ship.name }}</td>
+                <td>{{ ship.imo_number }}</td>
+                <td>{{ ship.flag }}</td>
+                <td>{{ ship.ship_type }}</td>
+                <td>{{ ship.length or '—' }}</td>
+                <td>{{ ship.width or '—' }}</td>
+                <td>{{ ship.arrival_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ ship.berth_number or '—' }}</td>
+                <td>
+                    {% if ship.status == 'arrived' %}
+                        <span class="status-badge status-arrived">واصلة</span>
+                    {% elif ship.status == 'berthed' %}
+                        <span class="status-badge status-berthed">راسية</span>
+                    {% elif ship.status == 'departed' %}
+                        <span class="status-badge status-departed">مغادرة</span>
+                    {% else %}
+                        {{ ship.status }}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+                <p>تم إنشاء هذا التقرير بواسطة نظام مكتب عمال  ميناء رأس عيسى</p>
+
+    </div>
+</body>
+</html>

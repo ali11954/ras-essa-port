@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تقرير الموظفين</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1.5cm;
+            @top-center {
+                content: "ميناء رأس عيسى - تقرير الموظفين";
+            }
+            @bottom-center {
+                content: "الصفحة " counter(page) " من " counter(pages);
+            }
+        }
+        body {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #764ba2;
+            margin-top: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 12px;
+        }
+        th {
+            background-color: #667eea;
+            color: white;
+            padding: 8px;
+            text-align: center;
+        }
+        td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: right;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .header-info {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+        .leader-badge {
+            background-color: #ffc107;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📋 تقرير الموظفين</h1>
+
+    <div class="header-info">
+        <p>الفترة من: {{ date_from.strftime('%Y-%m-%d') }} إلى: {{ date_to.strftime('%Y-%m-%d') }}</p>
+        <p>تاريخ التقرير: {{ current_date.strftime('%Y-%m-%d %H:%M') }}</p>
+    </div>
+
+    <div class="stats">
+        <div class="stat-item">
+            <div class="stat-number">{{ data|length }}</div>
+            <div class="stat-label">إجمالي الموظفين</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">{{ data|selectattr('is_active')|list|length }}</div>
+            <div class="stat-label">موظفين نشطين</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">{{ data|rejectattr('is_active')|list|length }}</div>
+            <div class="stat-label">موظفين غير نشطين</div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>الاسم</th>
+                <th>الرقم الوطني</th>
+                <th>مكان الميلاد</th>
+                <th>السكن الحالي</th>
+                <th>تاريخ الميلاد</th>
+                <th>المهنة</th>
+                <th>الفرقة</th>
+                <th>رقم الهاتف</th>
+                <th>الحالة</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in data %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ employee.name }}</td>
+                <td>{{ employee.national_id }}</td>
+                <td>{{ employee.birth_place }}</td>
+                <td>{{ employee.current_address }}</td>
+                <td>{{ employee.birth_date.strftime('%Y-%m-%d') }}</td>
+                <td>
+                    {{ employee.profession }}
+                    {% if 'رئيس' in employee.profession %}
+                        <span class="leader-badge">👑</span>
+                    {% endif %}
+                </td>
+                <td>{{ employee.team.name if employee.team else '—' }}</td>
+                <td>{{ employee.phone or '—' }}</td>
+                <td>{{ 'نشط' if employee.is_active else 'غير نشط' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+                <p>تم إنشاء هذا التقرير بواسطة نظام مكتب عمال  ميناء رأس عيسى</p>
+
+    </div>
+</body>
+</html>

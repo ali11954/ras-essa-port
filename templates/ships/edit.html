@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل بيانات السفينة - ميناء رأس عيسى{% endblock %}
+
+{% block page_title %}تعديل بيانات السفينة{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('ship_list') }}">السفن</a></li>
+<li class="breadcrumb-item active">تعديل السفينة</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 mx-auto">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-ship me-2"></i>
+                    تعديل بيانات السفينة: {{ ship.name }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="shipForm" class="needs-validation" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <!-- Basic Information -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                المعلومات الأساسية
+                            </h6>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-ship text-primary me-1"></i>
+                                اسم السفينة <span class="text-danger">*</span>
+                            </label>
+                            {{ form.name(class="form-control", placeholder="أدخل اسم السفينة") }}
+                            {% if form.name.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.name.errors %}
+                                        <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-hashtag text-primary me-1"></i>
+                                رقم IMO <span class="text-danger">*</span>
+                            </label>
+                            {{ form.imo_number(class="form-control", placeholder="مثال: IMO1234567") }}
+                            {% if form.imo_number.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.imo_number.errors %}
+                                        <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-flag text-primary me-1"></i>
+                                الشركة الملاحية <span class="text-danger">*</span>
+                            </label>
+                            {{ form.flag(class="form-control", placeholder="مثال: فالكون") }}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-tag text-primary me-1"></i>
+                                نوع السفينة <span class="text-danger">*</span>
+                            </label>
+                            {{ form.ship_type(class="form-select") }}
+                        </div>
+                    </div>
+
+                    <!-- Technical Specifications -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-cogs me-2"></i>
+                                المواصفات الفنية
+                            </h6>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-ruler text-primary me-1"></i>
+                                الطول (متر)
+                            </label>
+                            {{ form.length(class="form-control", placeholder="مثال: 250", type="number", step="0.1") }}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-ruler-horizontal text-primary me-1"></i>
+                                العرض (متر)
+                            </label>
+                            {{ form.width(class="form-control", placeholder="مثال: 40", type="number", step="0.1") }}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-weight-hanging text-primary me-1"></i>
+                                الغاطس (متر)
+                            </label>
+                            {{ form.draft(class="form-control", placeholder="مثال: 12", type="number", step="0.1") }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-boxes text-primary me-1"></i>
+                                سعة الحمولة (طن)
+                            </label>
+                            {{ form.cargo_capacity(class="form-control", placeholder="مثال: 50000", type="number") }}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-calendar-alt text-primary me-1"></i>
+                                تاريخ الوصول <span class="text-danger">*</span>
+                            </label>
+                            {{ form.arrival_date(class="form-control", type="date") }}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-anchor text-primary me-1"></i>
+                                رقم الرصيف
+                            </label>
+                            {{ form.berth_number(class="form-control", placeholder="مثال: B1") }}
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="row mt-4">
+                        <div class="col-12 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-sticky-note text-primary me-1"></i>
+                                ملاحظات
+                            </label>
+                            {{ form.notes(class="form-control", rows="3", placeholder="أي ملاحظات إضافية عن السفينة...") }}
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <label class="form-label">
+                                <i class="fas fa-info-circle text-primary me-1"></i>
+                                حالة السفينة
+                            </label>
+                            <select class="form-select" name="status">
+                                <option value="arrived" {% if ship.status == 'arrived' %}selected{% endif %}>واصلة</option>
+                                <option value="berthed" {% if ship.status == 'berthed' %}selected{% endif %}>راسية</option>
+                                <option value="departed" {% if ship.status == 'departed' %}selected{% endif %}>مغادرة</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Form Actions -->
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-warning px-5">
+                            <i class="fas fa-save me-2"></i>
+                            تحديث البيانات
+                        </button>
+
+                        <a href="{{ url_for('ship_list') }}" class="btn btn-secondary px-5">
+                            <i class="fas fa-times me-2"></i>
+                            إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Additional Info Card -->
+        <div class="card mt-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">
+                    <i class="fas fa-clock me-2"></i>
+                    معلومات إضافية
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-2">
+                            <i class="fas fa-calendar-plus text-primary me-2"></i>
+                            <strong>تاريخ التسجيل:</strong>
+                            {{ ship.arrival_date.strftime('%Y-%m-%d') if ship.arrival_date else 'غير محدد' }}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-2">
+                            <i class="fas fa-info-circle text-primary me-2"></i>
+                            <strong>الحالة:</strong>
+                            {% if ship.status == 'arrived' %}
+                                <span class="badge bg-success">واصلة</span>
+                            {% elif ship.status == 'berthed' %}
+                                <span class="badge bg-primary">راسية</span>
+                            {% elif ship.status == 'departed' %}
+                                <span class="badge bg-secondary">مغادرة</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Same validation as add form
+        $('#shipForm').on('submit', function(e) {
+            let isValid = true;
+            let errorMessage = '';
+
+            const imoNumber = $('input[name="imo_number"]').val();
+            if (imoNumber && !/^IMO\d{7}$/.test(imoNumber)) {
+                isValid = false;
+                errorMessage += 'رقم IMO يجب أن يبدأ بـ IMO متبوعاً بـ 7 أرقام\n';
+            }
+
+            if (!isValid) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ في التحقق',
+                    text: errorMessage,
+                    confirmButtonText: 'حسناً'
+                });
+            }
+        });
+
+        // Auto-format IMO number
+        $('input[name="imo_number"]').on('input', function() {
+            let value = this.value.toUpperCase();
+            if (value && !value.startsWith('IMO')) {
+                value = 'IMO' + value.replace(/[^0-9]/g, '');
+            }
+            this.value = value;
+        });
+
+        // Warn before leaving with unsaved changes
+        let formChanged = false;
+        $('#shipForm input, #shipForm select, #shipForm textarea').on('change', function() {
+            formChanged = true;
+        });
+
+        $(window).on('beforeunload', function() {
+            if (formChanged) {
+                return 'لديك تغييرات غير محفوظة. هل أنت متأكد من المغادرة؟';
+            }
+        });
+
+        $('#shipForm').on('submit', function() {
+            $(window).off('beforeunload');
+        });
+    });
+</script>
+{% endblock %}

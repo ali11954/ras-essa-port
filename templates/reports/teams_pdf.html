@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تقرير فرق العمل - ميناء رأس عيسى</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.2cm;
+            @top-center {
+                content: "ميناء رأس عيسى - تقرير فرق العمل";
+                font-family: 'DejaVu Sans', Arial, sans-serif;
+                font-size: 9pt;
+                color: #667eea;
+            }
+            @bottom-center {
+                content: "الصفحة " counter(page) " من " counter(pages);
+                font-family: 'DejaVu Sans', Arial, sans-serif;
+                font-size: 8pt;
+                color: #666;
+            }
+        }
+        body {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            line-height: 1.3;
+            color: #333;
+            font-size: 10pt;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+            margin: 5px 0 10px 0;
+            font-size: 20pt;
+        }
+        h2 {
+            color: #764ba2;
+            margin: 5px 0 8px 0;
+            font-size: 14pt;
+            border-right: 3px solid #764ba2;
+            padding-right: 5px;
+        }
+        h3 {
+            color: #333;
+            font-size: 12pt;
+            margin: 5px 0 3px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 5px 0;
+            font-size: 9pt;
+        }
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 9pt;
+        }
+        td {
+            border: 1px solid #ddd;
+            padding: 4px;
+            text-align: right;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .header-info {
+            text-align: center;
+            margin: 5px 0 10px 0;
+            padding: 8px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            border-right: 3px solid #667eea;
+            font-size: 9pt;
+        }
+        .header-info p {
+            margin: 2px 0;
+        }
+        .team-card {
+            margin-bottom: 15px;
+            page-break-inside: avoid;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            padding: 8px;
+            background: white;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+        }
+        .leader-info {
+            background-color: #fff3cd;
+            padding: 6px 8px;
+            border-radius: 5px;
+            margin: 5px 0;
+            border-right: 3px solid #ffc107;
+        }
+        .leader-info h3 {
+            color: #856404;
+            margin: 0 0 3px 0;
+            font-size: 11pt;
+        }
+        .leader-info table {
+            margin: 2px 0;
+        }
+        .leader-info td {
+            padding: 2px 4px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 8px 0 12px 0;
+            padding: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        .stat-label {
+            font-size: 9px;
+            opacity: 0.9;
+        }
+        .footer {
+            margin-top: 15px;
+            text-align: center;
+            color: #666;
+            font-size: 8px;
+            border-top: 1px solid #ddd;
+            padding-top: 5px;
+        }
+        .footer p {
+            margin: 2px 0;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 8pt;
+            font-weight: bold;
+        }
+        .badge-active {
+            background-color: #28a745;
+            color: white;
+        }
+        .badge-inactive {
+            background-color: #dc3545;
+            color: white;
+        }
+        .phone-number {
+            direction: ltr;
+            text-align: left;
+            font-family: monospace;
+            font-size: 8pt;
+        }
+        .watermark {
+            position: fixed;
+            bottom: 5px;
+            left: 5px;
+            opacity: 0.05;
+            font-size: 50px;
+            color: #667eea;
+            transform: rotate(-45deg);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* تقليص مسافات الجدول الداخلي */
+        table table {
+            margin: 0;
+        }
+        td, th {
+            padding: 3px 4px;
+        }
+
+        /* تقليص مسافات القوائم */
+        ul, ol {
+            margin: 2px 0;
+            padding-right: 15px;
+        }
+
+        /* تحسين استخدام المساحة */
+        .compact {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* تقليص المسافات بين الفقرات */
+        p {
+            margin: 2px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- علامة مائية (اختيارية) -->
+    <div class="watermark">ميناء رأس عيسى</div>
+
+    <h1>📊 تقرير فرق العمل</h1>
+
+    <div class="header-info">
+        <p><strong>الفترة:</strong> {{ date_from.strftime('%Y-%m-%d') }} إلى {{ date_to.strftime('%Y-%m-%d') }}</p>
+        <p><strong>تاريخ التقرير:</strong> {{ current_date.strftime('%Y-%m-%d %H:%M') }}</p>
+        <p><strong>الفرق:</strong> {{ teams_data|length }} | <strong>الأعضاء:</strong> {{ total_members }}</p>
+    </div>
+
+    <div class="stats">
+        <div class="stat-item">
+            <div class="stat-number">{{ teams_data|length }}</div>
+            <div class="stat-label">إجمالي الفرق</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">{{ total_members }}</div>
+            <div class="stat-label">إجمالي الأعضاء</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">{{ active_teams }}</div>
+            <div class="stat-label">الفرق النشطة</div>
+        </div>
+    </div>
+
+    {% for td in teams_data %}
+    <div class="team-card">
+        <h2>
+            {{ td.team.name }}
+            {% if td.team.is_active %}
+                <span class="badge badge-active">نشطة</span>
+            {% else %}
+                <span class="badge badge-inactive">غير نشطة</span>
+            {% endif %}
+        </h2>
+
+        <table>
+            <tr>
+                <th colspan="2" style="padding: 4px;">معلومات الفرقة</th>
+            </tr>
+            <tr>
+                <td width="25%"><strong>النوع:</strong></td>
+                <td>{{ td.team.team_type }}</td>
+            </tr>
+            <tr>
+                <td><strong>تاريخ الإنشاء:</strong></td>
+                <td>{{ td.team.created_at.strftime('%Y-%m-%d') }}</td>
+            </tr>
+            <tr>
+                <td><strong>عدد الأعضاء:</strong></td>
+                <td>{{ td.members_count }}</td>
+            </tr>
+        </table>
+
+        {% if td.leader %}
+        <div class="leader-info">
+            <h3>👑 قائد الفرقة</h3>
+            <table>
+                <tr>
+                    <td width="20%"><strong>الاسم:</strong></td>
+                    <td>{{ td.leader.name }}</td>
+                </tr>
+                <tr>
+                    <td><strong>المهنة:</strong></td>
+                    <td>{{ td.leader.profession }}</td>
+                </tr>
+                <tr>
+                    <td><strong>الهاتف:</strong></td>
+                    <td class="phone-number">{{ td.leader.phone or '—' }}</td>
+                </tr>
+            </table>
+        </div>
+        {% endif %}
+
+        <h3>📋 أعضاء الفرقة ({{ td.members|length }})</h3>
+        {% if td.members %}
+        <table>
+            <thead>
+                <tr>
+                    <th width="5%" style="padding: 3px;">#</th>
+                    <th width="40%" style="padding: 3px;">الاسم</th>
+                    <th width="30%" style="padding: 3px;">المهنة</th>
+                    <th width="25%" style="padding: 3px;">الهاتف</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in td.members %}
+                <tr>
+                    <td style="text-align: center; padding: 2px;">{{ loop.index }}</td>
+                    <td style="padding: 2px;">{{ member.name }}</td>
+                    <td style="padding: 2px;">{{ member.profession }}</td>
+                    <td class="phone-number" style="padding: 2px;">{{ member.phone or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="text-align: center; color: #666; padding: 5px;">لا يوجد أعضاء في هذه الفرقة</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="footer">
+        <p>تم إنشاء هذا التقرير بواسطة نظام مكتب عمال  ميناء رأس عيسى</p>
+        <p>جميع الحقوق محفوظة © {{ current_date.year }}</p>
+    </div>
+</body>
+</html>

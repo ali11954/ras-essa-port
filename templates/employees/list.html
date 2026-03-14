@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}قائمة الموظفين - ميناء رأس عيسى{% endblock %}
+
+{% block page_title %}إدارة الموظفين{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item active">الموظفين</li>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{{ url_for('add_employee') }}" class="btn btn-primary">
+    <i class="fas fa-plus-circle"></i> إضافة موظف جديد
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-white">
+            <i class="fas fa-list-alt"></i> قائمة الموظفين
+        </h5>
+        <span class="badge bg-light text-primary">{{ employees|length }} موظف</span>
+    </div>
+
+    <div class="card-body">
+        <!-- Filters -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <select class="form-select" id="teamFilter">
+                    <option value="">🔍 كل الفرق</option>
+                    {% for team in teams %}
+                    <option value="{{ team.id }}">{{ team.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="birthPlaceFilter">
+                    <option value="">📍 كل أماكن الميلاد</option>
+                    {% for employee in employees %}
+                        {% if employee.birth_place %}
+                            <option value="{{ employee.birth_place }}">{{ employee.birth_place }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input type="text" class="form-control" id="searchInput" placeholder="🔎 بحث بالاسم أو الرقم الوطني...">
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-secondary w-100" onclick="resetFilters()">
+                    <i class="fas fa-redo-alt"></i> إعادة تعيين
+                </button>
+            </div>
+        </div>
+
+        <!-- Employees Table -->
+        <div class="table-responsive">
+            <table class="table table-hover" id="employeesTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th><i class="fas fa-user"></i> الاسم</th>
+                        <th><i class="fas fa-id-card"></i> الرقم الوطني</th>
+                        <th><i class="fas fa-briefcase"></i> المهنة</th>
+                        <th><i class="fas fa-users"></i> الفرقة</th>
+                        <th><i class="fas fa-map-marker-alt"></i> مكان الميلاد</th>
+                        <th><i class="fas fa-home"></i> السكن الحالي</th>
+                        <th><i class="fas fa-calendar"></i> تاريخ الميلاد</th>
+                        <th><i class="fas fa-phone"></i> الهاتف</th>
+                        <th><i class="fas fa-cog"></i> الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for employee in employees %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <strong>{{ employee.name }}</strong>
+                        </td>
+                        <td>{{ employee.national_id }}</td>
+                        <td>
+                            {% if 'رئيس' in employee.profession %}
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-crown"></i> {{ employee.profession }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-info">{{ employee.profession }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if employee.team %}
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-users"></i> {{ employee.team.name }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="fas fa-ban"></i> غير موزع
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if employee.birth_place %}
+                                <i class="fas fa-map-marker-alt text-muted me-1"></i>
+                                {{ employee.birth_place }}
+                            {% else %}
+                                <span class="text-muted">غير محدد</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if employee.current_address %}
+                                <i class="fas fa-home text-muted me-1"></i>
+                                {{ employee.current_address }}
+                            {% else %}
+                                <span class="text-muted">غير محدد</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ employee.birth_date.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            {% if employee.phone %}
+                                <i class="fas fa-phone-alt text-muted me-1"></i>
+                                {{ employee.phone }}
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('edit_employee', id=employee.id) }}" class="btn btn-sm btn-warning" title="تعديل">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-info" title="عرض التفاصيل"
+                                        onclick="showEmployeeDetails({{ employee.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <a href="{{ url_for('delete_employee', id=employee.id) }}" class="btn btn-sm btn-danger"
+                                   onclick="return confirm('هل أنت متأكد من حذف الموظف {{ employee.name }}؟')" title="حذف">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Employee Details -->
+<div class="modal fade" id="employeeDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-circle me-2"></i>
+                    تفاصيل الموظف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="employeeDetailsContent">
+                <!-- سيتم تعبئتها عبر JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function resetFilters() {
+        document.getElementById('teamFilter').value = '';
+        document.getElementById('birthPlaceFilter').value = '';
+        document.getElementById('searchInput').value = '';
+    }
+
+    function showEmployeeDetails(employeeId) {
+        // البحث عن بيانات الموظف في الجدول
+        const row = event.target.closest('tr');
+        const cells = row.getElementsByTagName('td');
+
+        const details = `
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th width="40%"><i class="fas fa-user text-primary"></i> الاسم:</th>
+                            <td>${cells[1].innerText}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="fas fa-id-card text-primary"></i> الرقم الوطني:</th>
+                            <td>${cells[2].innerText}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="fas fa-briefcase text-primary"></i> المهنة:</th>
+                            <td>${cells[3].innerText.replace(/<[^>]*>/g, '')}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="fas fa-users text-primary"></i> الفرقة:</th>
+                            <td>${cells[4].innerText.replace(/<[^>]*>/g, '')}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th width="40%"><i class="fas fa-map-marker-alt text-primary"></i> مكان الميلاد:</th>
+                            <td>${cells[5].innerText.replace(/<[^>]*>/g, '')}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="fas fa-home text-primary"></i> السكن الحالي:</th>
+                            <td>${cells[6].innerText.replace(/<[^>]*>/g, '')}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="fas fa-calendar text-primary"></i> تاريخ الميلاد:</th>
+                            <td>${cells[7].innerText}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="fas fa-phone text-primary"></i> رقم الهاتف:</th>
+                            <td>${cells[8].innerText}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('employeeDetailsContent').innerHTML = details;
+        new bootstrap.Modal(document.getElementById('employeeDetailsModal')).show();
+    }
+
+    $(document).ready(function() {
+        var table = $('#employeesTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
+            },
+            pageLength: 25,
+            order: [[1, 'asc']],
+            columnDefs: [
+                { orderable: false, targets: [9] } // عمود الإجراءات غير قابل للترتيب
+            ]
+        });
+
+        $('#searchInput').on('keyup', function() {
+            table.search(this.value).draw();
+        });
+
+        $('#teamFilter').on('change', function() {
+            table.column(4).search(this.value).draw();
+        });
+
+        $('#birthPlaceFilter').on('change', function() {
+            table.column(5).search(this.value).draw();
+        });
+    });
+</script>
+
+<style>
+    .table th {
+        font-weight: 600;
+        background-color: #f8f9fa;
+    }
+
+    .badge {
+        font-size: 0.85rem;
+        padding: 0.5em 0.7em;
+    }
+
+    .btn-group .btn {
+        margin: 0 2px;
+    }
+
+    .modal-lg {
+        max-width: 800px;
+    }
+
+    .table-borderless th {
+        background-color: transparent;
+    }
+</style>
+{% endblock %}

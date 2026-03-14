@@ -1,0 +1,385 @@
+{% extends "base.html" %}
+
+{% block title %}التقارير - ميناء رأس عيسى{% endblock %}
+
+{% block page_title %}التقارير والإحصائيات{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item active">التقارير</li>
+{% endblock %}
+
+{% block content %}
+<!-- بطاقات التقارير السريعة - الصف الأول -->
+<div class="row">
+    <!-- تقرير السفن -->
+    <div class="col-md-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="icon-circle bg-primary mb-3">
+                    <i class="fas fa-ship fa-2x text-white"></i>
+                </div>
+                <h5>تقرير السفن</h5>
+                <p class="text-muted small">إحصائيات حركة السفن والوصول والمغادرة</p>
+                <div class="mt-3">
+                    <button class="btn btn-sm btn-outline-primary" onclick="quickReport('ships', 'pdf')">
+                        <i class="fas fa-file-pdf me-1"></i> PDF
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="quickReport('ships', 'excel')">
+                        <i class="fas fa-file-excel me-1"></i> Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تقرير الموظفين -->
+    <div class="col-md-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="icon-circle bg-success mb-3">
+                    <i class="fas fa-users fa-2x text-white"></i>
+                </div>
+                <h5>تقرير الموظفين</h5>
+                <p class="text-muted small">بيانات الموظفين وتوزيعهم على الفرق</p>
+                <div class="mt-3">
+                    <button class="btn btn-sm btn-outline-primary" onclick="quickReport('employees', 'pdf')">
+                        <i class="fas fa-file-pdf me-1"></i> PDF
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="quickReport('employees', 'excel')">
+                        <i class="fas fa-file-excel me-1"></i> Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تقرير فرق العمل -->
+    <div class="col-md-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="icon-circle bg-warning mb-3">
+                    <i class="fas fa-people-arrows fa-2x text-white"></i>
+                </div>
+                <h5>تقرير فرق العمل</h5>
+                <p class="text-muted small">تفاصيل الفرق وأعضائها وقادتها</p>
+                <div class="mt-3">
+                    <button class="btn btn-sm btn-outline-primary" onclick="quickReport('teams', 'pdf')">
+                        <i class="fas fa-file-pdf me-1"></i> PDF
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="quickReport('teams', 'excel')">
+                        <i class="fas fa-file-excel me-1"></i> Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تقرير العمليات -->
+    <div class="col-md-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="icon-circle bg-info mb-3">
+                    <i class="fas fa-tasks fa-2x text-white"></i>
+                </div>
+                <h5>تقرير العمليات</h5>
+                <p class="text-muted small">سجل العمليات اليومية على الأرصفة</p>
+                <div class="mt-3">
+                    <button class="btn btn-sm btn-outline-primary" onclick="quickReport('operations', 'pdf')">
+                        <i class="fas fa-file-pdf me-1"></i> PDF
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="quickReport('operations', 'excel')">
+                        <i class="fas fa-file-excel me-1"></i> Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- بطاقات التقارير السريعة - الصف الثاني -->
+<div class="row">
+    <!-- تقرير فرق العمل مع العمليات -->
+    <div class="col-md-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="icon-circle bg-info mb-3">
+                    <i class="fas fa-users-cog fa-2x text-white"></i>
+                </div>
+                <h5>تقرير فرق العمل مع العمليات</h5>
+                <p class="text-muted small">تحليل أداء الفرق وساعات العمل ومدة العمليات</p>
+                <a href="{{ url_for('teams_operations_report') }}" class="btn btn-sm btn-outline-info">
+                    <i class="fas fa-chart-line me-1"></i> عرض التقرير
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- تقرير مدة العمليات -->
+    <div class="col-md-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="icon-circle bg-danger mb-3">
+                    <i class="fas fa-hourglass-half fa-2x text-white"></i>
+                </div>
+                <h5>تقرير مدة العمليات</h5>
+                <p class="text-muted small">مدة كل عملية ومتوسط الوقت</p>
+                <a href="{{ url_for('operations_duration_report') }}" class="btn btn-sm btn-outline-danger">
+                    <i class="fas fa-clock me-1"></i> عرض التقرير
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- تقرير الأرصفة -->
+    <div class="col-md-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="icon-circle bg-secondary mb-3">
+                    <i class="fas fa-anchor fa-2x text-white"></i>
+                </div>
+                <h5>تقرير الأرصفة</h5>
+                <p class="text-muted small">حالة الأرصفة والإشغال</p>
+                <button class="btn btn-sm btn-outline-secondary" onclick="quickReport('berths', 'pdf')">
+                    <i class="fas fa-file-pdf me-1"></i> PDF
+                </button>
+                <button class="btn btn-sm btn-outline-success" onclick="quickReport('berths', 'excel')">
+                    <i class="fas fa-file-excel me-1"></i> Excel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- إحصائيات سريعة -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-pie me-2"></i>
+                إحصائيات سريعة
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 col-6 text-center mb-3">
+                        <div class="display-4 text-primary">{{ stats.total_ships or 0 }}</div>
+                        <div class="text-muted">إجمالي السفن</div>
+                    </div>
+                    <div class="col-md-3 col-6 text-center mb-3">
+                        <div class="display-4 text-success">{{ stats.total_employees or 0 }}</div>
+                        <div class="text-muted">إجمالي الموظفين</div>
+                    </div>
+                    <div class="col-md-3 col-6 text-center mb-3">
+                        <div class="display-4 text-warning">{{ stats.total_teams or 0 }}</div>
+                        <div class="text-muted">فرق العمل</div>
+                    </div>
+                    <div class="col-md-3 col-6 text-center mb-3">
+                        <div class="display-4 text-info">{{ stats.active_ships or 0 }}</div>
+                        <div class="text-muted">سفن نشطة</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نموذج إنشاء تقرير مخصص -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-cog me-2"></i>
+                إنشاء تقرير مخصص
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('generate_report') }}" id="reportForm" target="_blank">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-file-alt me-1"></i>
+                                نوع التقرير
+                            </label>
+                            <select class="form-select" name="report_type" required>
+                                <option value="">-- اختر نوع التقرير --</option>
+                                <option value="ships">🚢 تقرير السفن</option>
+                                <option value="employees">👥 تقرير الموظفين</option>
+                                <option value="teams">👥 فرق العمل</option>
+                                <option value="operations">⚙️ تقرير العمليات</option>
+                                <option value="berths">⚓ تقرير الأرصفة</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                من تاريخ
+                            </label>
+                            <input type="date" class="form-control" name="date_from" required>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                إلى تاريخ
+                            </label>
+                            <input type="date" class="form-control" name="date_to" required>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-download me-1"></i>
+                                صيغة التقرير
+                            </label>
+                            <select class="form-select" name="format" required>
+                                <option value="html">🌐 HTML (عرض)</option>
+                                <option value="pdf" selected>📑 PDF (للطباعة)</option>
+                                <option value="excel">📊 Excel (للتحليل)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12 text-center">
+                            <button type="submit" class="btn btn-primary px-5">
+                                <i class="fas fa-file-export me-2"></i>
+                                إنشاء التقرير
+                            </button>
+                            <a href="{{ url_for('reports_charts') }}" class="btn btn-info px-5">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                عرض الرسومات البيانية
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نصائح للتقارير -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>نصائح للتقارير:</strong>
+            <ul class="mb-0 mt-2">
+                <li>📑 تقارير PDF مصممة خصيصاً للطباعة مع ترويسة وتذييل</li>
+                <li>📊 تقارير Excel تحتوي على عدة أوراق عمل للبيانات المفصلة</li>
+                <li>👥 تقرير فرق العمل مع العمليات يعرض أداء كل فريق وتحليلاً شاملاً</li>
+                <li>⚡ يمكنك تحديد نطاق زمني مخصص للتقارير</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+    .icon-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+
+    .card {
+        transition: transform 0.3s, box-shadow 0.3s;
+        border: none;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+
+    .btn-outline-primary, .btn-outline-success, .btn-outline-info, .btn-outline-warning, .btn-outline-danger {
+        margin: 0 2px;
+    }
+
+    .display-4 {
+        font-size: 2.5rem;
+        font-weight: 300;
+        line-height: 1.2;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // دالة إنشاء تقرير سريع
+    function quickReport(type, format) {
+        // تعيين نوع التقرير
+        $('select[name="report_type"]').val(type);
+
+        // تعيين الصيغة
+        $('select[name="format"]').val(format);
+
+        // تعيين تاريخ افتراضي (آخر 30 يوم)
+        var today = new Date();
+        var lastMonth = new Date();
+        lastMonth.setDate(lastMonth.getDate() - 30);
+
+        $('input[name="date_to"]').val(today.toISOString().split('T')[0]);
+        $('input[name="date_from"]').val(lastMonth.toISOString().split('T')[0]);
+
+        // إرسال النموذج
+        $('#reportForm').submit();
+    }
+
+    // تعيين التواريخ الافتراضية عند تحميل الصفحة
+    $(document).ready(function() {
+        var today = new Date();
+        var lastMonth = new Date();
+        lastMonth.setDate(lastMonth.getDate() - 30);
+
+        $('input[name="date_to"]').val(today.toISOString().split('T')[0]);
+        $('input[name="date_from"]').val(lastMonth.toISOString().split('T')[0]);
+
+        // التحقق من صحة التواريخ
+        $('#reportForm').on('submit', function(e) {
+            var dateFrom = new Date($('input[name="date_from"]').val());
+            var dateTo = new Date($('input[name="date_to"]').val());
+
+            if (dateFrom > dateTo) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ في التواريخ',
+                    text: 'تاريخ "من" يجب أن يكون أصغر من تاريخ "إلى"'
+                });
+                return false;
+            }
+
+            // رسالة تأكيد للتقارير الكبيرة
+            var reportType = $('select[name="report_type"] option:selected').text();
+            var format = $('select[name="format"] option:selected').text();
+
+            Swal.fire({
+                title: 'تأكيد إنشاء التقرير',
+                html: `
+                    <p>سيتم إنشاء تقرير <strong>${reportType}</strong></p>
+                    <p>بصيغة <strong>${format}</strong></p>
+                    <p>للفترة من <strong>${$('input[name="date_from"]').val()}</strong> إلى <strong>${$('input[name="date_to"]').val()}</strong></p>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'نعم، إنشاء',
+                cancelButtonText: 'إلغاء'
+            }).then((result) => {
+                if (!result.isConfirmed) {
+                    e.preventDefault();
+                }
+            });
+        });
+    });
+
+    // دالة توليد تقرير (للبطاقات)
+    function generateReport(type) {
+        quickReport(type, 'pdf');
+    }
+</script>
+{% endblock %}
