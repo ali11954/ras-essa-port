@@ -242,14 +242,14 @@ def dashboard():
     # إحصائيات عمليات التحميل والتفريغ
     loading_operations = ShipOperation.query.filter_by(operation_type='تحميل').count()
     unloading_operations = ShipOperation.query.filter_by(operation_type='تفريغ').count()
-
     # ============================================
     # إحصائيات الموظفين
     # ============================================
+    from sqlalchemy import extract
 
-    # 1. توزيع الموظفين حسب سنة الميلاد (الأعمار)
+    # 1. توزيع الموظفين حسب سنة الميلاد (الأعمار) - متوافق مع PostgreSQL
     birth_year_stats = db.session.query(
-        func.strftime('%Y', Employee.birth_date).label('year'),
+        extract('year', Employee.birth_date).label('year'),
         func.count(Employee.id)
     ).group_by('year').order_by('year').all()
 
@@ -1562,16 +1562,22 @@ def reports_charts():
     loading_data = []
     unloading_data = []
 
+    from sqlalchemy import extract
+
     for i, day in enumerate(days):
+        # في PostgreSQL: extract(dow from date)
+        # الأحد = 0، السبت = 6
+        # نحتاج لتعديل الأرقام لتتناسب مع ترتيب الأيام العربية
+
         # حساب عدد عمليات التحميل والتفريغ لكل يوم
         day_loading = ShipOperation.query.filter(
             ShipOperation.operation_type == 'تحميل',
-            db.func.strftime('%w', ShipOperation.start_time) == str(i)
+            extract('dow', ShipOperation.start_time) == i  # i يتراوح من 0 إلى 6
         ).count()
 
         day_unloading = ShipOperation.query.filter(
             ShipOperation.operation_type == 'تفريغ',
-            db.func.strftime('%w', ShipOperation.start_time) == str(i)
+            extract('dow', ShipOperation.start_time) == i
         ).count()
 
         loading_data.append(day_loading)
