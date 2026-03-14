@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}عن النظام - مكتب عمال ميناء رأس عيسى{% endblock %}
+
+{% block page_title %}عن نظام مكتب عمال  ميناء رأس عيسى{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item active">عن النظام</li>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- بطاقة التعريف بالنظام -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-info-circle"></i>
+            نبذة عن النظام
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <h3 class="mb-3">🚢 نظام مكتب عمال ميناء رأس عيسى</h3>
+                    <p class="lead">
+                        نظام متكامل لإدارة <strong>مكتب عمال ميناء رأس عيسى</strong>، يهدف إلى:
+                    </p>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><i class="fas fa-check-circle text-success ms-2"></i> تنظيم فرق العمل وتوزيعهم بشكل فعال</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success ms-2"></i> إدارة عمليات التفريغ والتحميل للسفن</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success ms-2"></i> إنشاء إحصائيات وتقارير دقيقة لتسهيل العمل</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success ms-2"></i> متابعة أداء الفرق والموظفين</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success ms-2"></i> تسجيل الحضور والانصراف</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success ms-2"></i> إدارة الأرصفة والسفن الواصلة والمغادرة</li>
+                    </ul>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                        <i class="fas fa-ship stat-icon" style="opacity: 0.2; font-size: 4rem;"></i>
+                        <div class="stat-value" style="color: white;">{{ stats.total_ships if stats else '0' }}</div>
+                        <div class="stat-title" style="color: rgba(255,255,255,0.8);">إجمالي السفن</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- المميزات الرئيسية -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3"><i class="fas fa-star text-warning"></i> المميزات الرئيسية</h4>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                    <h5>إدارة الموظفين</h5>
+                    <p class="text-muted">إضافة وتعديل وحذف بيانات الموظفين، تحديد المهن، وتوزيعهم على الفرق</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-people-arrows fa-3x text-success mb-3"></i>
+                    <h5>فرق العمل</h5>
+                    <p class="text-muted">إنشاء فرق عمل متخصصة، تعيين قادة، وتوزيع المهام بكفاءة</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-ship fa-3x text-info mb-3"></i>
+                    <h5>السفن والعمليات</h5>
+                    <p class="text-muted">تسجيل السفن، متابعة عمليات التحميل والتفريغ، وتخصيص الأرصفة</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-bar fa-3x text-warning mb-3"></i>
+                    <h5>التقارير والإحصائيات</h5>
+                    <p class="text-muted">تقارير أداء الفرق، إحصائيات يومية وشهرية، رسوم بيانية تفاعلية</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-tachometer-alt fa-3x text-danger mb-3"></i>
+                    <h5>لوحة تحكم متكاملة</h5>
+                    <p class="text-muted">عرض جميع الإحصائيات، متابعة العمليات الجارية، رؤية شاملة للأداء</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-file-export fa-3x text-secondary mb-3"></i>
+                    <h5>تصدير التقارير</h5>
+                    <p class="text-muted">تصدير التقارير بصيغ Excel و PDF للطباعة والأرشفة</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- فوائد النظام -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-gem"></i>
+            فوائد النظام
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <ul class="list-unstyled">
+                        <li class="mb-3">
+                            <i class="fas fa-clock fa-fw text-primary ms-2"></i>
+                            <strong>توفير الوقت والجهد</strong> - في تنظيم العمل وإدارة المهام
+                        </li>
+                        <li class="mb-3">
+                            <i class="fas fa-check-circle fa-fw text-success ms-2"></i>
+                            <strong>تقليل الأخطاء</strong> - الناتجة عن العمل اليدوي
+                        </li>
+                        <li class="mb-3">
+                            <i class="fas fa-chart-line fa-fw text-info ms-2"></i>
+                            <strong>زيادة الإنتاجية</strong> - من خلال التوزيع الأمثل للفرق
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <ul class="list-unstyled">
+                        <li class="mb-3">
+                            <i class="fas fa-eye fa-fw text-warning ms-2"></i>
+                            <strong>شفافية كاملة</strong> - في أداء الموظفين ومتابعة العمل
+                        </li>
+                        <li class="mb-3">
+                            <i class="fas fa-chart-pie fa-fw text-danger ms-2"></i>
+                            <strong>تقارير دقيقة</strong> - لاتخاذ القرارات المناسبة
+                        </li>
+                        <li class="mb-3">
+                            <i class="fas fa-mobile-alt fa-fw text-secondary ms-2"></i>
+                            <strong>سهولة الوصول</strong> - للبيانات من أي جهاز وفي أي وقت
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- بطاقة المصمم والتواصل -->
+    <div class="card mb-4" style="border: 2px solid #667eea;">
+        <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <i class="fas fa-user-cog"></i>
+            المصمم والمطور
+        </div>
+        <div class="card-body text-center">
+            <div class="row">
+                <div class="col-md-4">
+                    <div style="font-size: 5rem; color: #667eea;">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <h3 class="mt-3" style="color: #667eea;">أبو غيث</h3>
+                    <p class="text-muted">لتصميم وتطوير التطبيقات والأنظمة</p>
+                </div>
+                <div class="col-md-8">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <i class="fas fa-phone-alt fa-2x text-primary mb-2"></i>
+                                    <h5>رقم التواصل</h5>
+                                    <p class="h4" style="direction: ltr;">773014017-711127883</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <i class="fas fa-envelope fa-2x text-danger mb-2"></i>
+                                    <h5>البريد الإلكتروني</h5>
+                                    <p>ali.mubark582021@mail.com</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <i class="fas fa-map-marker-alt fa-2x text-success mb-2"></i>
+                                    <h5>الموقع</h5>
+                                    <p>اليمن - الحديدة-راس عيسى</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <i class="fas fa-code fa-2x text-info mb-2"></i>
+                                    <h5>التخصص</h5>
+                                    <p>تطوير أنظمة إدارة متكاملة</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // تفعيل التوليب
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+</script>
+{% endblock %}

@@ -6,7 +6,7 @@ from models import db, Employee, Team
 from datetime import datetime
 
 
-def clean_national_id(national_id):
+#def clean_national_id(national_id):
     """تنظيف الرقم الوطني من الصيغ المختلفة"""
     if pd.isna(national_id) or str(national_id).strip() == '':
         return None
@@ -16,7 +16,7 @@ def clean_national_id(national_id):
     return cleaned if cleaned else None
 
 
-def extract_year_from_date(year_value):
+#def extract_year_from_date(year_value):
     """استخراج السنة من البيانات"""
     if pd.isna(year_value) or str(year_value).strip() == '':
         return None
@@ -35,7 +35,7 @@ def extract_year_from_date(year_value):
     return None
 
 
-def get_profession(profession_text, is_leader=False):
+#def get_profession(profession_text, is_leader=False):
     """تحديد المهنة"""
     if pd.isna(profession_text) or str(profession_text).strip() == '':
         return 'عامل'
@@ -45,7 +45,7 @@ def get_profession(profession_text, is_leader=False):
     return prof
 
 
-def import_data(file_path=None):
+#def import_data(file_path=None):
     """استيراد البيانات من ملف Excel"""
 
     if file_path is None:
@@ -220,7 +220,7 @@ def import_data(file_path=None):
         return {'error': str(e)}
 
 
-def import_from_excel(file_path):
+#def import_from_excel(file_path):
     """دالة للاستيراد من مسار ملف محدد"""
     result = import_data(file_path)
     # التأكد من وجود total في النتائج
@@ -231,5 +231,5 @@ def import_from_excel(file_path):
     return result
 
 
-if __name__ == '__main__':
+#if __name__ == '__main__':
     import_data()

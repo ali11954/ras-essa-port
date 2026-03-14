@@ -10,7 +10,7 @@ class Config:
     # دعم PostgreSQL في الإنتاج
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///ras_essa_port.db'
 
-    # تعديل رابط PostgreSQL إذا كان موجوداً
+    # تعديل رابط PostgreSQL إذا كان يبدأ بـ postgres://
     if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith('postgres://'):
         SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace('postgres://', 'postgresql://', 1)
 

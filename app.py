@@ -196,6 +196,23 @@ def index():
         # إذا لم يكن مسجل الدخول، اذهب إلى صفحة تسجيل الدخول
         return redirect(url_for('login'))
 
+
+@app.route('/about')
+@login_required
+def about():
+    """صفحة عن النظام والمصمم"""
+    # إحصائيات سريعة للعرض
+    from models import Employee, Team, Ship, Berth
+
+    stats = {
+        'total_employees': Employee.query.count(),
+        'total_teams': Team.query.count(),
+        'total_ships': Ship.query.count(),
+        'total_berths': Berth.query.count()
+    }
+
+    return render_template('about.html', stats=stats)
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:

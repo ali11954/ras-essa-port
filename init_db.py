@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import random
 
 
-def init_db():
+#def init_db():
     with app.app_context():
         print("=" * 60)
         print("🚀 بدء تهيئة قاعدة البيانات")
