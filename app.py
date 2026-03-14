@@ -55,6 +55,137 @@ def load_user(user_id):
 # Create upload folder if not exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+import traceback
+import sys
+import os
+
+
+# صفحة تشخيص شاملة
+@app.route('/diagnose-all')
+def diagnose_all():
+    """تشخيص شامل للتطبيق"""
+    output = []
+    output.append("<html dir='rtl'><head><title>🔍 تشخيص التطبيق</title>")
+    output.append(
+        "<style>body{font-family:Arial;padding:20px;background:#f5f7fa;} pre{background:#fff;padding:15px;border-radius:5px;}</style>")
+    output.append("</head><body>")
+    output.append("<h1>🔍 تشخيص التطبيق</h1>")
+
+    # 1. معلومات البيئة
+    output.append("<h2>1. معلومات البيئة:</h2>")
+    output.append(f"<p>Python: {sys.version}</p>")
+    output.append(f"<p>المجلد الحالي: {os.getcwd()}</p>")
+
+    # 2. الملفات الموجودة
+    output.append("<h2>2. الملفات المهمة:</h2>")
+    important_files = ['app.py', 'models.py', 'init_db.py', 'import_data.py', 'config.py', 'forms.py']
+    for file in important_files:
+        exists = os.path.exists(file)
+        status = "✅ موجود" if exists else "❌ غير موجود"
+        output.append(f"<p>{file}: {status}</p>")
+
+    # 3. قاعدة البيانات
+    output.append("<h2>3. حالة قاعدة البيانات:</h2>")
+    try:
+        from models import db, User, Employee, Team, Ship, Berth
+        with app.app_context():
+            # عدد الجداول
+            tables = db.engine.table_names()
+            output.append(f"<p>الجداول الموجودة: {', '.join(tables) if tables else 'لا توجد جداول'}</p>")
+
+            # عدد المستخدمين
+            users_count = User.query.count()
+            output.append(f"<p>عدد المستخدمين: {users_count}</p>")
+
+            if users_count > 0:
+                users = User.query.all()
+                for user in users:
+                    output.append(f"<p> - {user.username} ({user.role})</p>")
+    except Exception as e:
+        output.append(f"<p style='color:red'>❌ خطأ في قاعدة البيانات: {str(e)}</p>")
+
+    # 4. اختبار المسارات
+    output.append("<h2>4. اختبار المسارات:</h2>")
+    routes_to_test = [
+        ('/', 'الصفحة الرئيسية'),
+        ('/login', 'تسجيل الدخول'),
+        ('/dashboard', 'لوحة التحكم'),
+        ('/employees', 'الموظفين'),
+        ('/teams', 'الفرق'),
+        ('/ships', 'السفن'),
+        ('/berths', 'الأرصفة'),
+        ('/init-db?key=123456', 'تهيئة قاعدة البيانات'),
+        ('/import-employees?key=123456', 'استيراد الموظفين')
+    ]
+
+    for route, name in routes_to_test:
+        from flask import url_for
+        try:
+            with app.test_request_context():
+                url = url_for(route.strip('/').replace('?', '_').split('_')[0] or 'index')
+                output.append(f"<p>✅ {name}: {url}</p>")
+        except Exception as e:
+            output.append(f"<p style='color:orange'>⚠️ {name}: غير متاح</p>")
+
+    # 5. اختبار تسجيل الدخول
+    output.append("<h2>5. اختبار تسجيل الدخول:</h2>")
+    try:
+        from forms import LoginForm
+        output.append("<p>✅ نموذج تسجيل الدخول موجود</p>")
+    except Exception as e:
+        output.append(f"<p style='color:red'>❌ خطأ في نموذج تسجيل الدخول: {str(e)}</p>")
+
+    # 6. روابط سريعة
+    output.append("<h2>6. روابط سريعة:</h2>")
+    base_url = request.host_url.rstrip('/')
+    output.append(f"""
+    <ul>
+        <li><a href="{base_url}/init-db?key=123456" target="_blank">🔧 تهيئة قاعدة البيانات</a></li>
+        <li><a href="{base_url}/import-employees?key=123456" target="_blank">📥 استيراد الموظفين</a></li>
+        <li><a href="{base_url}/reset-admin-final" target="_blank">👑 إعادة تعيين admin</a></li>
+        <li><a href="{base_url}/simple-login" target="_blank">🚪 دخول مباشر</a></li>
+        <li><a href="{base_url}/login" target="_blank">🔐 صفحة تسجيل الدخول</a></li>
+    </ul>
+    """)
+
+    output.append("</body></html>")
+    return "".join(output)
+
+
+@app.errorhandler(Exception)
+def handle_all_exceptions(e):
+    """معالج شامل لجميع الأخطاء"""
+    import traceback
+    error_trace = traceback.format_exc()
+
+    return f"""
+    <html dir="rtl">
+        <head>
+            <title>❌ خطأ في التطبيق</title>
+            <style>
+                body {{ font-family: Arial; padding: 40px; background: #f5f7fa; }}
+                .error-box {{ background: white; border-radius: 10px; padding: 30px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }}
+                h1 {{ color: #e74c3c; }}
+                pre {{ background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }}
+                .btn {{ display: inline-block; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 5px; }}
+            </style>
+        </head>
+        <body>
+            <div class="error-box">
+                <h1>❌ حدث خطأ في الخادم</h1>
+                <p><strong>نوع الخطأ:</strong> {type(e).__name__}</p>
+                <p><strong>الرسالة:</strong> {str(e)}</p>
+                <h3>تفاصيل الخطأ:</h3>
+                <pre>{error_trace}</pre>
+                <hr>
+                <a href="/diagnose-all" class="btn">🔍 تشخيص شامل</a>
+                <a href="/" class="btn">🏠 الرئيسية</a>
+                <a href="/login" class="btn">🔐 تسجيل الدخول</a>
+            </div>
+        </body>
+    </html>
+    """, 500
+
 @app.route('/')
 def index():
     # التحقق من تسجيل دخول المستخدم
