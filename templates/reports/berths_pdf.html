@@ -5,118 +5,379 @@
     <title>تقرير الأرصفة - مكتب عمال رأس عيسى</title>
     <style>
         @page {
-            size: A4;
-            margin: 1.5cm;
+            size: A4 landscape;
+            margin: 1.2cm;
             @top-center {
-                content: "مكتب عمال رأس عيسى - تقرير الأرصفة";
+                content: "⚓ مكتب عمال رأس عيسى - تقرير الأرصفة";
+                color: #667eea;
+                font-size: 10px;
             }
             @bottom-center {
                 content: "الصفحة " counter(page) " من " counter(pages);
+                font-size: 9px;
+                color: #666;
             }
         }
+
         body {
             font-family: 'DejaVu Sans', Arial, sans-serif;
-            line-height: 1.6;
+            line-height: 1.5;
             color: #333;
+            font-size: 11px;
+            margin: 0;
+            padding: 0;
         }
+
         h1 {
             color: #667eea;
             text-align: center;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+            font-size: 22px;
         }
-        .header-info {
-            text-align: center;
-            margin: 20px 0;
-            padding: 10px;
-            background-color: #f0f0f0;
-            border-radius: 5px;
+
+        h1 i {
+            margin-left: 10px;
         }
-        .stats {
-            display: flex;
-            justify-content: space-around;
-            margin: 20px 0;
+
+        /* معلومات التقرير */
+        .report-info {
+            background: #f8f9fa;
             padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-right: 4px solid #667eea;
         }
-        .stat-item {
-            text-align: center;
+
+        .info-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
         }
-        .stat-number {
-            font-size: 24px;
+
+        .info-item {
+            flex: 1;
+            min-width: 200px;
+            padding: 5px 10px;
+        }
+
+        .info-label {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 2px;
+        }
+
+        .info-value {
+            font-size: 13px;
             font-weight: bold;
+            color: #333;
         }
-        .stat-label {
-            font-size: 14px;
+
+        /* بطاقات الإحصائيات */
+        .stats-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            flex: 1;
+            min-width: 120px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 10px;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(102,126,234,0.3);
+        }
+
+        .stat-icon {
+            font-size: 20px;
+            margin-bottom: 5px;
             opacity: 0.9;
         }
+
+        .stat-number {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ملخص إضافي */
+        .summary-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .summary-card {
+            flex: 1;
+            min-width: 150px;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #eee;
+        }
+
+        .summary-title {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .summary-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .summary-desc {
+            font-size: 9px;
+            color: #999;
+            margin-top: 3px;
+        }
+
+        /* الجدول الرئيسي */
         table {
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
+            font-size: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
+
         th {
-            background-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 10px;
+            padding: 10px 5px;
             text-align: center;
+            font-weight: 600;
+            font-size: 10px;
+            white-space: nowrap;
         }
+
         td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: right;
+            border: 1px solid #e0e0e0;
+            padding: 8px 5px;
+            text-align: center;
+            vertical-align: middle;
         }
+
         tr:nth-child(even) {
-            background-color: #f9f9f9;
+            background-color: #f8f9fa;
         }
+
+        tr:hover {
+            background-color: #f0f3ff;
+        }
+
+        /* شارات الحالة */
         .badge-success {
             background-color: #28a745;
             color: white;
-            padding: 3px 8px;
-            border-radius: 3px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 9px;
+            font-weight: 600;
+            display: inline-block;
         }
+
         .badge-danger {
             background-color: #dc3545;
             color: white;
-            padding: 3px 8px;
-            border-radius: 3px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 9px;
+            font-weight: 600;
+            display: inline-block;
         }
-        .footer {
-            margin-top: 50px;
+
+        .badge-warning {
+            background-color: #ffc107;
+            color: #333;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 9px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .badge-info {
+            background-color: #17a2b8;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 9px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .ship-badge {
+            background: #e9ecef;
+            color: #495057;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 8px;
+            display: inline-block;
+            margin: 2px;
+        }
+
+        /* ملخص السفن لكل رصيف */
+        .ships-summary {
+            margin-top: 30px;
+        }
+
+        .ships-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 9px;
+        }
+
+        .ships-table th {
+            background: #6c757d;
+            color: white;
+            padding: 6px;
+        }
+
+        /* توقيع التقرير */
+        .signature-section {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 30px;
+        }
+
+        .signature-box {
             text-align: center;
-            color: #666;
-            font-size: 12px;
+            min-width: 150px;
+        }
+
+        .signature-line {
+            margin-top: 40px;
+            border-top: 1px solid #333;
+            padding-top: 5px;
+            font-size: 10px;
+        }
+
+        /* الفوتر */
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #999;
+            font-size: 9px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .footer-logo {
+            font-size: 11px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
         }
     </style>
 </head>
 <body>
-    <h1>📊 تقرير الأرصفة</h1>
+    <h1>
+        <i>⚓</i> تقرير الأرصفة - مكتب عمال رأس عيسى
+    </h1>
 
-    <div class="header-info">
-        <p>تاريخ التقرير: {{ current_date.strftime('%Y-%m-%d %H:%M') }}</p>
+    <!-- معلومات التقرير -->
+    <div class="report-info">
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">📅 تاريخ التقرير</div>
+                <div class="info-value">{{ current_date.strftime('%Y-%m-%d %H:%M') }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">👤 تم الإنشاء بواسطة</div>
+                <div class="info-value">{{ current_user.username if current_user else 'النظام' }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">⚓ إجمالي الأرصفة</div>
+                <div class="info-value">{{ stats.total }}</div>
+            </div>
+        </div>
     </div>
 
-    <div class="stats">
-        <div class="stat-item">
+    <!-- بطاقات الإحصائيات الرئيسية -->
+    <div class="stats-container">
+        <div class="stat-card">
+            <div class="stat-icon">⚓</div>
             <div class="stat-number">{{ stats.total }}</div>
             <div class="stat-label">إجمالي الأرصفة</div>
         </div>
-        <div class="stat-item">
+        <div class="stat-card">
+            <div class="stat-icon">✅</div>
             <div class="stat-number">{{ stats.active }}</div>
             <div class="stat-label">أرصفة متاحة</div>
         </div>
-        <div class="stat-item">
+        <div class="stat-card">
+            <div class="stat-icon">⛔</div>
             <div class="stat-number">{{ stats.occupied }}</div>
             <div class="stat-label">أرصفة مشغولة</div>
         </div>
-        <div class="stat-item">
+        <div class="stat-card">
+            <div class="stat-icon">🚢</div>
             <div class="stat-number">{{ stats.total_ships }}</div>
             <div class="stat-label">إجمالي السفن</div>
         </div>
     </div>
 
+    <!-- ملخص إضافي -->
+    <div class="summary-cards">
+        <div class="summary-card">
+            <div class="summary-title">📏 متوسط الطول</div>
+            <div class="summary-value">
+                {% set total_length = 0 %}
+                {% for berth in berths %}
+                    {% if berth.length %}
+                        {% set total_length = total_length + berth.length %}
+                    {% endif %}
+                {% endfor %}
+                {{ (total_length / stats.total) | round(1) if stats.total > 0 else 0 }}
+            </div>
+            <div class="summary-desc">متر</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-title">🌊 متوسط العمق</div>
+            <div class="summary-value">
+                {% set total_depth = 0 %}
+                {% for berth in berths %}
+                    {% if berth.depth %}
+                        {% set total_depth = total_depth + berth.depth %}
+                    {% endif %}
+                {% endfor %}
+                {{ (total_depth / stats.total) | round(1) if stats.total > 0 else 0 }}
+            </div>
+            <div class="summary-desc">متر</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-title">📊 نسبة الإشغال</div>
+            <div class="summary-value">{{ ((stats.occupied / stats.total) * 100) | round(1) if stats.total > 0 else 0 }}%</div>
+            <div class="summary-desc">{{ stats.occupied }} من {{ stats.total }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-title">🚢 متوسط السفن</div>
+            <div class="summary-value">{{ (stats.total_ships / stats.total) | round(1) if stats.total > 0 else 0 }}</div>
+            <div class="summary-desc">سفينة لكل رصيف</div>
+        </div>
+    </div>
+
+    <!-- الجدول الرئيسي للأرصفة -->
     <table>
         <thead>
             <tr>
@@ -126,33 +387,127 @@
                 <th>العمق (م)</th>
                 <th>عدد السفن</th>
                 <th>السفينة الحالية</th>
+                <th>رقم IMO</th>
+                <th>نوع السفينة</th>
                 <th>الحالة</th>
+                <th>ملاحظات</th>
             </tr>
         </thead>
         <tbody>
             {% for berth in berths %}
             <tr>
                 <td>{{ loop.index }}</td>
-                <td>{{ berth.number }}</td>
+                <td><strong>{{ berth.number }}</strong></td>
                 <td>{{ berth.length or '—' }}</td>
                 <td>{{ berth.depth or '—' }}</td>
-                <td>{{ berth.ships_count }}</td>
-                <td>{{ berth.current_ship.name if berth.current_ship else '—' }}</td>
+                <td><strong>{{ berth.ships_count }}</strong></td>
+                <td>
+                    {% if berth.current_ship %}
+                        {{ berth.current_ship.name }}
+                        <br>
+                        <small class="ship-badge">{{ berth.current_ship.ship_type }}</small>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>{{ berth.current_ship.imo_number if berth.current_ship else '—' }}</td>
+                <td>
+                    {% if berth.current_ship %}
+                        <span class="badge-info">{{ berth.current_ship.ship_type }}</span>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
                 <td>
                     {% if berth.is_available %}
                         <span class="badge-success">متاح</span>
                     {% else %}
                         <span class="badge-danger">غير متاح</span>
                     {% endif %}
+                    {% if berth.is_occupied %}
+                        <br><span class="badge-warning">مشغول</span>
+                    {% endif %}
                 </td>
+                <td><small>{{ berth.notes or '—' }}</small></td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
-    <div class="footer">
-                <p>تم إنشاء هذا التقرير بواسطة نظام مكتب عمال ميناء رأس عيسى</p>
+    <!-- قائمة السفن في كل رصيف -->
+    <div class="ships-summary">
+        <h3 style="color: #667eea; text-align: center;">🚢 قائمة السفن حسب الرصيف</h3>
 
+        {% for berth in berths %}
+        <div style="margin-bottom: 15px;">
+            <h4 style="color: #667eea; border-bottom: 1px solid #667eea; padding-bottom: 5px;">
+                رصيف {{ berth.number }} - ({{ berth.ships_count }} سفن)
+            </h4>
+
+            <table class="ships-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>اسم السفينة</th>
+                        <th>رقم IMO</th>
+                        <th>النوع</th>
+                        <th>تاريخ الوصول</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set ships = berth.ships_list if berth.ships_list is defined else [] %}
+                    {% if ships %}
+                        {% for ship in ships %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ ship.name }}</td>
+                            <td>{{ ship.imo_number }}</td>
+                            <td><span class="badge-info">{{ ship.ship_type }}</span></td>
+                            <td>{{ ship.arrival_date.strftime('%Y-%m-%d') if ship.arrival_date else '—' }}</td>
+                            <td>
+                                {% if ship.status == 'arrived' %}
+                                    <span class="badge-warning">واصلة</span>
+                                {% elif ship.status == 'berthed' %}
+                                    <span class="badge-success">راسية</span>
+                                {% elif ship.status == 'departed' %}
+                                    <span class="badge-danger">مغادرة</span>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: #999;">لا توجد سفن في هذا الرصيف</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- توقيع التقرير -->
+    <div class="signature-section">
+        <div class="signature-box">
+            <div class="signature-line">مدير الميناء</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-line">رئيس قسم الأرصفة</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-line">مسؤول التقارير</div>
+        </div>
+    </div>
+
+    <!-- تذييل التقرير -->
+    <div class="footer">
+        <div class="footer-logo">⚓ مكتب عمال ميناء رأس عيسى</div>
+        <p>جميع الحقوق محفوظة © {{ current_date.year }}</p>
+        <p>للاستفسارات: 77301401 | البريد: ali.mubark582021@mail.com</p>
+        <p>تم إنشاء هذا التقرير بواسطة نظام إدارة الميناء - الإصدار 1.0</p>
     </div>
 </body>
 </html>
