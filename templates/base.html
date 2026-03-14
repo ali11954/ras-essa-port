@@ -15,6 +15,25 @@
     <!-- SweetAlert2 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <style>
+    /* ========== المتغيرات الأساسية ========== */
+    :root {
+        --primary: #667eea;
+        --secondary: #764ba2;
+        --font-size-xs: 11px;
+        --font-size-sm: 12px;
+        --font-size-base: 13px;
+        --font-size-md: 14px;
+        --font-size-lg: 16px;
+        --font-size-xl: 18px;
+        --font-size-xxl: 20px;
+        --font-size-h1: 22px;
+        --font-size-h2: 20px;
+        --font-size-h3: 18px;
+        --font-size-h4: 16px;
+        --font-size-h5: 14px;
+        --font-size-h6: 13px;
+    }
+
     * {
         font-family: 'Cairo', sans-serif;
         margin: 0;
@@ -25,248 +44,380 @@
     body {
         background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         min-height: 100vh;
-        font-size: 14px; /* تقليل حجم الخط الأساسي */
+        font-size: var(--font-size-base);
         line-height: 1.5;
     }
+/* ========== Navbar Styles - نسخة مضغوطة جداً ========== */
+.navbar {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    padding: 0.15rem 0.5rem;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+}
 
-    /* Navbar Styles */
-    .navbar {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 0.5rem 1rem; /* تقليل padding */
-        box-shadow: 0 2px 20px rgba(0,0,0,0.1);
-    }
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;  /* حجم أصغر للشعار */
+    font-weight: 600;
+    color: white !important;
+    padding: 0.1rem 0;
+}
 
-    .navbar-brand {
-        font-size: 1.2rem; /* تقليل حجم الشعار */
-        font-weight: 700;
-        color: white !important;
-    }
+.navbar-brand i {
+    font-size: 1rem;
+    background: rgba(255,255,255,0.2);
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    margin-left: 3px;
+}
 
-    .navbar-brand i {
-        margin-left: 8px;
-        font-size: 1.4rem; /* تقليل حجم أيقونة الشعار */
-    }
+.nav-link {
+    color: rgba(255,255,255,0.9) !important;
+    font-weight: 500;
+    margin: 0 1px;
+    padding: 0.15rem 0.4rem !important;
+    border-radius: 4px;
+    transition: all 0.3s;
+    font-size: 10px;  /* حجم خط صغير جداً */
+}
 
-    .nav-link {
-        color: rgba(255,255,255,0.9) !important;
-        font-weight: 500;
-        margin: 0 3px;
-        padding: 0.4rem 0.8rem !important; /* تقليل padding */
-        border-radius: 6px;
-        transition: all 0.3s;
-        font-size: 13px; /* تصغير خط القائمة */
-    }
+.nav-link i {
+    margin-left: 2px;
+    font-size: 0.75rem;
+}
 
-    .nav-link i {
-        margin-left: 5px;
-        font-size: 0.95rem; /* تصغير أيقونات القائمة */
-    }
+/* عناوين القوائم المنسدلة */
+.dropdown-item {
+    font-size: 10px;
+    padding: 3px 8px;
+}
 
-    /* Main Content */
+.dropdown-item i {
+    font-size: 0.75rem;
+    width: 14px;
+}
+
+/* زر "عن النظام" المميز */
+.nav-item .nav-link[href*="about"] {
+    background: rgba(255,255,255,0.15);
+    border-radius: 14px;
+    margin-left: 6px;
+    padding: 0.15rem 0.5rem !important;
+    font-size: 10px;
+}
+
+/* تصغير حجم النص في القوائم المنسدلة */
+.dropdown-menu {
+    font-size: 10px;
+    padding: 5px;
+}
+
+.dropdown-header {
+    font-size: 10px;
+    padding: 3px 8px;
+}
+
+/* تصغير حجم اسم المستخدم */
+.navbar-nav .dropdown-toggle {
+    font-size: 10px;
+    padding: 0.15rem 0.4rem !important;
+}
+
+.navbar-nav .dropdown-toggle i {
+    font-size: 0.8rem;
+}
+    /* ========== Main Content ========== */
     .main-content {
-        padding: 20px; /* تقليل padding */
-        min-height: calc(100vh - 140px);
+        padding: 15px;
+        min-height: calc(100vh - 130px);
     }
 
-    /* Cards */
+    /* ========== Cards محسّنة ========== */
     .card {
         border: none;
-        border-radius: 12px; /* تقليل borderRadius */
-        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        border-radius: 10px;
+        box-shadow: 0 3px 15px rgba(0,0,0,0.08);
         transition: all 0.3s;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
+    }
+
+    .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(102,126,234,0.15);
     }
 
     .card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
         color: white;
         border: none;
-        border-radius: 12px 12px 0 0 !important;
-        padding: 12px 18px; /* تقليل padding */
+        border-radius: 10px 10px 0 0 !important;
+        padding: 10px 15px;
         font-weight: 600;
-        font-size: 15px; /* تصغير خط العنوان */
+        font-size: 14px;
     }
 
     .card-header i {
-        margin-left: 8px;
-        font-size: 1rem;
+        margin-left: 6px;
+        font-size: 0.95rem;
     }
 
     .card-body {
-        padding: 18px; /* تقليل padding */
-        font-size: 13px;
+        padding: 15px;
+        font-size: var(--font-size-sm);
     }
 
-    /* Buttons */
+    /* ========== Buttons محسّنة ========== */
     .btn {
-        border-radius: 8px; /* تقليل borderRadius */
-        padding: 8px 16px; /* تقليل padding */
+        border-radius: 6px;
+        padding: 6px 14px;
         font-weight: 600;
         transition: all 0.3s;
         border: none;
-        font-size: 13px; /* تصغير خط الأزرار */
+        font-size: var(--font-size-sm);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102,126,234,0.4);
     }
 
     .btn-sm {
-        padding: 5px 12px;
-        font-size: 12px;
+        padding: 4px 10px;
+        font-size: var(--font-size-xs);
     }
 
     .btn-lg {
-        padding: 12px 24px;
-        font-size: 15px;
+        padding: 10px 20px;
+        font-size: var(--font-size-md);
     }
 
     .btn i {
-        margin-left: 6px;
-        font-size: 0.9rem;
+        margin-left: 4px;
+        font-size: 0.8rem;
     }
 
-    /* Tables */
+    /* ========== Tables محسّنة ========== */
     .table {
-        font-size: 13px; /* تصغير خط الجدول */
+        font-size: var(--font-size-sm);
         margin-bottom: 0;
     }
 
     .table thead th {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
         color: white;
         font-weight: 600;
         border: none;
-        padding: 12px; /* تقليل padding */
-        font-size: 13px;
+        padding: 10px;
+        font-size: var(--font-size-sm);
+        white-space: nowrap;
     }
 
     .table tbody td {
-        padding: 10px; /* تقليل padding */
+        padding: 8px 10px;
         vertical-align: middle;
     }
 
-    /* Forms */
+    .table tbody tr:hover {
+        background: rgba(102,126,234,0.05);
+    }
+
+    /* ========== Forms محسّنة ========== */
     .form-control, .form-select {
-        font-size: 13px; /* تصغير خط النماذج */
-        padding: 8px 12px;
-        border-radius: 8px;
+        font-size: var(--font-size-sm);
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid #e0e0e0;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0.2rem rgba(102,126,234,0.25);
     }
 
     .form-label {
-        font-size: 13px;
+        font-size: var(--font-size-sm);
         font-weight: 600;
-        margin-bottom: 5px;
+        margin-bottom: 3px;
         color: #495057;
     }
 
-    /* Headings */
-    h1, .h1 { font-size: 2rem; } /* تقليل حجم العناوين */
-    h2, .h2 { font-size: 1.6rem; }
-    h3, .h3 { font-size: 1.4rem; }
-    h4, .h4 { font-size: 1.2rem; }
-    h5, .h5 { font-size: 1rem; }
-    h6, .h6 { font-size: 0.9rem; }
+    /* ========== Headings محسّنة ========== */
+    h1, .h1 { font-size: var(--font-size-h1); margin-bottom: 0.5rem; }
+    h2, .h2 { font-size: var(--font-size-h2); margin-bottom: 0.5rem; }
+    h3, .h3 { font-size: var(--font-size-h3); margin-bottom: 0.5rem; }
+    h4, .h4 { font-size: var(--font-size-h4); margin-bottom: 0.3rem; }
+    h5, .h5 { font-size: var(--font-size-h5); margin-bottom: 0.3rem; }
+    h6, .h6 { font-size: var(--font-size-h6); margin-bottom: 0.3rem; }
 
-    /* Page Header */
-    .page-header h4 {
-        font-size: 1.3rem;
-        margin-bottom: 5px;
+    /* ========== Page Header المحسن (اسم ورمز الواجهة في صف واحد) ========== */
+    .page-header-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: white;
+        padding: 12px 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+        border-right: 4px solid var(--primary);
     }
 
-    /* Breadcrumb */
+    .page-header-content {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .page-header-icon {
+        width: 45px;
+        height: 45px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+        box-shadow: 0 4px 10px rgba(102,126,234,0.3);
+    }
+
+    .page-header-title {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .page-header-title h4 {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #333;
+        margin: 0;
+        line-height: 1.3;
+    }
+
+    .page-header-title .breadcrumb {
+        margin: 3px 0 0 0;
+        padding: 0;
+        background: transparent;
+        font-size: 11px;
+    }
+
+    .page-header-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    /* ========== Breadcrumb ========== */
     .breadcrumb {
         background: transparent;
         padding: 0;
-        margin: 5px 0 0 0;
-        font-size: 12px;
+        margin: 3px 0 0 0;
+        font-size: 11px;
     }
 
     .breadcrumb-item a {
-        color: #667eea;
+        color: var(--primary);
         text-decoration: none;
     }
 
-    /* Icons in text */
-    i {
-        display: inline-block;
-        vertical-align: middle;
+    .breadcrumb-item.active {
+        color: #6c757d;
     }
 
-    /* Alerts */
+    /* ========== Alerts ========== */
     .alert {
         border-radius: 8px;
         border: none;
-        padding: 12px 18px;
-        margin-bottom: 15px;
-        font-size: 13px;
+        padding: 10px 15px;
+        margin-bottom: 12px;
+        font-size: var(--font-size-sm);
     }
 
     .alert i {
-        margin-left: 8px;
-        font-size: 1rem;
+        margin-left: 6px;
+        font-size: 0.95rem;
     }
 
-    /* Footer */
+    /* ========== Footer ========== */
     .footer {
         background: white;
-        padding: 15px;
+        padding: 12px;
         text-align: center;
         color: #6c757d;
-        border-radius: 12px 12px 0 0;
-        margin-top: 20px;
-        font-size: 12px;
+        border-radius: 10px 10px 0 0;
+        margin-top: 15px;
+        font-size: 11px;
+        box-shadow: 0 -3px 10px rgba(0,0,0,0.03);
     }
 
-    /* Stat Cards */
+    /* ========== Stat Cards محسّنة ========== */
     .stat-card {
         background: white;
-        border-radius: 12px;
-        padding: 18px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.05);
         position: relative;
         overflow: hidden;
         transition: all 0.3s;
     }
 
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+
     .stat-card .stat-icon {
         position: absolute;
-        left: 15px;
-        top: 15px;
-        font-size: 2.2rem;
-        opacity: 0.2;
+        left: 12px;
+        top: 12px;
+        font-size: 2rem;
+        opacity: 0.15;
     }
 
     .stat-card .stat-title {
         color: #6c757d;
-        font-size: 0.8rem;
+        font-size: 0.7rem;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 5px;
+        letter-spacing: 0.3px;
+        margin-bottom: 3px;
     }
 
     .stat-card .stat-value {
-        font-size: 1.5rem; /* تقليل حجم الأرقام */
+        font-size: 1.3rem;
         font-weight: 700;
         color: #333;
-        margin: 5px 0;
+        margin: 3px 0;
     }
 
-    .stat-card .stat-desc {
-        font-size: 0.8rem;
-        color: #6c757d;
-    }
-
-    /* Dropdown Menu */
+    /* ========== Dropdown Menu ========== */
     .dropdown-menu {
         border: none;
         border-radius: 8px;
         box-shadow: 0 5px 15px rgba(0,0,0,0.15);
         padding: 8px;
-        font-size: 13px;
+        font-size: var(--font-size-sm);
     }
 
     .dropdown-item {
         border-radius: 6px;
         padding: 6px 12px;
         transition: all 0.2s;
-        font-size: 13px;
+        font-size: var(--font-size-sm);
+    }
+
+    .dropdown-item:hover {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
     }
 
     .dropdown-item i {
@@ -275,47 +426,55 @@
         font-size: 0.9rem;
     }
 
-    /* Badges */
+    /* ========== Badges ========== */
     .badge {
-        font-size: 0.75rem;
-        padding: 0.4em 0.8em;
+        font-size: 0.7rem;
+        padding: 0.35em 0.7em;
         font-weight: 500;
     }
 
-    /* Modal */
+    /* ========== Modal ========== */
     .modal-content {
         border-radius: 12px;
     }
 
     .modal-header {
-        padding: 15px 20px;
+        padding: 12px 18px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
     }
 
     .modal-body {
-        padding: 20px;
+        padding: 18px;
     }
 
     .modal-footer {
-        padding: 15px 20px;
+        padding: 12px 18px;
     }
 
-    /* Pagination */
+    /* ========== Pagination ========== */
     .pagination {
-        font-size: 13px;
+        font-size: var(--font-size-sm);
     }
 
     .page-link {
-        padding: 0.4rem 0.8rem;
+        padding: 0.3rem 0.7rem;
+        color: var(--primary);
     }
 
-    /* Chart Containers */
+    .page-item.active .page-link {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        border-color: var(--primary);
+    }
+
+    /* ========== Chart Containers ========== */
     .chart-container {
         position: relative;
         width: 100%;
-        min-height: 250px; /* تقليل ارتفاع الرسم البياني */
+        min-height: 230px;
     }
 
-    /* Loading Spinner */
+    /* ========== Loading Spinner ========== */
     .spinner-wrapper {
         position: fixed;
         top: 0;
@@ -333,44 +492,253 @@
         width: 40px;
         height: 40px;
         border: 4px solid #f3f3f3;
-        border-top: 4px solid #667eea;
+        border-top: 4px solid var(--primary);
         border-radius: 50%;
         animation: spin 1s linear infinite;
     }
 
-    /* Responsive */
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* ========== Responsive للشاشات المتوسطة ========== */
+    @media (max-width: 992px) {
+        .navbar-brand {
+            font-size: 1rem;
+        }
+
+        .nav-link {
+            font-size: 11px;
+            padding: 0.25rem 0.5rem !important;
+        }
+    }
+
+    /* ========== Responsive للتابلت ========== */
     @media (max-width: 768px) {
         body {
-            font-size: 13px;
+            font-size: 12px;
         }
 
         .navbar {
-            padding: 0.4rem 0.8rem;
+            padding: 0.3rem 0.6rem;
+        }
+
+        .navbar-brand {
+            font-size: 0.95rem;
+        }
+
+        .navbar-brand i {
+            font-size: 1.1rem;
         }
 
         .main-content {
-            padding: 12px;
+            padding: 10px;
         }
 
         .card-header {
-            padding: 10px 15px;
-            font-size: 14px;
+            padding: 8px 12px;
+            font-size: 13px;
         }
 
         .card-body {
-            padding: 15px;
+            padding: 12px;
         }
 
         .stat-card .stat-value {
+            font-size: 1.2rem;
+        }
+
+        h1, .h1 { font-size: 1.4rem; }
+        h2, .h2 { font-size: 1.3rem; }
+        h3, .h3 { font-size: 1.2rem; }
+        h4, .h4 { font-size: 1.1rem; }
+
+        .btn {
+            padding: 5px 12px;
+            font-size: 11px;
+        }
+
+        .page-header-wrapper {
+            padding: 10px 15px;
+        }
+
+        .page-header-icon {
+            width: 40px;
+            height: 40px;
             font-size: 1.3rem;
         }
 
-        h1, .h1 { font-size: 1.6rem; }
-        h2, .h2 { font-size: 1.4rem; }
-        h3, .h3 { font-size: 1.2rem; }
+        .page-header-title h4 {
+            font-size: 1.2rem;
+        }
     }
 
-    /* Print Styles */
+    /* ========== تحسينات خاصة للجوال ========== */
+    @media (max-width: 576px) {
+        body {
+            font-size: 11px;
+        }
+
+        .navbar {
+            padding: 0.2rem 0.5rem;
+        }
+
+        .navbar-brand {
+            font-size: 0.9rem;
+        }
+
+        .navbar-brand i {
+            font-size: 1rem;
+        }
+
+        .navbar-toggler {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.9rem;
+        }
+
+        .card-header {
+            padding: 8px 10px;
+            font-size: 12px;
+        }
+
+        .card-body {
+            padding: 10px;
+        }
+
+        .stat-card {
+            padding: 10px;
+        }
+
+        .stat-card .stat-icon {
+            font-size: 1.6rem;
+            left: 8px;
+            top: 8px;
+        }
+
+        .stat-card .stat-value {
+            font-size: 1.1rem;
+        }
+
+        .stat-card .stat-title {
+            font-size: 0.65rem;
+        }
+
+        .btn {
+            padding: 4px 10px;
+            font-size: 10px;
+        }
+
+        .btn i {
+            font-size: 0.75rem;
+        }
+
+        .table {
+            font-size: 10px;
+        }
+
+        .table thead th,
+        .table tbody td {
+            padding: 6px;
+        }
+
+        .form-control, .form-select {
+            padding: 5px 8px;
+            font-size: 11px;
+        }
+
+        .form-label {
+            font-size: 11px;
+        }
+
+        .footer {
+            padding: 8px;
+            font-size: 10px;
+        }
+
+        h1, .h1 { font-size: 1.3rem; }
+        h2, .h2 { font-size: 1.2rem; }
+        h3, .h3 { font-size: 1.1rem; }
+        h4, .h4 { font-size: 1rem; }
+
+        .page-header-wrapper {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px;
+        }
+
+        .page-header-content {
+            width: 100%;
+        }
+
+        .page-header-actions {
+            width: 100%;
+            justify-content: flex-end;
+        }
+
+        .page-header-title h4 {
+            font-size: 1.1rem;
+        }
+
+        .page-header-icon {
+            width: 35px;
+            height: 35px;
+            font-size: 1.1rem;
+        }
+    }
+
+    /* للشاشات الصغيرة جداً (اقل من 400px) */
+    @media (max-width: 400px) {
+        body {
+            font-size: 10px;
+        }
+
+        .navbar-brand {
+            font-size: 0.85rem;
+        }
+
+        .navbar-brand i {
+            font-size: 0.95rem;
+        }
+
+        .stat-card .stat-value {
+            font-size: 1rem;
+        }
+
+        .btn {
+            padding: 3px 8px;
+            font-size: 9px;
+        }
+
+        h4 {
+            font-size: 0.95rem;
+        }
+
+        .page-header-title h4 {
+            font-size: 1rem;
+        }
+    }
+
+    /* تحسين اللمس للجوال */
+    @media (hover: none) and (pointer: coarse) {
+        .btn,
+        .nav-link,
+        .dropdown-item,
+        .page-link {
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .form-control,
+        .form-select {
+            min-height: 40px;
+        }
+    }
+
+    /* ========== Print Styles ========== */
     @media print {
         .navbar, .footer, .btn, .breadcrumb {
             display: none !important;
@@ -383,258 +751,22 @@
             border: 1px solid #ddd;
         }
     }
-    /* ========== تحسينات خاصة للجوال ========== */
-@media (max-width: 576px) {
-    /* تقليل الحجم العام */
-    body {
-        font-size: 13px;
-    }
 
-    /* تحسين الفوشر للجوال */
-    .navbar {
-        padding: 0.3rem 0.5rem;
-    }
+    /* ضبط إضافي لبيئة النشر */
+    @media screen and (min-width: 1200px) {
+        .container, .container-fluid {
+            max-width: 95%;
+        }
 
-    .navbar-brand {
-        font-size: 1rem;
-    }
+        body {
+            font-size: 13px;
+        }
 
-    .navbar-brand i {
-        font-size: 1.2rem;
+        h1 { font-size: 1.8rem; }
+        h2 { font-size: 1.5rem; }
+        h3 { font-size: 1.3rem; }
+        h4 { font-size: 1.1rem; }
     }
-
-    .navbar-toggler {
-        padding: 0.2rem 0.4rem;
-        font-size: 1rem;
-    }
-
-    /* تحسين القائمة المنسدلة للجوال */
-    .navbar-nav .dropdown-menu {
-        position: static !important;
-        background: rgba(255,255,255,0.1);
-        border: none;
-        box-shadow: none;
-        padding: 0.5rem;
-        margin: 0.5rem 0;
-    }
-
-    .navbar-nav .dropdown-item {
-        color: white !important;
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-    }
-
-    .navbar-nav .dropdown-item:hover {
-        background: rgba(255,255,255,0.2);
-    }
-
-    /* تحسين البطاقات للجوال */
-    .card {
-        margin-bottom: 15px;
-        border-radius: 10px;
-    }
-
-    .card-header {
-        padding: 10px 12px;
-        font-size: 14px;
-    }
-
-    .card-body {
-        padding: 12px;
-    }
-
-    /* تحسين الجداول للجوال - جعلها قابلة للتمرير */
-    .table-responsive {
-        border: 0;
-        margin-bottom: 1rem;
-    }
-
-    .table {
-        font-size: 12px;
-    }
-
-    .table thead th {
-        padding: 8px;
-        font-size: 12px;
-        white-space: nowrap;
-    }
-
-    .table tbody td {
-        padding: 8px;
-        white-space: nowrap;
-    }
-
-    /* تحسين بطاقات الإحصائيات للجوال */
-    .stat-card {
-        padding: 12px;
-        margin-bottom: 12px;
-    }
-
-    .stat-card .stat-icon {
-        font-size: 1.8rem;
-        left: 10px;
-        top: 10px;
-    }
-
-    .stat-card .stat-value {
-        font-size: 1.2rem;
-        margin: 3px 0;
-    }
-
-    .stat-card .stat-title {
-        font-size: 0.7rem;
-    }
-
-    /* تحسين الأزرار للجوال */
-    .btn {
-        padding: 6px 12px;
-        font-size: 12px;
-        border-radius: 6px;
-    }
-
-    .btn i {
-        font-size: 0.8rem;
-    }
-
-    /* تحسين حقول الإدخال للجوال */
-    .form-control, .form-select {
-        padding: 6px 10px;
-        font-size: 13px;
-        border-radius: 6px;
-    }
-
-    .form-label {
-        font-size: 12px;
-        margin-bottom: 3px;
-    }
-
-    /* تحسين التنبيهات للجوال */
-    .alert {
-        padding: 10px 12px;
-        font-size: 12px;
-        margin-bottom: 10px;
-    }
-
-    .alert i {
-        font-size: 0.9rem;
-    }
-
-    /* تحسين عنوان الصفحة للجوال */
-    .page-header h4 {
-        font-size: 1.1rem;
-    }
-
-    .breadcrumb {
-        font-size: 11px;
-    }
-
-    /* تحسين الفوتر للجوال */
-    .footer {
-        padding: 10px;
-        font-size: 11px;
-        margin-top: 15px;
-    }
-
-    /* تحسين المودال للجوال */
-    .modal-dialog {
-        margin: 0.5rem;
-    }
-
-    .modal-header {
-        padding: 12px 15px;
-    }
-
-    .modal-body {
-        padding: 15px;
-    }
-
-    .modal-footer {
-        padding: 12px 15px;
-    }
-
-    /* تحسين التبويبات للجوال */
-    .nav-tabs .nav-link {
-        padding: 0.5rem;
-        font-size: 12px;
-    }
-
-    /* تحسين الرسوم البيانية للجوال */
-    .chart-container {
-        min-height: 200px;
-    }
-
-    /* تحسين البانر الرئيسي للجوال */
-    .dashboard-header {
-        margin-bottom: 15px;
-    }
-
-    .dashboard-header h1 {
-        font-size: 1.2rem;
-    }
-
-    /* تحسين الأيقونات في القوائم للجوال */
-    .dropdown-item i {
-        width: 16px;
-        font-size: 0.8rem;
-    }
-
-    /* تحسين الصفوف في الجداول للجوال */
-    .row {
-        margin-left: -8px;
-        margin-right: -8px;
-    }
-
-    [class*="col-"] {
-        padding-left: 8px;
-        padding-right: 8px;
-    }
-}
-
-/* للشاشات الصغيرة جداً (اقل من 400px) */
-@media (max-width: 400px) {
-    body {
-        font-size: 12px;
-    }
-
-    .navbar-brand {
-        font-size: 0.9rem;
-    }
-
-    .navbar-brand i {
-        font-size: 1.1rem;
-    }
-
-    .stat-card .stat-value {
-        font-size: 1rem;
-    }
-
-    .btn {
-        padding: 5px 10px;
-        font-size: 11px;
-    }
-
-    h4 {
-        font-size: 1rem;
-    }
-}
-
-/* تحسين اللمس للجوال */
-@media (hover: none) and (pointer: coarse) {
-    .btn,
-    .nav-link,
-    .dropdown-item,
-    .page-link {
-        min-height: 44px; /* تحسين منطقة اللمس */
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .form-control,
-    .form-select {
-        min-height: 44px; /* تحسين حقول الإدخال */
-    }
-}
 </style>
 
     {% block extra_css %}{% endblock %}
@@ -739,15 +871,21 @@
 
                 <!-- قائمة المستخدم (اسم المستخدم والخروج) -->
                 <ul class="navbar-nav">
+                    <!-- علامة تعريف عن النظام - زر مميز -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('about') }}">
+                            <i class="fas fa-info-circle"></i>
+                            <span class="d-none d-lg-inline">عن النظام</span>
+                        </a>
+                    </li>
+
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user-circle"></i>
                             {{ current_user.username }}
                         </a>
-
                         <ul class="dropdown-menu dropdown-menu-end">
-                       <li><a class="dropdown-item" href="{{ url_for('about') }}"><i class="fas fa-info-circle me-2"></i>عن النظام</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>الإعدادات</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('about') }}"><i class="fas fa-info-circle me-2"></i>عن النظام</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i>تسجيل الخروج</a></li>
                         </ul>
@@ -790,19 +928,24 @@
         {% endwith %}
     </div>
 
-    <!-- Page Header -->
+    <!-- Page Header - اسم ورمز الواجهة في صف واحد منظم -->
     {% if current_user.is_authenticated %}
     <div class="container-fluid mt-3">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-                <h4 class="mb-0">{% block page_title %}{% endblock %}</h4>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
-                        {% block breadcrumb %}{% endblock %}
-                    </ol>
-                </nav>
+        <div class="page-header-wrapper">
+            <div class="page-header-content">
+                <div class="page-header-icon">
+                    <i class="{% block page_icon %}fas fa-home{% endblock %}"></i>
+                </div>
+                <div class="page-header-title">
+                    <h4 class="mb-0">{% block page_title %}{% endblock %}</h4>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            {% block breadcrumb %}{% endblock %}
+                        </ol>
+                    </nav>
+                </div>
             </div>
-            <div>
+            <div class="page-header-actions">
                 {% block page_actions %}{% endblock %}
             </div>
         </div>
@@ -819,10 +962,11 @@
         <div class="container">
             <p class="mb-0">
                 <i class="fas fa-copyright me-2"></i>
-                2024 مكتب عمال ميناء رأس عيسى - جميع الحقوق محفوظة
+                2026 مكتب عمال ميناء رأس عيسى - جميع الحقوق محفوظة
             </p>
         </div>
     </footer>
+
     <!-- JavaScript Libraries -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -830,60 +974,33 @@
     <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- Chart.js يجب أن يأتي قبل الـ plugin -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <!-- Chart.js Data Labels Plugin - يجب أن يأتي بعد Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
-    <!-- تفعيل الـ plugin بعد تحميله -->
-    <script>
-        // تفعيل الـ plugin
-        if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
-            Chart.register(ChartDataLabels);
-            console.log('✅ Chart.js DataLabels plugin activated');
-        } else {
-            console.warn('⚠️ Chart.js or DataLabels plugin not loaded');
-        }
-    </script>
-    <!-- html2pdf library for PDF export -->
+    <!-- PDF and Excel libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
-    <!-- SheetJS for Excel export -->
     <script src="https://cdn.sheetjs.com/xlsx-0.19.2/package/dist/xlsx.full.min.js"></script>
-    <!-- jsPDF for PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <!-- Font Awesome Check -->
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // تفعيل الـ plugin
+            // تفعيل Chart.js plugin
             if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
                 Chart.register(ChartDataLabels);
             }
-
-            // التحقق من تحميل Font Awesome
-            var i = document.createElement('i');
-            i.className = 'fas fa-check';
-            document.body.appendChild(i);
-
-            setTimeout(function() {
-                var isFontAwesomeLoaded = window.getComputedStyle(i, ':before').getPropertyValue('font-family').includes('Font Awesome');
-                document.body.removeChild(i);
-
-                if (!isFontAwesomeLoaded) {
-                    console.warn('Font Awesome is not loaded properly');
-                    var link = document.createElement('link');
-                    link.rel = 'stylesheet';
-                    link.href = 'https://use.fontawesome.com/releases/v6.4.0/css/all.css';
-                    document.head.appendChild(link);
-                }
-            }, 100);
 
             // تفعيل tooltips
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             tooltipTriggerList.map(function(tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // تفعيل popovers
+            var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+            popoverTriggerList.map(function(popoverTriggerEl) {
+                return new bootstrap.Popover(popoverTriggerEl);
             });
         });
 
