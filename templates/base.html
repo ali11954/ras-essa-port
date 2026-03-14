@@ -14,296 +14,628 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
     <!-- SweetAlert2 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<style>
+    * {
+        font-family: 'Cairo', sans-serif;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
 
-    <style>
-        * {
-            font-family: 'Cairo', sans-serif;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    body {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        font-size: 14px; /* تقليل حجم الخط الأساسي */
+        line-height: 1.5;
+    }
 
+    /* Navbar Styles */
+    .navbar {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 0.5rem 1rem; /* تقليل padding */
+        box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+    }
+
+    .navbar-brand {
+        font-size: 1.2rem; /* تقليل حجم الشعار */
+        font-weight: 700;
+        color: white !important;
+    }
+
+    .navbar-brand i {
+        margin-left: 8px;
+        font-size: 1.4rem; /* تقليل حجم أيقونة الشعار */
+    }
+
+    .nav-link {
+        color: rgba(255,255,255,0.9) !important;
+        font-weight: 500;
+        margin: 0 3px;
+        padding: 0.4rem 0.8rem !important; /* تقليل padding */
+        border-radius: 6px;
+        transition: all 0.3s;
+        font-size: 13px; /* تصغير خط القائمة */
+    }
+
+    .nav-link i {
+        margin-left: 5px;
+        font-size: 0.95rem; /* تصغير أيقونات القائمة */
+    }
+
+    /* Main Content */
+    .main-content {
+        padding: 20px; /* تقليل padding */
+        min-height: calc(100vh - 140px);
+    }
+
+    /* Cards */
+    .card {
+        border: none;
+        border-radius: 12px; /* تقليل borderRadius */
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        transition: all 0.3s;
+        margin-bottom: 20px;
+    }
+
+    .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 12px 12px 0 0 !important;
+        padding: 12px 18px; /* تقليل padding */
+        font-weight: 600;
+        font-size: 15px; /* تصغير خط العنوان */
+    }
+
+    .card-header i {
+        margin-left: 8px;
+        font-size: 1rem;
+    }
+
+    .card-body {
+        padding: 18px; /* تقليل padding */
+        font-size: 13px;
+    }
+
+    /* Buttons */
+    .btn {
+        border-radius: 8px; /* تقليل borderRadius */
+        padding: 8px 16px; /* تقليل padding */
+        font-weight: 600;
+        transition: all 0.3s;
+        border: none;
+        font-size: 13px; /* تصغير خط الأزرار */
+    }
+
+    .btn-sm {
+        padding: 5px 12px;
+        font-size: 12px;
+    }
+
+    .btn-lg {
+        padding: 12px 24px;
+        font-size: 15px;
+    }
+
+    .btn i {
+        margin-left: 6px;
+        font-size: 0.9rem;
+    }
+
+    /* Tables */
+    .table {
+        font-size: 13px; /* تصغير خط الجدول */
+        margin-bottom: 0;
+    }
+
+    .table thead th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-weight: 600;
+        border: none;
+        padding: 12px; /* تقليل padding */
+        font-size: 13px;
+    }
+
+    .table tbody td {
+        padding: 10px; /* تقليل padding */
+        vertical-align: middle;
+    }
+
+    /* Forms */
+    .form-control, .form-select {
+        font-size: 13px; /* تصغير خط النماذج */
+        padding: 8px 12px;
+        border-radius: 8px;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: #495057;
+    }
+
+    /* Headings */
+    h1, .h1 { font-size: 2rem; } /* تقليل حجم العناوين */
+    h2, .h2 { font-size: 1.6rem; }
+    h3, .h3 { font-size: 1.4rem; }
+    h4, .h4 { font-size: 1.2rem; }
+    h5, .h5 { font-size: 1rem; }
+    h6, .h6 { font-size: 0.9rem; }
+
+    /* Page Header */
+    .page-header h4 {
+        font-size: 1.3rem;
+        margin-bottom: 5px;
+    }
+
+    /* Breadcrumb */
+    .breadcrumb {
+        background: transparent;
+        padding: 0;
+        margin: 5px 0 0 0;
+        font-size: 12px;
+    }
+
+    .breadcrumb-item a {
+        color: #667eea;
+        text-decoration: none;
+    }
+
+    /* Icons in text */
+    i {
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    /* Alerts */
+    .alert {
+        border-radius: 8px;
+        border: none;
+        padding: 12px 18px;
+        margin-bottom: 15px;
+        font-size: 13px;
+    }
+
+    .alert i {
+        margin-left: 8px;
+        font-size: 1rem;
+    }
+
+    /* Footer */
+    .footer {
+        background: white;
+        padding: 15px;
+        text-align: center;
+        color: #6c757d;
+        border-radius: 12px 12px 0 0;
+        margin-top: 20px;
+        font-size: 12px;
+    }
+
+    /* Stat Cards */
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 18px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s;
+    }
+
+    .stat-card .stat-icon {
+        position: absolute;
+        left: 15px;
+        top: 15px;
+        font-size: 2.2rem;
+        opacity: 0.2;
+    }
+
+    .stat-card .stat-title {
+        color: #6c757d;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 5px;
+    }
+
+    .stat-card .stat-value {
+        font-size: 1.5rem; /* تقليل حجم الأرقام */
+        font-weight: 700;
+        color: #333;
+        margin: 5px 0;
+    }
+
+    .stat-card .stat-desc {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+
+    /* Dropdown Menu */
+    .dropdown-menu {
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        padding: 8px;
+        font-size: 13px;
+    }
+
+    .dropdown-item {
+        border-radius: 6px;
+        padding: 6px 12px;
+        transition: all 0.2s;
+        font-size: 13px;
+    }
+
+    .dropdown-item i {
+        width: 18px;
+        text-align: center;
+        font-size: 0.9rem;
+    }
+
+    /* Badges */
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.4em 0.8em;
+        font-weight: 500;
+    }
+
+    /* Modal */
+    .modal-content {
+        border-radius: 12px;
+    }
+
+    .modal-header {
+        padding: 15px 20px;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .modal-footer {
+        padding: 15px 20px;
+    }
+
+    /* Pagination */
+    .pagination {
+        font-size: 13px;
+    }
+
+    .page-link {
+        padding: 0.4rem 0.8rem;
+    }
+
+    /* Chart Containers */
+    .chart-container {
+        position: relative;
+        width: 100%;
+        min-height: 250px; /* تقليل ارتفاع الرسم البياني */
+    }
+
+    /* Loading Spinner */
+    .spinner-wrapper {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255,255,255,0.9);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
         body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
+            font-size: 13px;
         }
 
-        /* Navbar Styles */
         .navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            padding: 0.4rem 0.8rem;
         }
 
-        .navbar-brand {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: white !important;
-        }
-
-        .navbar-brand i {
-            margin-left: 10px;
-            font-size: 1.8rem;
-        }
-
-        .nav-link {
-            color: rgba(255,255,255,0.9) !important;
-            font-weight: 500;
-            margin: 0 5px;
-            padding: 0.5rem 1rem !important;
-            border-radius: 8px;
-            transition: all 0.3s;
-        }
-
-        .nav-link:hover {
-            background: rgba(255,255,255,0.1);
-            color: white !important;
-        }
-
-        .nav-link i {
-            margin-left: 8px;
-            font-size: 1.1rem;
-        }
-
-        /* Main Content */
         .main-content {
-            padding: 30px;
-            min-height: calc(100vh - 160px);
-        }
-
-        /* Cards */
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            transition: all 0.3s;
-            margin-bottom: 30px;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 50px rgba(0,0,0,0.15);
+            padding: 12px;
         }
 
         .card-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 15px 15px 0 0 !important;
-            padding: 20px;
-            font-weight: 600;
+            padding: 10px 15px;
+            font-size: 14px;
         }
 
-        .card-header i {
-            margin-left: 10px;
-            font-size: 1.2rem;
-        }
-
-        /* Buttons */
-        .btn {
-            border-radius: 10px;
-            padding: 10px 20px;
-            font-weight: 600;
-            transition: all 0.3s;
-            border: none;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102,126,234,0.4);
-        }
-
-        .btn i {
-            margin-left: 8px;
-        }
-
-        /* Icons in text */
-        i {
-            display: inline-block;
-            vertical-align: middle;
-        }
-
-        /* Tables */
-        .table thead th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-weight: 600;
-            border: none;
+        .card-body {
             padding: 15px;
         }
 
-        .table tbody tr:hover {
-            background: rgba(102,126,234,0.05);
-        }
-
-        /* Alerts */
-        .alert {
-            border-radius: 10px;
-            border: none;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-        }
-
-        .alert i {
-            margin-left: 10px;
-            font-size: 1.2rem;
-        }
-
-        /* Footer */
-        .footer {
-            background: white;
-            padding: 20px;
-            text-align: center;
-            color: #6c757d;
-            border-radius: 15px 15px 0 0;
-            margin-top: 30px;
-        }
-
-        /* Stat Cards */
-        .stat-card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .stat-card .stat-icon {
-            position: absolute;
-            left: 20px;
-            top: 20px;
-            font-size: 3rem;
-            opacity: 0.2;
-        }
-
-        .stat-card .stat-title {
-            color: #6c757d;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
         .stat-card .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #333;
-            margin: 10px 0;
+            font-size: 1.3rem;
         }
 
-        /* Chart Containers */
-        .chart-container {
-            position: relative;
-            width: 100%;
-            min-height: 300px;
+        h1, .h1 { font-size: 1.6rem; }
+        h2, .h2 { font-size: 1.4rem; }
+        h3, .h3 { font-size: 1.2rem; }
+    }
+
+    /* Print Styles */
+    @media print {
+        .navbar, .footer, .btn, .breadcrumb {
+            display: none !important;
         }
-
-        /* Dropdown Menu */
-        .dropdown-menu {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-            padding: 10px;
+        .main-content {
+            padding: 0 !important;
         }
-
-        .dropdown-item {
-            border-radius: 8px;
-            padding: 8px 15px;
-            transition: all 0.2s;
+        .card {
+            box-shadow: none !important;
+            border: 1px solid #ddd;
         }
+    }
+    /* ========== تحسينات خاصة للجوال ========== */
+@media (max-width: 576px) {
+    /* تقليل الحجم العام */
+    body {
+        font-size: 13px;
+    }
 
-        .dropdown-item:hover {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
+    /* تحسين الفوشر للجوال */
+    .navbar {
+        padding: 0.3rem 0.5rem;
+    }
 
-        .dropdown-item i {
-            width: 20px;
-            text-align: center;
-        }
+    .navbar-brand {
+        font-size: 1rem;
+    }
 
-        /* Breadcrumb */
-        .breadcrumb {
-            background: transparent;
-            padding: 0;
-            margin: 10px 0 0 0;
-        }
+    .navbar-brand i {
+        font-size: 1.2rem;
+    }
 
-        .breadcrumb-item a {
-            color: #667eea;
-            text-decoration: none;
-        }
+    .navbar-toggler {
+        padding: 0.2rem 0.4rem;
+        font-size: 1rem;
+    }
 
-        .breadcrumb-item.active {
-            color: #6c757d;
-        }
+    /* تحسين القائمة المنسدلة للجوال */
+    .navbar-nav .dropdown-menu {
+        position: static !important;
+        background: rgba(255,255,255,0.1);
+        border: none;
+        box-shadow: none;
+        padding: 0.5rem;
+        margin: 0.5rem 0;
+    }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .navbar {
-                padding: 0.5rem 1rem;
-            }
+    .navbar-nav .dropdown-item {
+        color: white !important;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+    }
 
-            .main-content {
-                padding: 15px;
-            }
+    .navbar-nav .dropdown-item:hover {
+        background: rgba(255,255,255,0.2);
+    }
 
-            .stat-card {
-                margin-bottom: 15px;
-            }
-        }
+    /* تحسين البطاقات للجوال */
+    .card {
+        margin-bottom: 15px;
+        border-radius: 10px;
+    }
 
-        /* Loading Spinner */
-        .spinner-wrapper {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255,255,255,0.9);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-        }
+    .card-header {
+        padding: 10px 12px;
+        font-size: 14px;
+    }
 
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
+    .card-body {
+        padding: 12px;
+    }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+    /* تحسين الجداول للجوال - جعلها قابلة للتمرير */
+    .table-responsive {
+        border: 0;
+        margin-bottom: 1rem;
+    }
 
-        /* Print Styles */
-        @media print {
-            .navbar, .footer, .btn, .breadcrumb, .page-header .btn {
-                display: none !important;
-            }
-            .main-content {
-                padding: 0 !important;
-            }
-            .card {
-                box-shadow: none !important;
-                border: 1px solid #ddd;
-            }
-        }
-    </style>
+    .table {
+        font-size: 12px;
+    }
+
+    .table thead th {
+        padding: 8px;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .table tbody td {
+        padding: 8px;
+        white-space: nowrap;
+    }
+
+    /* تحسين بطاقات الإحصائيات للجوال */
+    .stat-card {
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+
+    .stat-card .stat-icon {
+        font-size: 1.8rem;
+        left: 10px;
+        top: 10px;
+    }
+
+    .stat-card .stat-value {
+        font-size: 1.2rem;
+        margin: 3px 0;
+    }
+
+    .stat-card .stat-title {
+        font-size: 0.7rem;
+    }
+
+    /* تحسين الأزرار للجوال */
+    .btn {
+        padding: 6px 12px;
+        font-size: 12px;
+        border-radius: 6px;
+    }
+
+    .btn i {
+        font-size: 0.8rem;
+    }
+
+    /* تحسين حقول الإدخال للجوال */
+    .form-control, .form-select {
+        padding: 6px 10px;
+        font-size: 13px;
+        border-radius: 6px;
+    }
+
+    .form-label {
+        font-size: 12px;
+        margin-bottom: 3px;
+    }
+
+    /* تحسين التنبيهات للجوال */
+    .alert {
+        padding: 10px 12px;
+        font-size: 12px;
+        margin-bottom: 10px;
+    }
+
+    .alert i {
+        font-size: 0.9rem;
+    }
+
+    /* تحسين عنوان الصفحة للجوال */
+    .page-header h4 {
+        font-size: 1.1rem;
+    }
+
+    .breadcrumb {
+        font-size: 11px;
+    }
+
+    /* تحسين الفوتر للجوال */
+    .footer {
+        padding: 10px;
+        font-size: 11px;
+        margin-top: 15px;
+    }
+
+    /* تحسين المودال للجوال */
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    .modal-header {
+        padding: 12px 15px;
+    }
+
+    .modal-body {
+        padding: 15px;
+    }
+
+    .modal-footer {
+        padding: 12px 15px;
+    }
+
+    /* تحسين التبويبات للجوال */
+    .nav-tabs .nav-link {
+        padding: 0.5rem;
+        font-size: 12px;
+    }
+
+    /* تحسين الرسوم البيانية للجوال */
+    .chart-container {
+        min-height: 200px;
+    }
+
+    /* تحسين البانر الرئيسي للجوال */
+    .dashboard-header {
+        margin-bottom: 15px;
+    }
+
+    .dashboard-header h1 {
+        font-size: 1.2rem;
+    }
+
+    /* تحسين الأيقونات في القوائم للجوال */
+    .dropdown-item i {
+        width: 16px;
+        font-size: 0.8rem;
+    }
+
+    /* تحسين الصفوف في الجداول للجوال */
+    .row {
+        margin-left: -8px;
+        margin-right: -8px;
+    }
+
+    [class*="col-"] {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+}
+
+/* للشاشات الصغيرة جداً (اقل من 400px) */
+@media (max-width: 400px) {
+    body {
+        font-size: 12px;
+    }
+
+    .navbar-brand {
+        font-size: 0.9rem;
+    }
+
+    .navbar-brand i {
+        font-size: 1.1rem;
+    }
+
+    .stat-card .stat-value {
+        font-size: 1rem;
+    }
+
+    .btn {
+        padding: 5px 10px;
+        font-size: 11px;
+    }
+
+    h4 {
+        font-size: 1rem;
+    }
+}
+
+/* تحسين اللمس للجوال */
+@media (hover: none) and (pointer: coarse) {
+    .btn,
+    .nav-link,
+    .dropdown-item,
+    .page-link {
+        min-height: 44px; /* تحسين منطقة اللمس */
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .form-control,
+    .form-select {
+        min-height: 44px; /* تحسين حقول الإدخال */
+    }
+}
+</style>
 
     {% block extra_css %}{% endblock %}
 </head>
