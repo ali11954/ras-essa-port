@@ -171,7 +171,7 @@
 </div>
 
 <!-- الرسوم البيانية - الصف الأول -->
-<div class="row mb-4">
+<div class="row mb-2">
     <!-- رسم بياني لتوزيع الأعمار -->
     <div class="col-md-6">
         <div class="card">
@@ -182,7 +182,7 @@
                 </h5>
             </div>
             <div class="card-body">
-                <canvas id="ageChart" style="max-height: 300px;"></canvas>
+        <canvas id="ageChart" style="max-height: 0px; width: 100%; display: block; margin: 0;"></canvas>
                 <div class="row mt-3">
                     {% set age_groups = {'أقل من 20': 0, '20-30': 0, '31-40': 0, '41-50': 0, 'أكثر من 50': 0} %}
                     {% for emp in data %}
@@ -190,7 +190,6 @@
                         {% if emp.birth_date.month > now().month or (emp.birth_date.month == now().month and emp.birth_date.day > now().day) %}
                             {% set age = age - 1 %}
                         {% endif %}
-
                         {% if age < 20 %}
                             {% set _ = age_groups.update({'أقل من 20': age_groups['أقل من 20'] + 1}) %}
                         {% elif age <= 30 %}
@@ -203,7 +202,6 @@
                             {% set _ = age_groups.update({'أكثر من 50': age_groups['أكثر من 50'] + 1}) %}
                         {% endif %}
                     {% endfor %}
-
                     <div class="col-12">
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered">
@@ -239,9 +237,62 @@
             </div>
         </div>
     </div>
-
-    <!-- رسم بياني للسكن الحالي -->
+<!-- توزيع الموظفين حسب المهنة -->
     <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    توزيع الموظفين حسب المهنة
+                </h5>
+            </div>
+            <div class="card-body">
+                                                <canvas id="table-responsive" style="max-height: 0px; width: 100%; display: block; margin: 0;"></canvas>
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>المهنة</th>
+                                <th>العدد</th>
+                                <th>النسبة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set professions = {} %}
+                            {% for emp in data %}
+                                {% if emp.profession not in professions %}
+                                    {% set _ = professions.update({emp.profession: 1}) %}
+                                {% else %}
+                                    {% set _ = professions.update({emp.profession: professions[emp.profession] + 1}) %}
+                                {% endif %}
+                            {% endfor %}
+
+                            {% for prof, count in professions.items()|sort(attribute='1', reverse=true) %}
+                            <tr>
+                                <td>{{ prof }}</td>
+                                <td class="text-center">{{ count }}</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-success" role="progressbar"
+                                             style="width: {{ (count / data|length * 100)|round }}%;"
+                                             aria-valuenow="{{ (count / data|length * 100)|round }}"
+                                             aria-valuemin="0" aria-valuemax="100">
+                                            {{ (count / data|length * 100)|round }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- الرسوم البيانية - الصف الأول -->
+<div class="row mb-2">
+    <!-- رسم بياني للسكن الحالي -->
+<div class="col-md-6">
         <div class="card">
             <div class="card-header bg-info text-white">
                 <h5 class="mb-0">
@@ -250,7 +301,8 @@
                 </h5>
             </div>
             <div class="card-body">
-                <canvas id="residenceChart" style="max-height: 300px;"></canvas>
+                                <canvas id="residenceChart" style="max-height: 0px; width: 100%; display: block; margin: 0;"></canvas>
+
                 <div class="row mt-3">
                     <div class="col-12">
                         <div class="table-responsive">
@@ -296,61 +348,6 @@
             </div>
         </div>
     </div>
-</div>
-
-<!-- توزيع الموظفين حسب المهنة -->
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-chart-pie me-2"></i>
-                    توزيع الموظفين حسب المهنة
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>المهنة</th>
-                                <th>العدد</th>
-                                <th>النسبة</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% set professions = {} %}
-                            {% for emp in data %}
-                                {% if emp.profession not in professions %}
-                                    {% set _ = professions.update({emp.profession: 1}) %}
-                                {% else %}
-                                    {% set _ = professions.update({emp.profession: professions[emp.profession] + 1}) %}
-                                {% endif %}
-                            {% endfor %}
-
-                            {% for prof, count in professions.items()|sort(attribute='1', reverse=true) %}
-                            <tr>
-                                <td>{{ prof }}</td>
-                                <td class="text-center">{{ count }}</td>
-                                <td>
-                                    <div class="progress" style="height: 20px;">
-                                        <div class="progress-bar bg-success" role="progressbar"
-                                             style="width: {{ (count / data|length * 100)|round }}%;"
-                                             aria-valuenow="{{ (count / data|length * 100)|round }}"
-                                             aria-valuemin="0" aria-valuemax="100">
-                                            {{ (count / data|length * 100)|round }}%
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- توزيع الموظفين حسب مكان الميلاد -->
     <div class="col-md-6">
         <div class="card">
