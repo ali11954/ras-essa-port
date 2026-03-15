@@ -1939,7 +1939,7 @@ def berths_report_page():
     date_from = request.args.get('date_from')
     date_to = request.args.get('date_to')
 
-    # تعيين التواريخ الافتراضية
+    # تعيين التواريخ الافتراضية (آخر 30 يوم)
     if not date_from:
         date_from = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
     if not date_to:
@@ -1951,10 +1951,13 @@ def berths_report_page():
     # تجهيز بيانات الأرصفة
     berths = Berth.query.all()
     berths_data = []
+
     for berth in berths:
+        # جلب السفن التي وصلت في الفترة المحددة فقط
         ships = Ship.query.filter_by(berth_number=berth.number).filter(
             Ship.arrival_date.between(date_from_obj, date_to_obj)
         ).all()
+
         current_ship = berth.current_ship.name if berth.current_ship else '—'
 
         berths_data.append({
@@ -1978,7 +1981,6 @@ def berths_report_page():
                            stats=stats,
                            date_from=date_from_obj,
                            date_to=date_to_obj)
-
 
 def generate_ships_report(date_from, date_to, format):
     """تقرير السفن"""

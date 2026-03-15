@@ -23,7 +23,9 @@
                 <input type="hidden" name="date_from" value="{{ date_from.strftime('%Y-%m-%d') }}">
                 <input type="hidden" name="date_to" value="{{ date_to.strftime('%Y-%m-%d') }}">
                 <input type="hidden" name="format" value="excel">
-                <button type="submit" class="dropdown-item"><i class="fas fa-file-excel text-success"></i> Excel</button>
+                <button type="submit" class="dropdown-item">
+                    <i class="fas fa-file-excel text-success"></i> تصدير Excel
+                </button>
             </form>
         </li>
         <li>
@@ -32,47 +34,72 @@
                 <input type="hidden" name="date_from" value="{{ date_from.strftime('%Y-%m-%d') }}">
                 <input type="hidden" name="date_to" value="{{ date_to.strftime('%Y-%m-%d') }}">
                 <input type="hidden" name="format" value="pdf">
-                <button type="submit" class="dropdown-item"><i class="fas fa-file-pdf text-danger"></i> PDF</button>
+                <button type="submit" class="dropdown-item">
+                    <i class="fas fa-file-pdf text-danger"></i> تصدير PDF
+                </button>
             </form>
         </li>
     </ul>
-    <button class="btn btn-secondary btn-sm" onclick="window.print()"><i class="fas fa-print"></i></button>
+    <button class="btn btn-secondary btn-sm" onclick="window.print()">
+        <i class="fas fa-print"></i> طباعة
+    </button>
 </div>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-2">
+<div class="container-fluid">
     <!-- نموذج تحديد الفترة الزمنية -->
-    <div class="row mb-2">
+    <div class="row mb-4">
         <div class="col-12">
             <div class="card border-primary">
-                <div class="card-header bg-primary text-white py-1">
-                    <h6 class="mb-0"><i class="fas fa-calendar-alt me-1"></i>تحديد الفترة الزمنية</h6>
+                <div class="card-header bg-primary text-white py-2">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        تحديد الفترة الزمنية
+                    </h5>
                 </div>
-                <div class="card-body py-2">
-                    <form method="GET" action="{{ url_for('ships_report_page') }}" id="dateRangeForm" class="row g-1 align-items-end">
-                        <div class="col-md-4">
-                            <label class="form-label small mb-0">من تاريخ</label>
-                            <input type="date" class="form-control form-control-sm" name="date_from" value="{{ date_from.strftime('%Y-%m-%d') }}" required>
+                <div class="card-body py-3">
+                    <form method="GET" action="{{ url_for('ships_report_page') }}" id="dateRangeForm" class="row align-items-end">
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label fw-bold small">من تاريخ</label>
+                            <input type="date" class="form-control" name="date_from" value="{{ date_from.strftime('%Y-%m-%d') }}" required>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label small mb-0">إلى تاريخ</label>
-                            <input type="date" class="form-control form-control-sm" name="date_to" value="{{ date_to.strftime('%Y-%m-%d') }}" required>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label fw-bold small">إلى تاريخ</label>
+                            <input type="date" class="form-control" name="date_to" value="{{ date_to.strftime('%Y-%m-%d') }}" required>
                         </div>
-                        <div class="col-md-4">
-                            <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fas fa-search me-1"></i>عرض</button>
+                        <div class="col-md-4 mb-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search me-2"></i> عرض البيانات
+                            </button>
                         </div>
                     </form>
-                    <div class="row mt-1">
+
+                    <!-- أزرار سريعة للفترات الزمنية -->
+                    <div class="row mt-2">
                         <div class="col-12">
                             <div class="btn-group w-100" role="group">
-                                <button type="button" class="btn btn-outline-secondary btn-xs" onclick="setDateRange('today')">اليوم</button>
-                                <button type="button" class="btn btn-outline-secondary btn-xs" onclick="setDateRange('yesterday')">أمس</button>
-                                <button type="button" class="btn btn-outline-secondary btn-xs" onclick="setDateRange('week')">7 أيام</button>
-                                <button type="button" class="btn btn-outline-secondary btn-xs" onclick="setDateRange('month')">30 يوم</button>
-                                <button type="button" class="btn btn-outline-secondary btn-xs" onclick="setDateRange('month-current')">هذا الشهر</button>
-                                <button type="button" class="btn btn-outline-secondary btn-xs" onclick="setDateRange('month-last')">الشهر الماضي</button>
-                                <button type="button" class="btn btn-outline-secondary btn-xs" onclick="setDateRange('year')">سنة</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('today')">
+                                    <i class="fas fa-sun"></i> اليوم
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('yesterday')">
+                                    <i class="fas fa-calendar-day"></i> أمس
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('week')">
+                                    <i class="fas fa-calendar-week"></i> آخر 7 أيام
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month')">
+                                    <i class="fas fa-calendar-alt"></i> آخر 30 يوم
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month-current')">
+                                    <i class="fas fa-calendar-check"></i> هذا الشهر
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month-last')">
+                                    <i class="fas fa-calendar-minus"></i> الشهر الماضي
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('year')">
+                                    <i class="fas fa-calendar"></i> آخر سنة
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -82,14 +109,26 @@
     </div>
 
     <!-- معلومات التقرير -->
-    <div class="row mb-2">
+    <div class="row mb-4">
         <div class="col-12">
             <div class="card bg-light border-0">
-                <div class="card-body py-2">
+                <div class="card-body">
                     <div class="row align-items-center">
-                        <div class="col-md-4"><i class="fas fa-calendar-alt text-primary me-1"></i><small>الفترة:</small> <strong>{{ date_from.strftime('%Y-%m-%d') }} - {{ date_to.strftime('%Y-%m-%d') }}</strong></div>
-                        <div class="col-md-4"><i class="fas fa-ship text-success me-1"></i><small>السفن:</small> <strong>{{ data|length }}</strong></div>
-                        <div class="col-md-4"><i class="fas fa-clock text-info me-1"></i><small>التقرير:</small> <strong>{{ now().strftime('%Y-%m-%d %H:%M') }}</strong></div>
+                        <div class="col-md-4">
+                            <i class="fas fa-calendar-alt fa-2x text-primary float-end me-3"></i>
+                            <h6 class="mb-1">الفترة</h6>
+                            <p class="h5 mb-0">{{ date_from.strftime('%Y-%m-%d') }} <i class="fas fa-arrow-left mx-2"></i> {{ date_to.strftime('%Y-%m-%d') }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <i class="fas fa-ship fa-2x text-success float-end me-3"></i>
+                            <h6 class="mb-1">إجمالي السفن</h6>
+                            <p class="h5 mb-0">{{ data|length }} سفينة</p>
+                        </div>
+                        <div class="col-md-4">
+                            <i class="fas fa-clock fa-2x text-info float-end me-3"></i>
+                            <h6 class="mb-1">تاريخ التقرير</h6>
+                            <p class="h5 mb-0">{{ now().strftime('%Y-%m-%d %H:%M') }}</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -97,21 +136,51 @@
     </div>
 
     <!-- إحصائيات سريعة -->
-    <div class="row mb-2">
-        <div class="col-md-3"><div class="stat-card p-2"><i class="fas fa-ship stat-icon"></i><div class="stat-title">إجمالي السفن</div><div class="stat-value">{{ data|length }}</div></div></div>
-        <div class="col-md-3"><div class="stat-card p-2"><i class="fas fa-anchor stat-icon"></i><div class="stat-title">سفن راسية</div><div class="stat-value">{{ data|selectattr('status', 'equalto', 'berthed')|list|length }}</div></div></div>
-        <div class="col-md-3"><div class="stat-card p-2"><i class="fas fa-clock stat-icon"></i><div class="stat-title">سفن واصلة</div><div class="stat-value">{{ data|selectattr('status', 'equalto', 'arrived')|list|length }}</div></div></div>
-        <div class="col-md-3"><div class="stat-card p-2"><i class="fas fa-check-circle stat-icon"></i><div class="stat-title">سفن مغادرة</div><div class="stat-value">{{ data|selectattr('status', 'equalto', 'departed')|list|length }}</div></div></div>
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-ship stat-icon"></i>
+                <div class="stat-title">إجمالي السفن</div>
+                <div class="stat-value">{{ data|length }}</div>
+                <div class="stat-desc">سفينة</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-anchor stat-icon"></i>
+                <div class="stat-title">سفن راسية</div>
+                <div class="stat-value">{{ data|selectattr('status', 'equalto', 'berthed')|list|length }}</div>
+                <div class="stat-desc">على الأرصفة</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-clock stat-icon"></i>
+                <div class="stat-title">سفن واصلة</div>
+                <div class="stat-value">{{ data|selectattr('status', 'equalto', 'arrived')|list|length }}</div>
+                <div class="stat-desc">في الانتظار</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-check-circle stat-icon"></i>
+                <div class="stat-title">سفن مغادرة</div>
+                <div class="stat-value">{{ data|selectattr('status', 'equalto', 'departed')|list|length }}</div>
+                <div class="stat-desc">أكملت العمليات</div>
+            </div>
+        </div>
     </div>
-<!-- الرسوم البيانية - الصف الأول مع تقليص المسافات -->
-<div class="row mb-2">
+<!-- الرسوم البيانية - الصف الأول -->
+<div class="row mb-4">
     <!-- رسم بياني لتوزيع السفن حسب الشركة الملاحية -->
     <div class="col-md-6">
         <div class="card">
-            <div class="card-header bg-info text-white" style="padding: 1px 1px;">
-                <small><i class="fas fa-chart-pie me-1"></i>توزيع السفن حسب الشركة</small>
+            <div class="card-header bg-info text-white py-2">
+                <i class="fas fa-chart-pie me-2"></i>
+                توزيع السفن حسب الشركة الملاحية
             </div>
-            <div class="card-body" style="padding: 1px;">
+            <div class="card-body py-2">
+                <!-- حساب بيانات الشركات الملاحية أولاً -->
                 {% set flags = {} %}
                 {% for ship in data %}
                     {% if ship.flag %}
@@ -123,28 +192,28 @@
                     {% endif %}
                 {% endfor %}
 
-                <!-- الرسم البياني - مع إزالة الهامش السفلي -->
-                <canvas id="flagsChart" style="max-height: 0px; width: 100%; display: block; margin: 0;"></canvas>
-
-                <!-- جدول الإحصائية - مع تقليص المسافة العلوية إلى 0 -->
-                <div style="margin-top: 0; padding-top: 0;">
-                    <table style="width:100%; border-collapse: collapse; font-size: 11px; margin-top: 2px;">
-                        <thead>
-                            <tr style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
-                                <th style="padding: 2px 3px; text-align: right;">الشركة الملاحية</th>
-                                <th style="padding: 2px 3px; text-align: center;">عدد السفن</th>
-                                <th style="padding: 2px 3px; text-align: center;">النسبة</th>
+                <!-- الرسم البياني -->
+                                <canvas id="flagsChart" style="max-height: 0px; width: 100%; display: block; margin: 0;"></canvas>
+                <!-- جدول الإحصائية -->
+                <div class="table-responsive mt-2">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="py-1">الشركة الملاحية</th>
+                                <th class="py-1 text-center">عدد السفن</th>
+                                <th class="py-1">النسبة</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% if flags %}
                                 {% for flag, count in flags.items()|sort(attribute='1', reverse=true) %}
-                                <tr style="border-bottom: 1px solid #eee;">
-                                    <td style="padding: 2px 3px;"><strong>{{ flag }}</strong></td>
-                                    <td style="padding: 2px 3px; text-align: center;">{{ count }}</td>
-                                    <td style="padding: 2px 3px;">
-                                        <div style="background-color: #e9ecef; border-radius: 4px; height: 16px; overflow: hidden;">
-                                            <div style="background-color: #28a745; width: {{ (count / data|length * 100)|round if data|length > 0 else 0 }}%; height: 16px; text-align: center; color: white; font-size: 9px; line-height: 16px;">
+                                <tr>
+                                    <td class="py-1"><strong>{{ flag }}</strong></td>
+                                    <td class="py-1 text-center">{{ count }}</td>
+                                    <td class="py-1">
+                                        <div class="progress" style="height: 18px;">
+                                            <div class="progress-bar bg-success" role="progressbar"
+                                                 style="width: {{ (count / data|length * 100)|round if data|length > 0 else 0 }}%;">
                                                 {{ (count / data|length * 100)|round if data|length > 0 else 0 }}%
                                             </div>
                                         </div>
@@ -153,7 +222,9 @@
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="3" style="padding: 5px; text-align: center;">لا توجد بيانات</td>
+                                    <td colspan="3" class="text-center text-muted py-2">
+                                        لا توجد بيانات
+                                    </td>
                                 </tr>
                             {% endif %}
                         </tbody>
@@ -166,10 +237,12 @@
     <!-- رسم بياني لتوزيع السفن حسب أشهر الوصول -->
     <div class="col-md-6">
         <div class="card">
-            <div class="card-header bg-warning text-dark" style="padding: 2px 2px;">
-                <small><i class="fas fa-chart-bar me-1"></i>توزيع السفن حسب الشهر</small>
+            <div class="card-header bg-warning text-dark py-2">
+                <i class="fas fa-chart-bar me-2"></i>
+                توزيع السفن حسب أشهر الوصول
             </div>
-            <div class="card-body" style="padding: 3px;">
+            <div class="card-body py-2">
+                <!-- حساب بيانات الأشهر أولاً -->
                 {% set months = {} %}
                 {% for ship in data %}
                     {% if ship.arrival_date %}
@@ -182,28 +255,28 @@
                     {% endif %}
                 {% endfor %}
 
-                <!-- الرسم البياني - مع إزالة الهامش السفلي -->
-                <canvas id="monthsChart" style="max-height: 0px; width: 100%; display: block; margin: 0;"></canvas>
-
-                <!-- جدول الإحصائية - مع تقليص المسافة العلوية إلى 0 -->
-                <div style="margin-top: 0; padding-top: 0;">
-                    <table style="width:100%; border-collapse: collapse; font-size: 11px; margin-top: 2px;">
-                        <thead>
-                            <tr style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
-                                <th style="padding: 2px 3px; text-align: right;">الشهر</th>
-                                <th style="padding: 2px 3px; text-align: center;">عدد السفن</th>
-                                <th style="padding: 2px 3px; text-align: center;">النسبة</th>
+                <!-- الرسم البياني -->
+                                <canvas id="monthsChart" style="max-height: 0px; width: 100%; display: block; margin: 0;"></canvas>
+                <!-- جدول الإحصائية -->
+                <div class="table-responsive mt-2">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="py-1">الشهر</th>
+                                <th class="py-1 text-center">عدد السفن</th>
+                                <th class="py-1">النسبة</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% if months %}
                                 {% for month_key, month_data in months.items()|sort %}
-                                <tr style="border-bottom: 1px solid #eee;">
-                                    <td style="padding: 2px 3px;"><strong>{{ month_data.name }}</strong></td>
-                                    <td style="padding: 2px 3px; text-align: center;">{{ month_data.count }}</td>
-                                    <td style="padding: 2px 3px;">
-                                        <div style="background-color: #e9ecef; border-radius: 4px; height: 16px; overflow: hidden;">
-                                            <div style="background-color: #ffc107; width: {{ (month_data.count / data|length * 100)|round if data|length > 0 else 0 }}%; height: 16px; text-align: center; color: #333; font-size: 9px; line-height: 16px;">
+                                <tr>
+                                    <td class="py-1"><strong>{{ month_data.name }}</strong></td>
+                                    <td class="py-1 text-center">{{ month_data.count }}</td>
+                                    <td class="py-1">
+                                        <div class="progress" style="height: 18px;">
+                                            <div class="progress-bar bg-info" role="progressbar"
+                                                 style="width: {{ (month_data.count / data|length * 100)|round if data|length > 0 else 0 }}%;">
                                                 {{ (month_data.count / data|length * 100)|round if data|length > 0 else 0 }}%
                                             </div>
                                         </div>
@@ -212,7 +285,9 @@
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="3" style="padding: 5px; text-align: center;">لا توجد بيانات</td>
+                                    <td colspan="3" class="text-center text-muted py-2">
+                                        لا توجد بيانات
+                                    </td>
                                 </tr>
                             {% endif %}
                         </tbody>
@@ -222,107 +297,493 @@
         </div>
     </div>
 </div>
-    <!-- بطاقات الأنواع -->
-    <div class="row mb-2">
-        <div class="col-md-4"><div class="card border-success"><div class="card-header bg-success text-white py-1"><i class="fas fa-box me-1"></i>بضائع</div><div class="card-body p-1 text-center"><h5 class="mb-0">{{ data|selectattr('ship_type', 'equalto', 'cargo')|list|length }}</h5></div></div></div>
-        <div class="col-md-4"><div class="card border-warning"><div class="card-header bg-warning text-dark py-1"><i class="fas fa-oil-can me-1"></i>ناقلات</div><div class="card-body p-1 text-center"><h5 class="mb-0">{{ data|selectattr('ship_type', 'equalto', 'tanker')|list|length }}</h5></div></div></div>
-        <div class="col-md-4"><div class="card border-info"><div class="card-header bg-info text-white py-1"><i class="fas fa-container-storage me-1"></i>حاويات</div><div class="card-body p-1 text-center"><h5 class="mb-0">{{ data|selectattr('ship_type', 'equalto', 'container')|list|length }}</h5></div></div></div>
+    <!-- بطاقات إضافية للأنواع -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white py-2">
+                    <i class="fas fa-box"></i> سفن البضائع
+                </div>
+                <div class="card-body py-2 text-center">
+                    <h3>{{ data|selectattr('ship_type', 'equalto', 'cargo')|list|length }}</h3>
+                    <small class="text-muted">سفينة</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark py-2">
+                    <i class="fas fa-oil-can"></i> ناقلات نفط
+                </div>
+                <div class="card-body py-2 text-center">
+                    <h3>{{ data|selectattr('ship_type', 'equalto', 'tanker')|list|length }}</h3>
+                    <small class="text-muted">سفينة</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white py-2">
+                    <i class="fas fa-container-storage"></i> سفن حاويات
+                </div>
+                <div class="card-body py-2 text-center">
+                    <h3>{{ data|selectattr('ship_type', 'equalto', 'container')|list|length }}</h3>
+                    <small class="text-muted">سفينة</small>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- جدول السفن -->
-    <div class="card mb-2">
-        <div class="card-header bg-primary text-white py-1 d-flex justify-content-between align-items-center">
-            <h6 class="mb-0"><i class="fas fa-list me-1"></i>قائمة السفن</h6>
-            <span class="badge bg-light text-primary">{{ data|length }}</span>
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>
+                قائمة السفن - البيانات المدخلة
+            </h5>
+            <span class="badge bg-light text-primary">{{ data|length }} سفينة</span>
         </div>
-        <div class="card-body p-1">
+        <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-sm table-hover table-bordered mb-0" id="shipsTable">
-                    <thead><tr><th>#</th><th>السفينة</th><th>IMO</th><th>الشركة</th><th>النوع</th><th>الأبعاد</th><th>الحمولة</th><th>الوصول</th><th>الرصيف</th><th>ملاحظات</th></tr></thead>
-                    <tbody>{% for ship in data %}<tr><td>{{ loop.index }}</td><td><small>{{ ship.name }}</small></td><td><small>{{ ship.imo_number }}</small></td><td><small>{{ ship.flag or '—' }}</small></td><td><span class="badge bg-{{ 'success' if ship.ship_type == 'cargo' else 'warning' if ship.ship_type == 'tanker' else 'info' }} p-1">{{ ship.ship_type }}</span></td><td><small>{% if ship.length %}ط:{{ ship.length }}{% endif %}{% if ship.width %}×ع:{{ ship.width }}{% endif %}</small></td><td><small>{{ ship.cargo_capacity or '—' }}</small></td><td><small>{{ ship.arrival_date.strftime('%Y-%m-%d') if ship.arrival_date else '—' }}</small></td><td><span class="badge bg-info p-1">{{ ship.berth_number or '—' }}</span></td><td><small>{{ ship.notes or '—' }}</small></td></tr>{% else %}<tr><td colspan="10" class="text-center p-2"><small class="text-muted">لا توجد سفن</small></td></tr>{% endfor %}</tbody>
+                <table class="table table-hover table-bordered" id="shipsTable">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>#</th>
+                            <th>اسم السفينة</th>
+                            <th>رقم IMO</th>
+                            <th>الشركة الملاحية</th>
+                            <th>نوع السفينة</th>
+                            <th>الأبعاد (م)</th>
+                            <th>سعة الحمولة (طن)</th>
+                            <th>تاريخ الوصول</th>
+                            <th>رقم الرصيف</th>
+                            <th>ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ship in data %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <strong>{{ ship.name }}</strong>
+                                {% if ship.notes %}
+                                    <i class="fas fa-info-circle text-info ms-1" title="{{ ship.notes }}"></i>
+                                {% endif %}
+                            </td>
+                            <td><code>{{ ship.imo_number }}</code></td>
+                            <td>{{ ship.flag or '—' }}</td>
+                            <td>
+                                <span class="badge {% if ship.ship_type == 'cargo' %}bg-success
+                                              {% elif ship.ship_type == 'tanker' %}bg-warning text-dark
+                                              {% elif ship.ship_type == 'container' %}bg-info
+                                              {% else %}bg-secondary{% endif %}">
+                                    {% if ship.ship_type == 'cargo' %}بضائع
+                                    {% elif ship.ship_type == 'tanker' %}ناقلة نفط
+                                    {% elif ship.ship_type == 'container' %}حاويات
+                                    {% else %}{{ ship.ship_type }}{% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                {% if ship.length or ship.width or ship.draft %}
+                                    <small>
+                                        {% if ship.length and ship.length > 0 %}ط: {{ ship.length }}{% endif %}
+                                        {% if ship.width and ship.width > 0 %}× ع: {{ ship.width }}{% endif %}
+                                        {% if ship.draft and ship.draft > 0 %}× غ: {{ ship.draft }}{% endif %}
+                                    </small>
+                                {% else %}
+                                    <span class="text-muted">غير محدد</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if ship.cargo_capacity and ship.cargo_capacity > 0 %}
+                                    <strong>{{ ship.cargo_capacity }}</strong>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ ship.arrival_date.strftime('%Y-%m-%d') if ship.arrival_date else '—' }}</td>
+                            <td>
+                                {% if ship.berth_number %}
+                                    <span class="badge bg-info">{{ ship.berth_number }}</span>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ship.notes %}
+                                    <span class="badge bg-secondary" title="{{ ship.notes }}">{{ ship.notes|truncate(15) }}</span>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-4">
+                                <i class="fas fa-ship fa-3x mb-3"></i>
+                                <p>لا توجد سفن في هذه الفترة</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- ملخص الأرصفة -->
-    <div class="card mb-2">
-        <div class="card-header bg-primary text-white py-1"><i class="fas fa-anchor me-1"></i>توزيع السفن على الأرصفة</div>
-        <div class="card-body p-1">
+    <!-- ملخص الأرصفة من البيانات المدخلة -->
+    <div class="card mt-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-anchor me-2"></i>
+                توزيع السفن على الأرصفة (حسب البيانات المدخلة)
+            </h5>
+        </div>
+        <div class="card-body">
             <div class="row">
                 {% set berths_summary = {} %}
-                {% for ship in data %}{% if ship.berth_number %}{% if ship.berth_number not in berths_summary %}{% set _ = berths_summary.update({ship.berth_number: 0}) %}{% endif %}{% set _ = berths_summary.update({ship.berth_number: berths_summary[ship.berth_number] + 1}) %}{% endif %}{% endfor %}
-                {% for berth, count in berths_summary.items()|sort %}<div class="col-md-3 mb-1"><div class="card bg-light"><div class="card-body p-1 text-center"><h6 class="mb-0">{{ berth }}</h6><h5 class="mb-0">{{ count }}</h5></div></div></div>{% else %}<div class="col-12 text-center"><small class="text-muted">لا توجد سفن على الأرصفة</small></div>{% endfor %}
+                {% for ship in data %}
+                    {% if ship.berth_number %}
+                        {% if ship.berth_number not in berths_summary %}
+                            {% set _ = berths_summary.update({ship.berth_number: {'count': 0, 'ships': []}}) %}
+                        {% endif %}
+                        {% set _ = berths_summary[ship.berth_number].update({'count': berths_summary[ship.berth_number].count + 1}) %}
+                        {% set _ = berths_summary[ship.berth_number].ships.append(ship.name) %}
+                    {% endif %}
+                {% endfor %}
+
+                {% for berth, data in berths_summary.items()|sort %}
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h3 class="text-center">{{ berth }}</h3>
+                            <p class="display-4 text-center">{{ data.count }}</p>
+                            <small class="text-muted d-block text-center">سفينة</small>
+                            <hr>
+                            <small>
+                                <strong>السفن:</strong>
+                                <ul class="mt-2 mb-0">
+                                    {% for ship_name in data.ships[:3] %}
+                                    <li>{{ ship_name }}</li>
+                                    {% endfor %}
+                                    {% if data.ships|length > 3 %}
+                                    <li class="text-muted">...و {{ data.ships|length - 3 }} أخرى</li>
+                                    {% endif %}
+                                </ul>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12 text-center text-muted">
+                    <i class="fas fa-anchor fa-3x mb-3"></i>
+                    <p>لا توجد سفن على الأرصفة</p>
+                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
 
     <!-- ملخص البضائع -->
-    <div class="card">
-        <div class="card-header bg-success text-white py-1"><i class="fas fa-boxes me-1"></i>ملخص البضائع</div>
-        <div class="card-body p-1">
+    <div class="card mt-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-boxes me-2"></i>
+                ملخص البضائع (من الملاحظات)
+            </h5>
+        </div>
+        <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-sm table-bordered mb-0">
-                    <thead><tr><th class="p-1">البضاعة</th><th class="p-1 text-center">العدد</th><th class="p-1">السفن</th></tr></thead>
-                    <tbody>{% set cargo_types = {} %}{% for ship in data %}{% if ship.notes %}{% if ship.notes not in cargo_types %}{% set _ = cargo_types.update({ship.notes: {'count': 1, 'ships': [ship.name]}}) %}{% else %}{% set _ = cargo_types[ship.notes].update({'count': cargo_types[ship.notes].count + 1}) %}{% set _ = cargo_types[ship.notes].ships.append(ship.name) %}{% endif %}{% endif %}{% endfor %}{% for note, data in cargo_types.items()|sort(attribute='1.count', reverse=true) %}<tr><td class="p-1"><small>{{ note }}</small></td><td class="p-1 text-center">{{ data.count }}</td><td class="p-1"><small>{{ data.ships|join(', ') }}</small></td></tr>{% else %}<tr><td colspan="3" class="text-center p-1"><small class="text-muted">لا توجد بيانات</small></td></tr>{% endfor %}</tbody>
+                <table class="table table-sm table-bordered">
+                    <thead class="table-success">
+                        <tr>
+                            <th>نوع البضاعة</th>
+                            <th>عدد السفن</th>
+                            <th>السفن</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set cargo_types = {} %}
+                        {% for ship in data %}
+                            {% if ship.notes %}
+                                {% set note_lower = ship.notes|lower %}
+                                {% if note_lower not in cargo_types %}
+                                    {% set _ = cargo_types.update({note_lower: {'count': 1, 'ships': [ship.name], 'original': ship.notes}}) %}
+                                {% else %}
+                                    {% set _ = cargo_types[note_lower].update({'count': cargo_types[note_lower].count + 1}) %}
+                                    {% set _ = cargo_types[note_lower].ships.append(ship.name) %}
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {% for cargo_key, cargo_data in cargo_types.items()|sort(attribute='1.count', reverse=true) %}
+                        <tr>
+                            <td><strong>{{ cargo_data.original }}</strong></td>
+                            <td class="text-center">{{ cargo_data.count }}</td>
+                            <td>
+                                <small>
+                                    {% for ship_name in cargo_data.ships[:5] %}
+                                        {{ ship_name }}{% if not loop.last %}, {% endif %}
+                                    {% endfor %}
+                                    {% if cargo_data.ships|length > 5 %}
+                                        ... و {{ cargo_data.ships|length - 5 }} أخرى
+                                    {% endif %}
+                                </small>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">لا توجد بيانات بضائع</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
                 </table>
             </div>
         </div>
     </div>
 </div>
-
 <script>
-$(document).ready(function(){$('#shipsTable').DataTable({language:{url:'//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'},pageLength:10,order:[[7,'desc']],responsive:true,dom:'<"row"<"col-6"l><"col-6"f>>rtip'});{% if flags %}
-var ctx1=document.getElementById('flagsChart').getContext('2d');var flagLabels=[],flagData=[];{% for flag,count in flags.items()|sort(attribute='1',reverse=true) %}flagLabels.push('{{ flag }}');flagData.push({{ count }});{% endfor %}
-if(flagLabels.length>0){new Chart(ctx1,{type:'pie',data:{labels:flagLabels,datasets:[{data:flagData,backgroundColor:['#667eea','#28a745','#ffc107','#17a2b8','#dc3545','#6f42c1','#fd7e14','#20c997','#e83e8c','#6c757d']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:9}}},title:{display:true,text:'توزيع السفن حسب الشركة',font:{size:10}}}}}});}else{document.getElementById('flagsChart').style.display='none';}{% endif %}{% if months %}
-var ctx2=document.getElementById('monthsChart').getContext('2d');var monthLabels=[],monthData=[];{% for month_key,month_data in months.items()|sort %}monthLabels.push('{{ month_data.name }}');monthData.push({{ month_data.count }});{% endfor %}
-if(monthLabels.length>0){new Chart(ctx2,{type:'bar',data:{labels:monthLabels,datasets:[{label:'عدد السفن',data:monthData,backgroundColor:'rgba(255,193,7,0.7)',borderColor:'#ffc107',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,ticks:{stepSize:1}}},plugins:{legend:{display:false},title:{display:true,text:'توزيع السفن حسب الشهر',font:{size:10}}}}}});}else{document.getElementById('monthsChart').style.display='none';}{% endif %}});
-function setDateRange(r){var t=new Date(),f,to;switch(r){case'today':f=new Date(t);to=new Date(t);break;case'yesterday':f=new Date(t);f.setDate(f.getDate()-1);to=new Date(f);break;case'week':to=new Date(t);f=new Date(t);f.setDate(f.getDate()-7);break;case'month':to=new Date(t);f=new Date(t);f.setDate(f.getDate()-30);break;case'month-current':f=new Date(t.getFullYear(),t.getMonth(),1);to=new Date(t);break;case'month-last':f=new Date(t.getFullYear(),t.getMonth()-1,1);to=new Date(t.getFullYear(),t.getMonth(),0);break;case'year':to=new Date(t);f=new Date(t);f.setFullYear(f.getFullYear()-1);break}$('input[name="date_from"]').val(f.toISOString().split('T')[0]);$('input[name="date_to"]').val(to.toISOString().split('T')[0]);$('#dateRangeForm').submit();}
+    $(document).ready(function() {
+        $('#shipsTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
+            },
+            pageLength: 25,
+            order: [[7, 'desc']],
+            responsive: true
+        });
+
+        // رسم بياني للشركات الملاحية
+        var ctx1 = document.getElementById('flagsChart').getContext('2d');
+        var flagLabels = [];
+        var flagData = [];
+        {% if flags %}
+            {% for flag, count in flags.items()|sort(attribute='1', reverse=true) %}
+                // استخدام replace للتعامل مع علامات الاقتباس
+                flagLabels.push('{{ flag|replace("'", "\\'")|replace('"', '\\"') }}');
+                flagData.push({{ count }});
+            {% endfor %}
+        {% endif %}
+
+        if (flagLabels.length > 0) {
+            new Chart(ctx1, {
+                type: 'pie',
+                data: {
+                    labels: flagLabels,
+                    datasets: [{
+                        data: flagData,
+                        backgroundColor: [
+                            '#667eea', '#28a745', '#ffc107', '#17a2b8', '#dc3545',
+                            '#6f42c1', '#fd7e14', '#20c997', '#e83e8c', '#6c757d'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { font: { size: 10 } }
+                        },
+                        title: {
+                            display: true,
+                            text: 'توزيع السفن حسب الشركة',
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            });
+        } else {
+            // إخفاء الرسم البياني أو عرض رسالة
+            document.getElementById('flagsChart').style.display = 'none';
+        }
+
+        // رسم بياني لأشهر الوصول
+        var ctx2 = document.getElementById('monthsChart').getContext('2d');
+        var monthLabels = [];
+        var monthData = [];
+        {% if months %}
+            {% for month_key, month_data in months.items()|sort %}
+                monthLabels.push('{{ month_data.name|replace("'", "\\'")|replace('"', '\\"') }}');
+                monthData.push({{ month_data.count }});
+            {% endfor %}
+        {% endif %}
+
+        if (monthLabels.length > 0) {
+            new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: monthLabels,
+                    datasets: [{
+                        label: 'عدد السفن',
+                        data: monthData,
+                        backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                        borderColor: '#ffc107',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: 'توزيع السفن حسب الشهر',
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            });
+        } else {
+            document.getElementById('monthsChart').style.display = 'none';
+        }
+    });
+
+    // دالة تعيين نطاق التاريخ
+    function setDateRange(range) {
+        var today = new Date();
+        var dateFrom, dateTo;
+
+        switch(range) {
+            case 'today':
+                dateFrom = new Date(today);
+                dateTo = new Date(today);
+                break;
+            case 'yesterday':
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 1);
+                dateTo = new Date(dateFrom);
+                break;
+            case 'week':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 7);
+                break;
+            case 'month':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 30);
+                break;
+            case 'month-current':
+                dateFrom = new Date(today.getFullYear(), today.getMonth(), 1);
+                dateTo = new Date(today);
+                break;
+            case 'month-last':
+                dateFrom = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                dateTo = new Date(today.getFullYear(), today.getMonth(), 0);
+                break;
+            case 'year':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setFullYear(dateFrom.getFullYear() - 1);
+                break;
+        }
+
+        $('input[name="date_from"]').val(dateFrom.toISOString().split('T')[0]);
+        $('input[name="date_to"]').val(dateTo.toISOString().split('T')[0]);
+
+        // إرسال النموذج تلقائياً
+        $('#dateRangeForm').submit();
+    }
 </script>
-
 <style>
-.stat-card{background:white;border-radius:6px;box-shadow:0 1px 5px rgba(0,0,0,0.05);position:relative;overflow:hidden;height:100%}.stat-card:hover{transform:translateY(-2px);box-shadow:0 3px 10px rgba(102,126,234,0.2)}.stat-icon{position:absolute;left:10px;top:10px;font-size:2.5rem;opacity:0.15;color:#667eea}.stat-title{color:#6c757d;font-size:.75rem;margin-bottom:2px;text-transform:uppercase}.stat-value{font-size:1.5rem;font-weight:bold;color:#333;line-height:1}.stat-desc{color:#999;font-size:.65rem}.badge{font-size:.7rem;padding:.25em .5em}.table th{white-space:nowrap;background-color:#f8f9fa;font-weight:600;padding:4px!important}.table td{padding:3px!important;font-size:.75rem}.progress{background-color:#e9ecef;border-radius:8px;margin:0!important}canvas{max-height:180px;width:100%!important}.btn-xs{padding:.1rem .3rem;font-size:.7rem}.card-header{padding:.25rem .5rem!important}.card-body{padding:.5rem!important}.row{margin-left:-5px;margin-right:-5px}[class*="col-"]{padding-left:5px;padding-right:5px}.container-fluid{padding-left:5px!important;padding-right:5px!important;max-width:100%!important}.mb-2{margin-bottom:.3rem!important}.form-control-sm{font-size:.75rem;padding:.2rem .3rem}.btn-sm{padding:.2rem .5rem;font-size:.75rem}.small{font-size:.65rem}h6{font-size:.8rem;margin-bottom:0}h5{font-size:.9rem;margin-bottom:0}h4{font-size:1rem;margin-bottom:0}
-@media print{.btn-group,.btn,.dataTables_wrapper .dt-buttons,.dataTables_length,.dataTables_filter,.dataTables_paginate{display:none!important}.card{box-shadow:none;border:1px solid #ddd}.stat-card{box-shadow:none;border:1px solid #ddd}canvas{max-height:150px}}
-/* تقليص المسافات في بطاقات الرسوم البيانية */
-.chart-card .card-body {
-    padding: 0.25rem !important;
-}
+    .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s;
+        height: 100%;
+    }
 
-.chart-card .card-header {
-    padding: 0.2rem 0.5rem !important;
-    font-size: 0.8rem !important;
-}
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 20px rgba(102,126,234,0.3);
+    }
 
-/* تقليص المسافة بين الرسم البياني والجدول */
-.chart-card canvas {
-    margin-bottom: 0.1rem !important;
-    max-height: 70px !important;
-}
+    .stat-icon {
+        position: absolute;
+        left: 15px;
+        top: 15px;
+        font-size: 3.5rem;
+        opacity: 0.15;
+        color: #667eea;
+    }
 
-.chart-card .table-responsive {
-    margin-top: 0.1rem !important;
-}
+    .stat-title {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
 
-/* تقليص حجم خط الجدول */
-.chart-card .table-sm {
-    font-size: 0.7rem !important;
-}
+    .stat-value {
+        font-size: 2.2rem;
+        font-weight: bold;
+        color: #333;
+        line-height: 1.2;
+    }
 
-.chart-card .table-sm th,
-.chart-card .table-sm td {
-    padding: 0.1rem 0.2rem !important;
-}
+    .stat-desc {
+        color: #999;
+        font-size: 0.8rem;
+        margin-top: 5px;
+    }
 
-/* تقليص شريط التقدم */
-.chart-card .progress {
-    height: 12px !important;
-    margin: 0 !important;
-}
+    .badge {
+        font-size: 0.8rem;
+        padding: 0.4em 0.7em;
+        margin: 2px;
+        font-weight: 500;
+    }
 
-/* تقليص حجم النص في شريط التقدم */
-.chart-card .progress-bar {
-    font-size: 0.6rem !important;
-    line-height: 12px !important;
-}
+    .table th {
+        white-space: nowrap;
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    .progress {
+        background-color: #e9ecef;
+        border-radius: 10px;
+    }
+
+    canvas {
+        max-height: 300px;
+        width: 100% !important;
+    }
+
+    /* للطباعة */
+    @media print {
+        .btn-group, .btn, .dataTables_filter, .dataTables_length, .dataTables_paginate {
+            display: none !important;
+        }
+        .card {
+            box-shadow: none;
+            border: 1px solid #ddd;
+        }
+        .stat-card {
+            box-shadow: none;
+            border: 1px solid #ddd;
+        }
+        canvas {
+            max-height: 250px;
+        }
+    }
 </style>
 {% endblock %}
