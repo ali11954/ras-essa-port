@@ -47,6 +47,78 @@
 {% endblock %}
 
 {% block content %}
+<!-- نموذج تحديد الفترة الزمنية -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white py-2">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    تحديد الفترة الزمنية
+                </h5>
+            </div>
+            <div class="card-body py-3">
+                <form method="GET" action="{{ url_for('teams_report_page') }}" id="dateRangeForm" class="row align-items-end">
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label fw-bold small">من تاريخ</label>
+                        <input type="date" class="form-control" name="date_from" value="{{ date_from.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label fw-bold small">إلى تاريخ</label>
+                        <input type="date" class="form-control" name="date_to" value="{{ date_to.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-2"></i> عرض البيانات
+                        </button>
+                    </div>
+                </form>
+
+                <!-- أزرار سريعة للفترات الزمنية -->
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('today')">
+                                <i class="fas fa-sun"></i> اليوم
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('yesterday')">
+                                <i class="fas fa-calendar-day"></i> أمس
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('week')">
+                                <i class="fas fa-calendar-week"></i> آخر 7 أيام
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month')">
+                                <i class="fas fa-calendar-alt"></i> آخر 30 يوم
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month-current')">
+                                <i class="fas fa-calendar-check"></i> هذا الشهر
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month-last')">
+                                <i class="fas fa-calendar-minus"></i> الشهر الماضي
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('year')">
+                                <i class="fas fa-calendar"></i> آخر سنة
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- حساب الإحصائيات أولاً -->
+{% set ns = namespace(total_members=0, total_leaders=0, active_teams=0) %}
+{% for team_data in teams_data %}
+    {% set ns.total_members = ns.total_members + team_data.members_count %}
+    {% if team_data.leader %}
+        {% set ns.total_leaders = ns.total_leaders + 1 %}
+    {% endif %}
+    {% if team_data.team.is_active %}
+        {% set ns.active_teams = ns.active_teams + 1 %}
+    {% endif %}
+{% endfor %}
+
 <!-- معلومات التقرير -->
 <div class="row mb-4">
     <div class="col-12">
@@ -88,13 +160,7 @@
         <div class="stat-card">
             <i class="fas fa-user-tie stat-icon"></i>
             <div class="stat-title">إجمالي الأعضاء</div>
-            <div class="stat-value">
-                {% set total_members = 0 %}
-                {% for team in teams_data %}
-                    {% set total_members = total_members + team.members_count %}
-                {% endfor %}
-                {{ total_members }}
-            </div>
+            <div class="stat-value">{{ ns.total_members }}</div>
             <div class="stat-desc">موظف</div>
         </div>
     </div>
@@ -102,15 +168,7 @@
         <div class="stat-card">
             <i class="fas fa-crown stat-icon"></i>
             <div class="stat-title">عدد القادة</div>
-            <div class="stat-value">
-                {% set total_leaders = 0 %}
-                {% for team in teams_data %}
-                    {% if team.leader %}
-                        {% set total_leaders = total_leaders + 1 %}
-                    {% endif %}
-                {% endfor %}
-                {{ total_leaders }}
-            </div>
+            <div class="stat-value">{{ ns.total_leaders }}</div>
             <div class="stat-desc">قائد</div>
         </div>
     </div>
@@ -118,16 +176,156 @@
         <div class="stat-card">
             <i class="fas fa-check-circle stat-icon"></i>
             <div class="stat-title">فرق نشطة</div>
-            <div class="stat-value">
-                {% set active_teams = 0 %}
-                {% for team in teams_data %}
-                    {% if team.team.is_active %}
-                        {% set active_teams = active_teams + 1 %}
-                    {% endif %}
-                {% endfor %}
-                {{ active_teams }}
-            </div>
+            <div class="stat-value">{{ ns.active_teams }}</div>
             <div class="stat-desc">فريق</div>
+        </div>
+    </div>
+</div>
+
+<!-- الرسوم البيانية -->
+<div class="row mb-4">
+    <!-- رسم بياني لتوزيع الفرق حسب النوع -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    توزيع الفرق حسب النوع
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="teamTypesChart" style="max-height: 300px;"></canvas>
+                <div class="table-responsive mt-3">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>نوع الفرقة</th>
+                                <th>عدد الفرق</th>
+                                <th>النسبة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set team_types = {'loading': 0, 'unloading': 0, 'maintenance': 0, 'security': 0, 'other': 0} %}
+                            {% for team_data in teams_data %}
+                                {% if team_data.team.team_type == 'loading' %}
+                                    {% set _ = team_types.update({'loading': team_types['loading'] + 1}) %}
+                                {% elif team_data.team.team_type == 'unloading' %}
+                                    {% set _ = team_types.update({'unloading': team_types['unloading'] + 1}) %}
+                                {% elif team_data.team.team_type == 'maintenance' %}
+                                    {% set _ = team_types.update({'maintenance': team_types['maintenance'] + 1}) %}
+                                {% elif team_data.team.team_type == 'security' %}
+                                    {% set _ = team_types.update({'security': team_types['security'] + 1}) %}
+                                {% else %}
+                                    {% set _ = team_types.update({'other': team_types['other'] + 1}) %}
+                                {% endif %}
+                            {% endfor %}
+
+                            <tr>
+                                <td><span class="badge bg-success">تحميل</span></td>
+                                <td class="text-center">{{ team_types['loading'] }}</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-success" role="progressbar"
+                                             style="width: {{ (team_types['loading'] / teams_data|length * 100)|round if teams_data|length > 0 else 0 }}%;">
+                                            {{ (team_types['loading'] / teams_data|length * 100)|round if teams_data|length > 0 else 0 }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-warning text-dark">تفريغ</span></td>
+                                <td class="text-center">{{ team_types['unloading'] }}</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-warning" role="progressbar"
+                                             style="width: {{ (team_types['unloading'] / teams_data|length * 100)|round if teams_data|length > 0 else 0 }}%;">
+                                            {{ (team_types['unloading'] / teams_data|length * 100)|round if teams_data|length > 0 else 0 }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-info">صيانة</span></td>
+                                <td class="text-center">{{ team_types['maintenance'] }}</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-info" role="progressbar"
+                                             style="width: {{ (team_types['maintenance'] / teams_data|length * 100)|round if teams_data|length > 0 else 0 }}%;">
+                                            {{ (team_types['maintenance'] / teams_data|length * 100)|round if teams_data|length > 0 else 0 }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-danger">أمن</span></td>
+                                <td class="text-center">{{ team_types['security'] }}</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-danger" role="progressbar"
+                                             style="width: {{ (team_types['security'] / teams_data|length * 100)|round if teams_data|length > 0 else 0 }}%;">
+                                            {{ (team_types['security'] / teams_data|length * 100)|round if teams_data|length > 0 else 0 }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-secondary">أخرى</span></td>
+                                <td class="text-center">{{ team_types['other'] }}</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-secondary" role="progressbar"
+                                             style="width: {{ (team_types['other'] / teams_data|length * 100)|round if teams_data|length > 0 else 0 }}%;">
+                                            {{ (team_types['other'] / teams_data|length * 100)|round if teams_data|length > 0 else 0 }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- رسم بياني لتوزيع الأعضاء على الفرق -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    توزيع الأعضاء على الفرق
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="membersChart" style="max-height: 300px;"></canvas>
+                <div class="table-responsive mt-3">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>الفرقة</th>
+                                <th>عدد الأعضاء</th>
+                                <th>النسبة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for team_data in teams_data|sort(attribute='members_count', reverse=true) %}
+                            <tr>
+                                <td><strong>{{ team_data.team.name }}</strong></td>
+                                <td class="text-center">{{ team_data.members_count }}</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-info" role="progressbar"
+                                             style="width: {{ (team_data.members_count / ns.total_members * 100)|round if ns.total_members > 0 else 0 }}%;">
+                                            {{ (team_data.members_count / ns.total_members * 100)|round if ns.total_members > 0 else 0 }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -256,9 +454,9 @@
             <strong>ملخص:</strong>
             <ul class="mb-0 mt-2">
                 <li>إجمالي عدد الفرق: <strong>{{ teams_data|length }}</strong></li>
-                <li>إجمالي عدد الأعضاء: <strong>{{ total_members }}</strong></li>
-                <li>عدد القادة: <strong>{{ total_leaders }}</strong></li>
-                <li>الفرق النشطة: <strong>{{ active_teams }}</strong></li>
+                <li>إجمالي عدد الأعضاء: <strong>{{ ns.total_members }}</strong></li>
+                <li>عدد القادة: <strong>{{ ns.total_leaders }}</strong></li>
+                <li>الفرق النشطة: <strong>{{ ns.active_teams }}</strong></li>
             </ul>
         </div>
     </div>
@@ -274,7 +472,118 @@
             order: [[0, 'asc']],
             responsive: true
         });
+
+        // رسم بياني لأنواع الفرق
+        var ctx1 = document.getElementById('teamTypesChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'pie',
+            data: {
+                labels: ['تحميل', 'تفريغ', 'صيانة', 'أمن', 'أخرى'],
+                datasets: [{
+                    data: [
+                        {{ team_types['loading'] }},
+                        {{ team_types['unloading'] }},
+                        {{ team_types['maintenance'] }},
+                        {{ team_types['security'] }},
+                        {{ team_types['other'] }}
+                    ],
+                    backgroundColor: ['#28a745', '#ffc107', '#17a2b8', '#dc3545', '#6c757d']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    title: { display: true, text: 'توزيع الفرق حسب النوع' }
+                }
+            }
+        });
+
+        // رسم بياني لتوزيع الأعضاء
+        var ctx2 = document.getElementById('membersChart').getContext('2d');
+        var teamNames = [];
+        var memberCounts = [];
+        {% for team_data in teams_data|sort(attribute='members_count', reverse=true) %}
+            teamNames.push('{{ team_data.team.name }}');
+            memberCounts.push({{ team_data.members_count }});
+        {% endfor %}
+
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: teamNames,
+                datasets: [{
+                    label: 'عدد الأعضاء',
+                    data: memberCounts,
+                    backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                    borderColor: '#28a745',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'توزيع الأعضاء على الفرق' }
+                }
+            }
+        });
     });
+
+    // دالة تعيين نطاق التاريخ
+    function setDateRange(range) {
+        var today = new Date();
+        var dateFrom, dateTo;
+
+        switch(range) {
+            case 'today':
+                dateFrom = new Date(today);
+                dateTo = new Date(today);
+                break;
+            case 'yesterday':
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 1);
+                dateTo = new Date(dateFrom);
+                break;
+            case 'week':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 7);
+                break;
+            case 'month':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 30);
+                break;
+            case 'month-current':
+                dateFrom = new Date(today.getFullYear(), today.getMonth(), 1);
+                dateTo = new Date(today);
+                break;
+            case 'month-last':
+                dateFrom = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                dateTo = new Date(today.getFullYear(), today.getMonth(), 0);
+                break;
+            case 'year':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setFullYear(dateFrom.getFullYear() - 1);
+                break;
+        }
+
+        $('input[name="date_from"]').val(dateFrom.toISOString().split('T')[0]);
+        $('input[name="date_to"]').val(dateTo.toISOString().split('T')[0]);
+
+        // إرسال النموذج تلقائياً
+        $('#dateRangeForm').submit();
+    }
 </script>
 
 <style>
@@ -338,6 +647,11 @@
         border-bottom: 2px solid #667eea;
     }
 
+    canvas {
+        max-height: 300px;
+        width: 100% !important;
+    }
+
     /* للطباعة */
     @media print {
         .btn-group, .btn, .dataTables_filter, .dataTables_length, .dataTables_paginate {
@@ -350,6 +664,9 @@
         .stat-card {
             box-shadow: none;
             border: 1px solid #ddd;
+        }
+        canvas {
+            max-height: 250px;
         }
     }
 </style>

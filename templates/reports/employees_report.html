@@ -47,6 +47,66 @@
 {% endblock %}
 
 {% block content %}
+<!-- نموذج تحديد الفترة الزمنية -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white py-2">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    تحديد الفترة الزمنية
+                </h5>
+            </div>
+            <div class="card-body py-3">
+                <form method="GET" action="{{ url_for('employees_report_page') }}" id="dateRangeForm" class="row align-items-end">
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label fw-bold small">من تاريخ</label>
+                        <input type="date" class="form-control" name="date_from" value="{{ date_from.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label fw-bold small">إلى تاريخ</label>
+                        <input type="date" class="form-control" name="date_to" value="{{ date_to.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-2"></i> عرض البيانات
+                        </button>
+                    </div>
+                </form>
+
+                <!-- أزرار سريعة للفترات الزمنية -->
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('today')">
+                                <i class="fas fa-sun"></i> اليوم
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('yesterday')">
+                                <i class="fas fa-calendar-day"></i> أمس
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('week')">
+                                <i class="fas fa-calendar-week"></i> آخر 7 أيام
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month')">
+                                <i class="fas fa-calendar-alt"></i> آخر 30 يوم
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month-current')">
+                                <i class="fas fa-calendar-check"></i> هذا الشهر
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month-last')">
+                                <i class="fas fa-calendar-minus"></i> الشهر الماضي
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('year')">
+                                <i class="fas fa-calendar"></i> آخر سنة
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- معلومات التقرير -->
 <div class="row mb-4">
     <div class="col-12">
@@ -110,6 +170,134 @@
     </div>
 </div>
 
+<!-- الرسوم البيانية - الصف الأول -->
+<div class="row mb-4">
+    <!-- رسم بياني لتوزيع الأعمار -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    توزيع الموظفين حسب الأعمار
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="ageChart" style="max-height: 300px;"></canvas>
+                <div class="row mt-3">
+                    {% set age_groups = {'أقل من 20': 0, '20-30': 0, '31-40': 0, '41-50': 0, 'أكثر من 50': 0} %}
+                    {% for emp in data %}
+                        {% set age = now().year - emp.birth_date.year %}
+                        {% if emp.birth_date.month > now().month or (emp.birth_date.month == now().month and emp.birth_date.day > now().day) %}
+                            {% set age = age - 1 %}
+                        {% endif %}
+
+                        {% if age < 20 %}
+                            {% set _ = age_groups.update({'أقل من 20': age_groups['أقل من 20'] + 1}) %}
+                        {% elif age <= 30 %}
+                            {% set _ = age_groups.update({'20-30': age_groups['20-30'] + 1}) %}
+                        {% elif age <= 40 %}
+                            {% set _ = age_groups.update({'31-40': age_groups['31-40'] + 1}) %}
+                        {% elif age <= 50 %}
+                            {% set _ = age_groups.update({'41-50': age_groups['41-50'] + 1}) %}
+                        {% else %}
+                            {% set _ = age_groups.update({'أكثر من 50': age_groups['أكثر من 50'] + 1}) %}
+                        {% endif %}
+                    {% endfor %}
+
+                    <div class="col-12">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>الفئة العمرية</th>
+                                        <th>العدد</th>
+                                        <th>النسبة</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for group, count in age_groups.items() %}
+                                    <tr>
+                                        <td>{{ group }}</td>
+                                        <td class="text-center">{{ count }}</td>
+                                        <td>
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar bg-success" role="progressbar"
+                                                     style="width: {{ (count / data|length * 100)|round if data|length > 0 else 0 }}%;"
+                                                     aria-valuenow="{{ (count / data|length * 100)|round if data|length > 0 else 0 }}"
+                                                     aria-valuemin="0" aria-valuemax="100">
+                                                    {{ (count / data|length * 100)|round if data|length > 0 else 0 }}%
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- رسم بياني للسكن الحالي -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-home me-2"></i>
+                    توزيع الموظفين حسب السكن الحالي
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="residenceChart" style="max-height: 300px;"></canvas>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>مكان السكن</th>
+                                        <th>العدد</th>
+                                        <th>النسبة</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% set residence_places = {} %}
+                                    {% for emp in data %}
+                                        {% if emp.current_address not in residence_places %}
+                                            {% set _ = residence_places.update({emp.current_address: 1}) %}
+                                        {% else %}
+                                            {% set _ = residence_places.update({emp.current_address: residence_places[emp.current_address] + 1}) %}
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% for place, count in residence_places.items()|sort(attribute='1', reverse=true) %}
+                                    <tr>
+                                        <td>{{ place }}</td>
+                                        <td class="text-center">{{ count }}</td>
+                                        <td>
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar bg-info" role="progressbar"
+                                                     style="width: {{ (count / data|length * 100)|round }}%;"
+                                                     aria-valuenow="{{ (count / data|length * 100)|round }}"
+                                                     aria-valuemin="0" aria-valuemax="100">
+                                                    {{ (count / data|length * 100)|round }}%
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- توزيع الموظفين حسب المهنة -->
 <div class="row mb-4">
     <div class="col-md-6">
@@ -166,7 +354,7 @@
     <!-- توزيع الموظفين حسب مكان الميلاد -->
     <div class="col-md-6">
         <div class="card">
-            <div class="card-header bg-info text-white">
+            <div class="card-header bg-warning text-dark">
                 <h5 class="mb-0">
                     <i class="fas fa-map-marker-alt me-2"></i>
                     توزيع الموظفين حسب مكان الميلاد
@@ -290,51 +478,6 @@
     </div>
 </div>
 
-<!-- ملخص الأعمار -->
-<div class="card mb-4">
-    <div class="card-header bg-success text-white">
-        <h5 class="mb-0">
-            <i class="fas fa-birthday-cake me-2"></i>
-            توزيع الأعمار
-        </h5>
-    </div>
-    <div class="card-body">
-        <div class="row">
-            {% set age_groups = {'أقل من 20': 0, '20-30': 0, '31-40': 0, '41-50': 0, 'أكثر من 50': 0} %}
-            {% for emp in data %}
-                {% set age = now().year - emp.birth_date.year %}
-                {% if emp.birth_date.month > now().month or (emp.birth_date.month == now().month and emp.birth_date.day > now().day) %}
-                    {% set age = age - 1 %}
-                {% endif %}
-
-                {% if age < 20 %}
-                    {% set _ = age_groups.update({'أقل من 20': age_groups['أقل من 20'] + 1}) %}
-                {% elif age <= 30 %}
-                    {% set _ = age_groups.update({'20-30': age_groups['20-30'] + 1}) %}
-                {% elif age <= 40 %}
-                    {% set _ = age_groups.update({'31-40': age_groups['31-40'] + 1}) %}
-                {% elif age <= 50 %}
-                    {% set _ = age_groups.update({'41-50': age_groups['41-50'] + 1}) %}
-                {% else %}
-                    {% set _ = age_groups.update({'أكثر من 50': age_groups['أكثر من 50'] + 1}) %}
-                {% endif %}
-            {% endfor %}
-
-            {% for group, count in age_groups.items() %}
-            <div class="col-md-2-4 col-6 mb-3">
-                <div class="card bg-light text-center">
-                    <div class="card-body">
-                        <h6>{{ group }}</h6>
-                        <h3>{{ count }}</h3>
-                        <small class="text-muted">موظف</small>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</div>
-
 <!-- ملخص الفرق -->
 <div class="card">
     <div class="card-header bg-warning text-dark">
@@ -394,8 +537,8 @@
                 <ul class="mb-0 mt-2">
                     <li>👥 <strong>إجمالي الموظفين:</strong> {{ data|length }} موظف</li>
                     <li>👑 <strong>قادة الفرق:</strong> {{ data|selectattr('profession', 'equalto', 'رئيس فرقة')|list|length }} قائد</li>
-                    <li>📊 <strong>متوسط الأعمار:</strong> تم توزيع الموظفين حسب الفئات العمرية</li>
-                    <li>🏢 <strong>الفرق:</strong> {{ teams_summary|length }} فرقة تضم موظفين</li>
+                    <li>📊 <strong>توزيع الأعمار:</strong> تم عرض توزيع الموظفين حسب الفئات العمرية</li>
+                    <li>🏠 <strong>السكن:</strong> تم تحليل توزيع الموظفين حسب مناطق السكن</li>
                 </ul>
             </div>
         </div>
@@ -412,7 +555,127 @@
             order: [[0, 'asc']],
             responsive: true
         });
+
+        // رسم بياني للأعمار
+        var ctx1 = document.getElementById('ageChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: [{% for group in ['أقل من 20', '20-30', '31-40', '41-50', 'أكثر من 50'] %}'{{ group }}',{% endfor %}],
+                datasets: [{
+                    label: 'عدد الموظفين',
+                    data: [{{ age_groups['أقل من 20'] }}, {{ age_groups['20-30'] }}, {{ age_groups['31-40'] }}, {{ age_groups['41-50'] }}, {{ age_groups['أكثر من 50'] }}],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.7)',
+                        'rgba(23, 162, 184, 0.7)',
+                        'rgba(255, 193, 7, 0.7)',
+                        'rgba(220, 53, 69, 0.7)',
+                        'rgba(102, 126, 234, 0.7)'
+                    ],
+                    borderColor: [
+                        '#28a745',
+                        '#17a2b8',
+                        '#ffc107',
+                        '#dc3545',
+                        '#667eea'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'توزيع الأعمار' }
+                }
+            }
+        });
+
+        // رسم بياني للسكن
+        var ctx2 = document.getElementById('residenceChart').getContext('2d');
+        var residenceLabels = [];
+        var residenceData = [];
+        {% for place, count in residence_places.items()|sort(attribute='1', reverse=true) %}
+            residenceLabels.push('{{ place }}');
+            residenceData.push({{ count }});
+        {% endfor %}
+
+        new Chart(ctx2, {
+            type: 'pie',
+            data: {
+                labels: residenceLabels,
+                datasets: [{
+                    data: residenceData,
+                    backgroundColor: [
+                        '#667eea', '#28a745', '#ffc107', '#17a2b8', '#dc3545',
+                        '#6f42c1', '#fd7e14', '#20c997', '#e83e8c', '#6c757d'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    title: { display: true, text: 'توزيع السكن' }
+                }
+            }
+        });
     });
+
+    // دالة تعيين نطاق التاريخ
+    function setDateRange(range) {
+        var today = new Date();
+        var dateFrom, dateTo;
+
+        switch(range) {
+            case 'today':
+                dateFrom = new Date(today);
+                dateTo = new Date(today);
+                break;
+            case 'yesterday':
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 1);
+                dateTo = new Date(dateFrom);
+                break;
+            case 'week':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 7);
+                break;
+            case 'month':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 30);
+                break;
+            case 'month-current':
+                dateFrom = new Date(today.getFullYear(), today.getMonth(), 1);
+                dateTo = new Date(today);
+                break;
+            case 'month-last':
+                dateFrom = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                dateTo = new Date(today.getFullYear(), today.getMonth(), 0);
+                break;
+            case 'year':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setFullYear(dateFrom.getFullYear() - 1);
+                break;
+        }
+
+        $('input[name="date_from"]').val(dateFrom.toISOString().split('T')[0]);
+        $('input[name="date_to"]').val(dateTo.toISOString().split('T')[0]);
+
+        // إرسال النموذج تلقائياً
+        $('#dateRangeForm').submit();
+    }
 </script>
 
 <style>
@@ -482,17 +745,9 @@
         border-radius: 10px;
     }
 
-    .col-md-2-4 {
-        flex: 0 0 20%;
-        max-width: 20%;
-        padding: 0 10px;
-    }
-
-    @media (max-width: 768px) {
-        .col-md-2-4 {
-            flex: 0 0 50%;
-            max-width: 50%;
-        }
+    canvas {
+        max-height: 300px;
+        width: 100% !important;
     }
 
     /* للطباعة */
@@ -507,6 +762,9 @@
         .stat-card {
             box-shadow: none;
             border: 1px solid #ddd;
+        }
+        canvas {
+            max-height: 250px;
         }
     }
 </style>

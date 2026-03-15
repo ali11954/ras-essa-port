@@ -1411,12 +1411,30 @@ def operation_stats():
 @login_required
 def teams_operations_report():
     """تقرير فرق العمل مع العمليات"""
+    from datetime import datetime, timedelta
+
+    # استلام التواريخ من الـ request
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+
+    # تعيين التواريخ الافتراضية (آخر 30 يوم)
+    if not date_from:
+        date_from = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+    if not date_to:
+        date_to = datetime.now().strftime('%Y-%m-%d')
+
+    # تحويل التواريخ إلى كائنات datetime
+    date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
+    date_to_obj = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
 
     # الحصول على جميع الفرق
     teams = Team.query.all()
 
-    # الحصول على جميع العمليات الفريدة (بدون تكرار)
-    all_operations = ShipOperation.query.order_by(ShipOperation.start_time.desc()).all()
+    # الحصول على جميع العمليات في التاريخ المحدد
+    all_operations = ShipOperation.query.filter(
+        ShipOperation.start_time.between(date_from_obj, date_to_obj)
+    ).order_by(ShipOperation.start_time.desc()).all()
+
     unique_operations_count = len(all_operations)
 
     # حساب إجمالي ساعات العمل الفريدة (مجموع مدد العمليات المختلفة)
@@ -1426,9 +1444,16 @@ def teams_operations_report():
             total_unique_hours += op.duration
 
     report_data = []
+    teams_summary = {}  # إضافة ملخص الفرق للرسوم البيانية
+
     for team in teams:
-        # الحصول على العمليات التي شاركت فيها هذه الفرقة
-        team_operations = team.operations
+        # الحصول على العمليات التي شاركت فيها هذه الفرقة في التاريخ المحدد
+        team_operations = []
+        for op in all_operations:
+            for ot in op.operation_teams:
+                if ot.team_id == team.id:
+                    team_operations.append(op)
+                    break
 
         # عدد العمليات التي شاركت فيها الفرقة
         total_ops = len(team_operations)
@@ -1443,6 +1468,16 @@ def teams_operations_report():
             if op.duration:
                 team_hours += op.duration
 
+        # إضافة إلى ملخص الفرق
+        if total_ops > 0:
+            teams_summary[team.id] = {
+                'name': team.name,
+                'type': team.team_type,
+                'count': total_ops,
+                'hours': round(team_hours, 2),
+                'avg_duration': round(team_hours / total_ops, 2) if total_ops > 0 else 0
+            }
+
         report_data.append({
             'team': team,
             'total_operations': total_ops,
@@ -1452,11 +1487,16 @@ def teams_operations_report():
             'operations': sorted(team_operations, key=lambda x: x.start_time, reverse=True)[:10]  # آخر 10 عمليات
         })
 
+    # ترتيب البيانات حسب عدد العمليات
+    report_data.sort(key=lambda x: x['total_operations'], reverse=True)
+
     return render_template('reports/teams_operations.html',
                            report_data=report_data,
                            unique_operations=unique_operations_count,
-                           unique_hours=round(total_unique_hours, 2))
-
+                           unique_hours=round(total_unique_hours, 2),
+                           teams_summary=teams_summary,
+                           date_from=date_from_obj,
+                           date_to=date_to_obj)
 
 @app.route('/api/teams/<int:team_id>/current-operations')
 @login_required
@@ -1764,6 +1804,182 @@ def reports_charts():
                            berth_occupancy_data=berth_occupancy_data,
                            berth_occupancy_labels=berth_occupancy_labels)
 
+
+# ============================================
+# Reports Routes - صفحات التقارير المنفصلة
+# ============================================
+
+@app.route('/reports/ships', methods=['GET'])
+@login_required
+def ships_report_page():
+    """صفحة تقرير السفن"""
+    # استلام التواريخ
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+
+    # تعيين التواريخ الافتراضية
+    if not date_from:
+        date_from = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+    if not date_to:
+        date_to = datetime.now().strftime('%Y-%m-%d')
+
+    date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
+    date_to_obj = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+
+    # جلب البيانات
+    data = Ship.query.filter(
+        Ship.arrival_date.between(date_from_obj, date_to_obj)
+    ).all()
+
+    return render_template('reports/ships_report.html',
+                           data=data,
+                           date_from=date_from_obj,
+                           date_to=date_to_obj)
+
+
+@app.route('/reports/employees', methods=['GET'])
+@login_required
+def employees_report_page():
+    """صفحة تقرير الموظفين"""
+    # استلام التواريخ
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+
+    # تعيين التواريخ الافتراضية
+    if not date_from:
+        date_from = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+    if not date_to:
+        date_to = datetime.now().strftime('%Y-%m-%d')
+
+    date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
+    date_to_obj = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+
+    # جلب البيانات
+    data = Employee.query.filter(
+        Employee.hire_date.between(date_from_obj, date_to_obj)
+    ).all()
+
+    return render_template('reports/employees_report.html',
+                           data=data,
+                           date_from=date_from_obj,
+                           date_to=date_to_obj)
+
+
+@app.route('/reports/teams', methods=['GET'])
+@login_required
+def teams_report_page():
+    """صفحة تقرير فرق العمل"""
+    # استلام التواريخ
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+
+    # تعيين التواريخ الافتراضية
+    if not date_from:
+        date_from = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+    if not date_to:
+        date_to = datetime.now().strftime('%Y-%m-%d')
+
+    date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
+    date_to_obj = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+
+    # تجميع بيانات الفرق
+    teams = Team.query.all()
+    teams_data = []
+    for team in teams:
+        members = Employee.query.filter_by(team_id=team.id).all()
+        leaders = [m for m in members if 'رئيس' in m.profession]
+
+        teams_data.append({
+            'team': team,
+            'members': members,
+            'members_count': len(members),
+            'leaders': leaders,
+            'leader': leaders[0] if leaders else None
+        })
+
+    return render_template('reports/teams_report.html',
+                           teams_data=teams_data,
+                           date_from=date_from_obj,
+                           date_to=date_to_obj)
+
+
+@app.route('/reports/operations', methods=['GET'])
+@login_required
+def operations_report_page():
+    """صفحة تقرير العمليات"""
+    # استلام التواريخ
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+
+    # تعيين التواريخ الافتراضية
+    if not date_from:
+        date_from = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+    if not date_to:
+        date_to = datetime.now().strftime('%Y-%m-%d')
+
+    date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
+    date_to_obj = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+
+    # جلب البيانات
+    data = ShipOperation.query.filter(
+        ShipOperation.start_time.between(date_from_obj, date_to_obj)
+    ).order_by(ShipOperation.start_time.desc()).all()
+
+    return render_template('reports/operations_report.html',
+                           data=data,
+                           date_from=date_from_obj,
+                           date_to=date_to_obj)
+
+
+@app.route('/reports/berths', methods=['GET'])
+@login_required
+def berths_report_page():
+    """صفحة تقرير الأرصفة"""
+    # استلام التواريخ
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+
+    # تعيين التواريخ الافتراضية
+    if not date_from:
+        date_from = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+    if not date_to:
+        date_to = datetime.now().strftime('%Y-%m-%d')
+
+    date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
+    date_to_obj = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+
+    # تجهيز بيانات الأرصفة
+    berths = Berth.query.all()
+    berths_data = []
+    for berth in berths:
+        ships = Ship.query.filter_by(berth_number=berth.number).filter(
+            Ship.arrival_date.between(date_from_obj, date_to_obj)
+        ).all()
+        current_ship = berth.current_ship.name if berth.current_ship else '—'
+
+        berths_data.append({
+            'berth': berth,
+            'ships': ships,
+            'ships_count': len(ships),
+            'current_ship': current_ship,
+            'is_available': berth.is_available,
+            'is_occupied': berth.is_occupied
+        })
+
+    stats = {
+        'total': len(berths),
+        'available': sum(1 for b in berths if b.is_available),
+        'occupied': sum(1 for b in berths if b.is_occupied),
+        'total_ships': sum(len(ships) for ships in berths_data)
+    }
+
+    return render_template('reports/berths_report.html',
+                           berths_data=berths_data,
+                           stats=stats,
+                           date_from=date_from_obj,
+                           date_to=date_to_obj)
+
+
 def generate_ships_report(date_from, date_to, format):
     """تقرير السفن"""
     data = Ship.query.filter(
@@ -1857,32 +2073,36 @@ def generate_operations_report(date_from, date_to, format):
 def operations_duration_report():
     """تقرير مدة العمليات"""
     from sqlalchemy import func
-    from datetime import datetime
+    from datetime import datetime, timedelta
 
-    # استلام التواريخ من الـ request (اختياري)
-    date_from = request.args.get('date_from')
-    date_to = request.args.get('date_to')
+    # استلام التواريخ من الـ request
+    date_from_str = request.args.get('date_from')
+    date_to_str = request.args.get('date_to')
 
-    query = ShipOperation.query
+    # تعيين التواريخ الافتراضية (آخر 30 يوم)
+    if not date_from_str:
+        date_from_str = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+    if not date_to_str:
+        date_to_str = datetime.now().strftime('%Y-%m-%d')
 
-    if date_from and date_to:
-        try:
-            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
-            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
-            query = query.filter(ShipOperation.start_time.between(date_from_obj, date_to_obj))
-        except:
-            pass
+    # تحويل التواريخ إلى كائنات datetime للاستعلام
+    date_from_obj = datetime.strptime(date_from_str, '%Y-%m-%d')
+    date_to_obj = datetime.strptime(date_to_str, '%Y-%m-%d') + timedelta(days=1)
 
-    operations = query.order_by(ShipOperation.start_time.desc()).all()
+    # الاحتفاظ بالتواريخ للعرض في القالب
+    date_from_display = date_from_obj
+    date_to_display = date_to_obj - timedelta(days=1)
 
-    print(f"📊 عدد العمليات في التقرير: {len(operations)}")  # للتشخيص
+    # جلب العمليات في التاريخ المحدد
+    operations = ShipOperation.query.filter(
+        ShipOperation.start_time.between(date_from_obj, date_to_obj)
+    ).order_by(ShipOperation.start_time.desc()).all()
 
     # إحصائيات
     total_operations = len(operations)
     completed_operations = len([op for op in operations if op.end_time])
     ongoing_operations = total_operations - completed_operations
 
-    # حساب متوسط المدة
     total_duration = 0
     completed_count = 0
     for op in operations:
@@ -1902,9 +2122,9 @@ def operations_duration_report():
     return render_template('reports/operations_duration.html',
                            operations=operations,
                            stats=stats,
-                           date_from=date_from,
-                           date_to=date_to)
-
+                           date_from=date_from_display,
+                           date_to=date_to_display)
+    # لا ترسل now هنا
 @app.route('/export/berths/excel')
 @login_required
 def export_berths_excel():

@@ -223,12 +223,30 @@
             margin: 2px;
         }
 
+        /* ملخص الفرق في نهاية التقرير */
+        .teams-summary {
+            margin-top: 30px;
+            page-break-inside: avoid;
+        }
+
+        .teams-summary h3 {
+            color: #667eea;
+            border-bottom: 1px solid #667eea;
+            padding-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .teams-summary table {
+            font-size: 9px;
+        }
+
         /* توقيع التقرير */
         .signature-section {
             margin-top: 40px;
             display: flex;
             justify-content: space-between;
             padding: 0 30px;
+            page-break-inside: avoid;
         }
 
         .signature-box {
@@ -251,6 +269,7 @@
             font-size: 9px;
             border-top: 1px solid #eee;
             padding-top: 15px;
+            page-break-inside: avoid;
         }
 
         .footer-logo {
@@ -268,6 +287,11 @@
             th, td {
                 padding: 5px 2px;
             }
+        }
+
+        /* تجنب كسر الصفحات */
+        .page-break-inside {
+            page-break-inside: avoid;
         }
     </style>
 </head>
@@ -289,7 +313,7 @@
             </div>
             <div class="info-item">
                 <div class="info-label">⏱️ تاريخ الإنشاء</div>
-                <div class="info-value">{{ current_date.strftime('%Y-%m-%d %H:%M') }}</div>
+                <div class="info-value">{{ now().strftime('%Y-%m-%d %H:%M') }}</div>
             </div>
             <div class="info-item">
                 <div class="info-label">👤 تم الإنشاء بواسطة</div>
@@ -372,8 +396,19 @@
             {% for op in data %}
             <tr>
                 <td>{{ loop.index }}</td>
-                <td><strong>{{ op.ship.name if op.ship else '—' }}</strong><br><small>{{ op.ship.imo_number if op.ship and op.ship.imo_number else '' }}</small></td>
-                <td>{{ op.ship.berth_number if op.ship and op.ship.berth_number else '—' }}</td>
+                <td>
+                    <strong>{{ op.ship.name if op.ship else '—' }}</strong>
+                    {% if op.ship and op.ship.imo_number %}
+                        <br><small>{{ op.ship.imo_number }}</small>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if op.ship and op.ship.berth_number %}
+                        {{ op.ship.berth_number }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
                 <td>
                     <span class="badge {% if op.operation_type == 'تحميل' %}badge-loading{% elif op.operation_type == 'تفريغ' %}badge-unloading{% else %}badge-ongoing{% endif %}">
                         {{ op.operation_type }}
@@ -383,7 +418,7 @@
                 <td>
                     {% if op.end_time %}
                         {{ op.end_time.strftime('%Y-%m-%d %H:%M') }}
-                        <br><small class="badge badge-completed">مكتملة</small>
+                        <br><span class="badge badge-completed">مكتملة</span>
                     {% else %}
                         <span class="badge badge-ongoing">جارية</span>
                     {% endif %}
@@ -413,11 +448,52 @@
         </tbody>
     </table>
 
+    <!-- ملخص الفرق المشاركة (يظهر فقط إذا كان هناك بيانات) -->
+    {% if teams_summary %}
+    <div class="teams-summary">
+        <h3>📊 ملخص أداء الفرق</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>الفرقة</th>
+                    <th>عدد العمليات</th>
+                    <th>إجمالي الساعات</th>
+                    <th>متوسط المدة</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for team_id, team_data in teams_summary.items() %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><strong>{{ team_data.name }}</strong></td>
+                    <td>{{ team_data.count }}</td>
+                    <td>{{ "%.2f"|format(team_data.hours) }} ساعة</td>
+                    <td>{{ "%.2f"|format(team_data.hours / team_data.count) }} ساعة</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- توقيع التقرير -->
+    <div class="signature-section">
+        <div class="signature-box">
+            <div class="signature-line">مدير الميناء</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-line">رئيس قسم العمليات</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-line">مسؤول التقارير</div>
+        </div>
+    </div>
 
     <!-- تذييل التقرير -->
     <div class="footer">
         <div class="footer-logo">⚓ مكتب عمال ميناء رأس عيسى</div>
-        <p>جميع الحقوق محفوظة © {{ current_date.year }}</p>
+        <p>جميع الحقوق محفوظة © {{ now().year }}</p>
         <p>للاستفسارات: 773014017 | البريد: ali.mubark582021@mail.com</p>
         <p>تم إنشاء هذا التقرير بواسطة نظام مكتب عمال الميناء - الإصدار 1.0</p>
     </div>

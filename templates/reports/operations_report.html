@@ -47,6 +47,66 @@
 {% endblock %}
 
 {% block content %}
+<!-- نموذج تحديد الفترة الزمنية -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white py-2">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    تحديد الفترة الزمنية
+                </h5>
+            </div>
+            <div class="card-body py-3">
+                <form method="GET" action="{{ url_for('operations_report_page') }}" id="dateRangeForm" class="row align-items-end">
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label fw-bold small">من تاريخ</label>
+                        <input type="date" class="form-control" name="date_from" value="{{ date_from.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label fw-bold small">إلى تاريخ</label>
+                        <input type="date" class="form-control" name="date_to" value="{{ date_to.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-2"></i> عرض البيانات
+                        </button>
+                    </div>
+                </form>
+
+                <!-- أزرار سريعة للفترات الزمنية -->
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('today')">
+                                <i class="fas fa-sun"></i> اليوم
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('yesterday')">
+                                <i class="fas fa-calendar-day"></i> أمس
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('week')">
+                                <i class="fas fa-calendar-week"></i> آخر 7 أيام
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month')">
+                                <i class="fas fa-calendar-alt"></i> آخر 30 يوم
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month-current')">
+                                <i class="fas fa-calendar-check"></i> هذا الشهر
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month-last')">
+                                <i class="fas fa-calendar-minus"></i> الشهر الماضي
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('year')">
+                                <i class="fas fa-calendar"></i> آخر سنة
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- معلومات التقرير -->
 <div class="row mb-4">
     <div class="col-12">
@@ -484,6 +544,53 @@
             dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip'
         });
     });
+
+    // دالة تعيين نطاق التاريخ
+    function setDateRange(range) {
+        var today = new Date();
+        var dateFrom, dateTo;
+
+        switch(range) {
+            case 'today':
+                dateFrom = new Date(today);
+                dateTo = new Date(today);
+                break;
+            case 'yesterday':
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 1);
+                dateTo = new Date(dateFrom);
+                break;
+            case 'week':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 7);
+                break;
+            case 'month':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 30);
+                break;
+            case 'month-current':
+                dateFrom = new Date(today.getFullYear(), today.getMonth(), 1);
+                dateTo = new Date(today);
+                break;
+            case 'month-last':
+                dateFrom = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                dateTo = new Date(today.getFullYear(), today.getMonth(), 0);
+                break;
+            case 'year':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setFullYear(dateFrom.getFullYear() - 1);
+                break;
+        }
+
+        $('input[name="date_from"]').val(dateFrom.toISOString().split('T')[0]);
+        $('input[name="date_to"]').val(dateTo.toISOString().split('T')[0]);
+
+        // إرسال النموذج تلقائياً
+        $('#dateRangeForm').submit();
+    }
 </script>
 
 <style>

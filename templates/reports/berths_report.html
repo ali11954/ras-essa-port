@@ -47,6 +47,37 @@
 {% endblock %}
 
 {% block content %}
+<!-- نموذج تحديد التاريخ -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white py-2">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    تحديد الفترة الزمنية
+                </h5>
+            </div>
+            <div class="card-body py-3">
+                <form method="GET" action="{{ url_for('berth_list') }}" id="dateRangeForm" class="row align-items-end">
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label fw-bold small">من تاريخ</label>
+                        <input type="date" class="form-control" name="date_from" value="{{ date_from.strftime('%Y-%m-%d') }}">
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label fw-bold small">إلى تاريخ</label>
+                        <input type="date" class="form-control" name="date_to" value="{{ date_to.strftime('%Y-%m-%d') }}">
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-2"></i> عرض البيانات
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- معلومات التقرير -->
 <div class="row mb-4">
     <div class="col-12">
@@ -310,7 +341,24 @@
             },
             pageLength: 25,
             order: [[0, 'asc']],
-            responsive: true
+            responsive: true,
+            dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip'
+        });
+
+        // تفعيل أداة تحديد التاريخ
+        $('#dateRangeForm').on('submit', function(e) {
+            var dateFrom = new Date($('input[name="date_from"]').val());
+            var dateTo = new Date($('input[name="date_to"]').val());
+
+            if (dateFrom > dateTo) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ في التواريخ',
+                    text: 'تاريخ "من" يجب أن يكون أصغر من تاريخ "إلى"'
+                });
+                return false;
+            }
         });
     });
 </script>

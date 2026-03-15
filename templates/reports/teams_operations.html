@@ -3,6 +3,7 @@
 {% block title %}تقرير فرق العمل مع العمليات - مكتب عمال ميناء رأس عيسى{% endblock %}
 
 {% block page_title %}تقرير فرق العمل مع العمليات{% endblock %}
+{% block page_icon %}fas fa-users-cog{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
@@ -10,7 +11,135 @@
 <li class="breadcrumb-item active">تقرير فرق العمل مع العمليات</li>
 {% endblock %}
 
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-file-export"></i> تصدير
+    </button>
+    <ul class="dropdown-menu">
+        <li>
+            <form action="{{ url_for('generate_report') }}" method="POST" style="display: inline;">
+                <input type="hidden" name="report_type" value="teams">
+                <input type="hidden" name="date_from" value="{{ date_from.strftime('%Y-%m-%d') }}">
+                <input type="hidden" name="date_to" value="{{ date_to.strftime('%Y-%m-%d') }}">
+                <input type="hidden" name="format" value="excel">
+                <button type="submit" class="dropdown-item">
+                    <i class="fas fa-file-excel text-success"></i> تصدير Excel
+                </button>
+            </form>
+        </li>
+        <li>
+            <form action="{{ url_for('generate_report') }}" method="POST" style="display: inline;">
+                <input type="hidden" name="report_type" value="teams">
+                <input type="hidden" name="date_from" value="{{ date_from.strftime('%Y-%m-%d') }}">
+                <input type="hidden" name="date_to" value="{{ date_to.strftime('%Y-%m-%d') }}">
+                <input type="hidden" name="format" value="pdf">
+                <button type="submit" class="dropdown-item">
+                    <i class="fas fa-file-pdf text-danger"></i> تصدير PDF
+                </button>
+            </form>
+        </li>
+    </ul>
+    <button class="btn btn-secondary btn-sm" onclick="window.print()">
+        <i class="fas fa-print"></i> طباعة
+    </button>
+</div>
+{% endblock %}
+
 {% block content %}
+<!-- نموذج تحديد الفترة الزمنية -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white py-2">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    تحديد الفترة الزمنية
+                </h5>
+            </div>
+            <div class="card-body py-3">
+                <form method="GET" action="{{ url_for('teams_operations_report') }}" id="dateRangeForm" class="row align-items-end">
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label fw-bold small">من تاريخ</label>
+                        <input type="date" class="form-control" name="date_from" value="{{ date_from.strftime('%Y-%m-%d') if date_from else '' }}" required>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label fw-bold small">إلى تاريخ</label>
+                        <input type="date" class="form-control" name="date_to" value="{{ date_to.strftime('%Y-%m-%d') if date_to else '' }}" required>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-2"></i> عرض البيانات
+                        </button>
+                    </div>
+                </form>
+
+                <!-- أزرار سريعة للفترات الزمنية -->
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('today')">
+                                <i class="fas fa-sun"></i> اليوم
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('yesterday')">
+                                <i class="fas fa-calendar-day"></i> أمس
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('week')">
+                                <i class="fas fa-calendar-week"></i> آخر 7 أيام
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month')">
+                                <i class="fas fa-calendar-alt"></i> آخر 30 يوم
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month-current')">
+                                <i class="fas fa-calendar-check"></i> هذا الشهر
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month-last')">
+                                <i class="fas fa-calendar-minus"></i> الشهر الماضي
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('year')">
+                                <i class="fas fa-calendar"></i> آخر سنة
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- معلومات التقرير -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-light border-0">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <i class="fas fa-calendar-alt fa-2x text-primary float-end me-3"></i>
+                        <h6 class="mb-1">الفترة</h6>
+                        <p class="h5 mb-0">
+                            {% if date_from and date_to %}
+                                {{ date_from.strftime('%Y-%m-%d') }} <i class="fas fa-arrow-left mx-2"></i> {{ date_to.strftime('%Y-%m-%d') }}
+                            {% else %}
+                                جميع الفترات
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <i class="fas fa-users fa-2x text-success float-end me-3"></i>
+                        <h6 class="mb-1">إجمالي الفرق</h6>
+                        <p class="h5 mb-0">{{ report_data|length }} فريق</p>
+                    </div>
+                    <div class="col-md-4">
+                        <i class="fas fa-clock fa-2x text-info float-end me-3"></i>
+                        <h6 class="mb-1">تاريخ التقرير</h6>
+                        <p class="h5 mb-0">{{ now().strftime('%Y-%m-%d %H:%M') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- إحصائيات سريعة -->
 <div class="row mb-4">
     <div class="col-md-3">
@@ -18,20 +147,23 @@
             <i class="fas fa-users stat-icon"></i>
             <div class="stat-title">إجمالي الفرق</div>
             <div class="stat-value">{{ report_data|length }}</div>
+            <div class="stat-desc">فريق</div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="stat-card">
             <i class="fas fa-tasks stat-icon"></i>
-            <div class="stat-title">إجمالي العمليات (الفريدة)</div>
+            <div class="stat-title">إجمالي العمليات</div>
             <div class="stat-value">{{ unique_operations }}</div>
+            <div class="stat-desc">عملية فريدة</div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="stat-card">
             <i class="fas fa-clock stat-icon"></i>
-            <div class="stat-title">إجمالي ساعات العمل (الفريدة)</div>
+            <div class="stat-title">إجمالي ساعات العمل</div>
             <div class="stat-value">{{ "%.2f"|format(unique_hours) }}</div>
+            <div class="stat-desc">ساعة</div>
         </div>
     </div>
     <div class="col-md-3">
@@ -39,6 +171,90 @@
             <i class="fas fa-chart-line stat-icon"></i>
             <div class="stat-title">متوسط العمليات لكل فريق</div>
             <div class="stat-value">{{ "%.1f"|format(report_data|sum(attribute='total_operations') / report_data|length if report_data else 0) }}</div>
+            <div class="stat-desc">عملية/فريق</div>
+        </div>
+    </div>
+</div>
+
+<!-- الرسوم البيانية -->
+<div class="row mb-4">
+    <!-- رسم بياني دائري لتوزيع العمليات على الفرق -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-chart-pie me-2"></i>
+                توزيع العمليات على الفرق
+            </div>
+            <div class="card-body">
+                <canvas id="teamsChart" style="max-height: 300px;"></canvas>
+                <div class="table-responsive mt-3">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>الفرقة</th>
+                                <th>عدد العمليات</th>
+                                <th>النسبة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in report_data %}
+                            <tr>
+                                <td><strong>{{ item.team.name }}</strong></td>
+                                <td class="text-center">{{ item.total_operations }}</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-success" role="progressbar"
+                                             style="width: {{ (item.total_operations / unique_operations * 100)|round if unique_operations > 0 else 0 }}%;">
+                                            {{ (item.total_operations / unique_operations * 100)|round if unique_operations > 0 else 0 }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- رسم بياني شريطي لساعات العمل -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-chart-bar me-2"></i>
+                إجمالي ساعات العمل لكل فريق
+            </div>
+            <div class="card-body">
+                <canvas id="hoursChart" style="max-height: 300px;"></canvas>
+                <div class="table-responsive mt-3">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>الفرقة</th>
+                                <th>ساعات العمل</th>
+                                <th>النسبة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in report_data %}
+                            <tr>
+                                <td><strong>{{ item.team.name }}</strong></td>
+                                <td class="text-center">{{ "%.2f"|format(item.total_hours) }} ساعة</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-info" role="progressbar"
+                                             style="width: {{ (item.total_hours / unique_hours * 100)|round if unique_hours > 0 else 0 }}%;">
+                                            {{ (item.total_hours / unique_hours * 100)|round if unique_hours > 0 else 0 }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -53,8 +269,8 @@
     </div>
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-hover" id="teamsSummaryTable">
-                <thead>
+            <table class="table table-hover table-bordered" id="teamsSummaryTable">
+                <thead class="table-primary">
                     <tr>
                         <th>#</th>
                         <th><i class="fas fa-users"></i> اسم الفرقة</th>
@@ -65,7 +281,7 @@
                         <th><i class="fas fa-hourglass-half"></i> إجمالي الساعات</th>
                         <th><i class="fas fa-chart-bar"></i> متوسط المدة</th>
                         <th><i class="fas fa-info-circle"></i> التفاصيل</th>
-                        <th><i class="fas fa-print"></i> تصدير</th>
+                        <th><i class="fas fa-print"></i> تصريح</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -78,11 +294,23 @@
                                 <span class="badge bg-danger">غير نشطة</span>
                             {% endif %}
                         </td>
-                        <td>{{ item.team.team_type }}</td>
+                        <td>
+                            <span class="badge {% if item.team.team_type == 'loading' %}bg-success
+                                          {% elif item.team.team_type == 'unloading' %}bg-warning text-dark
+                                          {% elif item.team.team_type == 'maintenance' %}bg-info
+                                          {% elif item.team.team_type == 'security' %}bg-danger
+                                          {% else %}bg-secondary{% endif %}">
+                                {% if item.team.team_type == 'loading' %}تحميل
+                                {% elif item.team.team_type == 'unloading' %}تفريغ
+                                {% elif item.team.team_type == 'maintenance' %}صيانة
+                                {% elif item.team.team_type == 'security' %}أمن
+                                {% else %}{{ item.team.team_type }}{% endif %}
+                            </span>
+                        </td>
                         <td>
                             {% if item.team.leader %}
                                 <span title="هاتف: {{ item.team.leader.phone }}">
-                                    {{ item.team.leader.name }}
+                                    <i class="fas fa-crown text-warning"></i> {{ item.team.leader.name }}
                                 </span>
                             {% else %}
                                 <span class="text-muted">—</span>
@@ -106,10 +334,10 @@
                             </button>
                         </td>
                         <td>
-    <a href="{{ url_for('team_pass_page', team_id=item.team.id) }}" target="_blank" class="btn btn-sm btn-success">
-        <i class="fas fa-print"></i> تصريح
-    </a>
-</td>
+                            <a href="{{ url_for('team_pass_page', team_id=item.team.id) }}" target="_blank" class="btn btn-sm btn-success">
+                                <i class="fas fa-print"></i>
+                            </a>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -237,33 +465,6 @@
     </div>
 </div>
 
-<!-- Modal for Team Pass -->
-<div class="modal fade" id="teamPassModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-id-card me-2"></i>
-                    تصريح دخول الفرقة - الرصيف
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="teamPassContent">
-                <!-- سيتم تعبئتها عبر JavaScript -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" onclick="window.print()">
-                    <i class="fas fa-print me-2"></i> طباعة
-                </button>
-                <button type="button" class="btn btn-success" onclick="exportToPDF()">
-                    <i class="fas fa-file-pdf me-2"></i> تصدير PDF
-                </button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- توضيح طريقة الحساب -->
 <div class="row mt-4">
     <div class="col-12">
@@ -289,7 +490,62 @@
                 url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
             },
             pageLength: 25,
-            order: [[4, 'desc']]
+            order: [[4, 'desc']],
+            responsive: true
+        });
+
+        // رسم بياني لتوزيع العمليات على الفرق
+        var ctx1 = document.getElementById('teamsChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'pie',
+            data: {
+                labels: [{% for item in report_data %}'{{ item.team.name }}',{% endfor %}],
+                datasets: [{
+                    data: [{% for item in report_data %}{{ item.total_operations }},{% endfor %}],
+                    backgroundColor: [
+                        '#667eea', '#28a745', '#ffc107', '#17a2b8', '#dc3545',
+                        '#6f42c1', '#fd7e14', '#20c997', '#e83e8c', '#6c757d'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    title: { display: true, text: 'توزيع العمليات على الفرق' }
+                }
+            }
+        });
+
+        // رسم بياني لساعات العمل
+        var ctx2 = document.getElementById('hoursChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: [{% for item in report_data %}'{{ item.team.name }}',{% endfor %}],
+                datasets: [{
+                    label: 'ساعات العمل',
+                    data: [{% for item in report_data %}{{ item.total_hours|round(1) }},{% endfor %}],
+                    backgroundColor: 'rgba(23, 162, 184, 0.7)',
+                    borderColor: '#17a2b8',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'ساعات العمل' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'إجمالي ساعات العمل لكل فريق' }
+                }
+            }
         });
     });
 
@@ -380,188 +636,51 @@
             });
     }
 
-    function printTeamPass(teamId) {
-        // إعادة تعيين محتوى المودال
-        document.getElementById('teamPassContent').innerHTML = '<div style="text-align: center; padding: 20px;">جاري تحميل البيانات...</div>';
+    // دالة تعيين نطاق التاريخ
+    function setDateRange(range) {
+        var today = new Date();
+        var dateFrom, dateTo;
 
-        // إعادة تعيين أنماط المودال
-        const modalBody = document.querySelector('#teamPassModal .modal-body');
-        if (modalBody) {
-            modalBody.style.maxHeight = 'none';
-            modalBody.style.overflowY = 'visible';
-            modalBody.style.padding = '10px';
+        switch(range) {
+            case 'today':
+                dateFrom = new Date(today);
+                dateTo = new Date(today);
+                break;
+            case 'yesterday':
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 1);
+                dateTo = new Date(dateFrom);
+                break;
+            case 'week':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 7);
+                break;
+            case 'month':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 30);
+                break;
+            case 'month-current':
+                dateFrom = new Date(today.getFullYear(), today.getMonth(), 1);
+                dateTo = new Date(today);
+                break;
+            case 'month-last':
+                dateFrom = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                dateTo = new Date(today.getFullYear(), today.getMonth(), 0);
+                break;
+            case 'year':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setFullYear(dateFrom.getFullYear() - 1);
+                break;
         }
 
-        fetch(`/api/teams/${teamId}`)
-            .then(response => response.json())
-            .then(data => {
-                fetch(`/api/teams/${teamId}/current-operations`)
-                    .then(res => res.json())
-                    .then(ops => {
-                        const now = new Date();
-                        const dateStr = now.toLocaleDateString('ar-EG').replace(/\//g, '-');
+        $('input[name="date_from"]').val(dateFrom.toISOString().split('T')[0]);
+        $('input[name="date_to"]').val(dateTo.toISOString().split('T')[0]);
 
-                        let shipInfo = '';
-                        if (ops.length > 0) {
-                            const firstOp = ops[0];
-                            shipInfo = `
-                                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px; border-radius: 3px; margin-bottom: 4px;">
-                                    <div style="display: flex; flex-wrap: wrap; gap: 5px; font-size: 10px;">
-                                        <span><strong>🚢</strong> ${firstOp.ship_name}</span>
-                                        <span><strong>⚓</strong> ${firstOp.berth_number || '—'}</span>
-                                        <span><strong>🔧</strong> ${firstOp.operation_type}</span>
-                                        <span><strong>📦</strong> ${firstOp.cargo_type || '—'}</span>
-                                        <span><strong>⚖️</strong> ${firstOp.cargo_quantity || '—'} طن</span>
-                                        <span><strong>📅</strong> ${firstOp.start_time.split(' ')[0]}</span>
-                                    </div>
-                                </div>
-                            `;
-                        }
-
-                        let membersHtml = '';
-                        data.members.forEach((member, index) => {
-                            const isLeader = member.is_leader;
-                            membersHtml += `
-                                <tr style="border-bottom: 1px solid #eee;">
-                                    <td style="padding: 2px 1px; text-align: center; font-size: 9px;">${index + 1}</td>
-                                    <td style="padding: 2px 1px; font-size: 10px; font-weight: ${isLeader ? 'bold' : 'normal'};">${member.name}</td>
-                                    <td style="padding: 2px 1px; font-size: 9px;">${member.profession}</td>
-                                    <td style="padding: 2px 1px; font-size: 9px; direction: ltr; text-align: left;">${member.phone || '—'}</td>
-                                    <td style="padding: 2px 1px; font-size: 10px; text-align: center;">${isLeader ? '👑' : ''}</td>
-                                </tr>
-                            `;
-                        });
-
-                        const passContent = `
-                            <div style="font-family: 'Cairo', sans-serif; max-width: 800px; margin: 0 auto; padding: 3px; background: white; font-size: 10px;">
-                                <!-- رأس التصريح -->
-                                <div style="text-align: center; margin-bottom: 2px; border-bottom: 1px solid #28a745; padding-bottom: 2px;">
-                                    <h1 style="color: #28a745; margin: 0; font-size: 14px;">ميناء رأس عيسى</h1>
-                                    <h2 style="color: #333; margin: 1px 0; font-size: 11px;">تصريح دخول الفرق - الرصيف</h2>
-                                    <div style="background-color: #f0f0f0; padding: 2px; border-radius: 3px;">
-                                        <span style="font-weight: bold; font-size: 8px;">رقم:</span>
-                                        <span style="color: #28a745; font-size: 8px; margin-right: 2px;">PASS-${teamId}</span>
-                                        <span style="margin: 0 2px; font-size: 7px;">|</span>
-                                        <span style="font-size: 7px;">${dateStr}</span>
-                                    </div>
-                                </div>
-
-                                ${shipInfo}
-
-                                <!-- معلومات القائد والفرقة -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-bottom: 3px;">
-                                    <div style="background: #fff3cd; padding: 2px; border-radius: 3px; border-right: 2px solid #ffc107;">
-                                        <div style="display: flex; align-items: center; gap: 2px;">
-                                            <span style="font-size: 8px;">👑</span>
-                                            <span style="font-size: 9px; font-weight: bold; overflow: hidden; white-space: nowrap;">${data.leader ? data.leader.name : '—'}</span>
-                                        </div>
-                                        <div style="display: flex; align-items: center; gap: 2px;">
-                                            <span style="font-size: 7px;">📞</span>
-                                            <span style="font-size: 7px; direction: ltr;">${data.leader ? data.leader.phone : '—'}</span>
-                                        </div>
-                                    </div>
-                                    <div style="background: #d4edda; padding: 2px; border-radius: 3px; border-right: 2px solid #28a745;">
-                                        <div style="display: flex; align-items: center; gap: 2px;">
-                                            <span style="font-size: 8px;">ℹ️</span>
-                                            <span style="font-size: 9px; font-weight: bold; overflow: hidden; white-space: nowrap;">${data.name}</span>
-                                        </div>
-                                        <div style="display: flex; align-items: center; gap: 2px;">
-                                            <span style="font-size: 7px;">${data.team_type}</span>
-                                            <span style="font-size: 7px;">|</span>
-                                            <span style="font-size: 7px;">${data.members.length} عضو</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- قائمة الأعضاء -->
-                                <div style="margin-bottom: 3px;">
-                                    <div style="background: #007bff; color: white; padding: 2px 4px; border-radius: 3px; font-size: 10px;">
-                                        <span>قائمة الأعضاء (${data.members.length})</span>
-                                    </div>
-                                    <div style="border: 1px solid #ddd; border-radius: 3px; overflow-x: auto;">
-                                        <table style="width: 100%; border-collapse: collapse;">
-                                            <thead style="background: #f8f9fa;">
-                                                <tr>
-                                                    <th style="padding: 2px; text-align: center; width: 20px; font-size: 8px;">#</th>
-                                                    <th style="padding: 2px; text-align: right; font-size: 8px;">الاسم</th>
-                                                    <th style="padding: 2px; text-align: right; font-size: 8px;">الوظيفة</th>
-                                                    <th style="padding: 2px; text-align: left; font-size: 8px;">الهاتف</th>
-                                                    <th style="padding: 2px; text-align: center; width: 15px;"></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                ${membersHtml}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-
-                                <!-- الفقرة -->
-                                <div style="background: #f8f9fa; padding: 3px; border-radius: 3px; margin-bottom: 3px; border: 1px solid #ddd;">
-                                    <p style="margin: 0; font-size: 8px; line-height: 1.2;">
-                                        <strong>الأخ/ مدير امن الميناء المحترم</strong><br>
-                                        اليكم كشف أسماء العمال أعلاه للتوجيه بالسماح لهم بالدخول بعد اتخاذ الإجراءات الأمنية اللازمة،، وشكراً
-                                    </p>
-                                </div>
-
-                                <!-- التوقيعات -->
-                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 3px; padding-top: 3px; border-top: 1px solid #333;">
-                                    <div style="text-align: center;">
-                                        <div style="border-bottom: 1px solid #333; height: 15px; margin-bottom: 1px;"></div>
-                                        <p style="margin: 0; font-size: 7px; font-weight: bold;">مكتب عمال</p>
-                                    </div>
-                                    <div style="text-align: center;">
-                                        <div style="border-bottom: 1px solid #333; height: 15px; margin-bottom: 1px;"></div>
-                                        <p style="margin: 0; font-size: 7px; font-weight: bold;">مدير الأرصفة</p>
-                                    </div>
-                                    <div style="text-align: center;">
-                                        <div style="border-bottom: 1px solid #333; height: 15px; margin-bottom: 1px;"></div>
-                                        <p style="margin: 0; font-size: 7px; font-weight: bold;">مدير الميناء</p>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-
-                        document.getElementById('teamPassContent').innerHTML = passContent;
-
-                        const modal = new bootstrap.Modal(document.getElementById('teamPassModal'));
-                        modal.show();
-
-                        setTimeout(() => {
-                            const modalBody = document.querySelector('#teamPassModal .modal-body');
-                            if (modalBody) {
-                                modalBody.style.maxHeight = 'none';
-                                modalBody.style.overflowY = 'visible';
-                                modalBody.style.padding = '5px';
-                            }
-                        }, 100);
-                    });
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: 'حدث خطأ في تحميل بيانات التصريح'
-                });
-            });
-    }
-
-    function exportToPDF() {
-        const element = document.getElementById('teamPassContent');
-        const opt = {
-            margin: [0.3, 0.3, 0.3, 0.3],
-            filename: 'تصريح_دخول_الفرقة.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-        };
-
-        if (window.html2pdf) {
-            html2pdf().set(opt).from(element).save();
-        } else {
-            window.print();
-        }
+        // إرسال النموذج تلقائياً
+        $('#dateRangeForm').submit();
     }
 </script>
 
@@ -574,6 +693,7 @@
         position: relative;
         overflow: hidden;
         transition: transform 0.3s;
+        height: 100%;
     }
 
     .stat-card:hover {
@@ -583,22 +703,32 @@
 
     .stat-icon {
         position: absolute;
-        left: 20px;
-        top: 20px;
+        left: 15px;
+        top: 15px;
         font-size: 3rem;
-        opacity: 0.2;
+        opacity: 0.15;
+        color: #667eea;
     }
 
     .stat-title {
         color: #6c757d;
         font-size: 0.9rem;
         margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
     .stat-value {
         font-size: 2rem;
         font-weight: bold;
         color: #333;
+        line-height: 1.2;
+    }
+
+    .stat-desc {
+        color: #999;
+        font-size: 0.8rem;
+        margin-top: 5px;
     }
 
     .avatar-circle {
@@ -618,8 +748,28 @@
     }
 
     .badge {
-        font-size: 0.85rem;
-        padding: 0.5em 0.7em;
+        font-size: 0.8rem;
+        padding: 0.4em 0.7em;
+        margin: 2px;
+        font-weight: 500;
+    }
+
+    .progress {
+        background-color: #e9ecef;
+        border-radius: 10px;
+    }
+
+    canvas {
+        max-height: 300px;
+        width: 100% !important;
+    }
+
+    .table th {
+        white-space: nowrap;
+    }
+
+    .table td {
+        vertical-align: middle;
     }
 
     /* أنماط المودال */
@@ -634,88 +784,34 @@
         }
     }
 
-    #teamPassModal .modal-body {
-        max-height: none !important;
-        overflow-y: visible !important;
-        padding: 5px !important;
-    }
-
-    #teamPassModal .modal-content {
-        border: none;
-        border-radius: 8px;
-    }
-
-    .table-responsive {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
     .modal-open {
         overflow: auto !important;
         padding-right: 0 !important;
     }
 
+    /* للطباعة */
     @media print {
-        @page {
-            size: A4;
-            margin: 0.3cm;
+        .btn-group, .btn, .dataTables_filter, .dataTables_length, .dataTables_paginate {
+            display: none !important;
         }
-
-        body * {
-            visibility: hidden;
-        }
-
-        #teamPassModal .modal-content,
-        #teamPassModal .modal-content * {
-            visibility: visible;
-        }
-
-        #teamPassModal .modal-content {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            margin: 0;
-            padding: 0.2cm;
+        .card {
             box-shadow: none;
-            border: none;
-            background: white;
+            border: 1px solid #ddd;
         }
-
-        #teamPassModal .modal-body {
-            padding: 0 !important;
-            max-height: none !important;
-            overflow: visible !important;
+        .stat-card {
+            box-shadow: none;
+            border: 1px solid #ddd;
         }
-
+        canvas {
+            max-height: 250px;
+        }
         .modal-footer,
         .btn-close,
         .modal-header,
-        .btn,
         .navbar,
         .footer,
-        .breadcrumb,
-        .dataTables_wrapper .dt-buttons,
-        .dataTables_length,
-        .dataTables_filter,
-        .dataTables_paginate {
+        .breadcrumb {
             display: none !important;
-        }
-
-        table, tr, td, th {
-            page-break-inside: avoid;
-        }
-
-        th {
-            background-color: #f0f0f0 !important;
-            color: black !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-
-        .badge, [style*="background"] {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
         }
     }
 </style>
