@@ -111,6 +111,111 @@
         </div>
     </div>
 
+    <!-- إحصائيات إضافية من البيانات المدخلة -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    توزيع السفن حسب الشركة الملاحية
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الشركة الملاحية</th>
+                                    <th>عدد السفن</th>
+                                    <th>النسبة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set flags = {} %}
+                                {% for ship in data %}
+                                    {% if ship.flag %}
+                                        {% if ship.flag not in flags %}
+                                            {% set _ = flags.update({ship.flag: 1}) %}
+                                        {% else %}
+                                            {% set _ = flags.update({ship.flag: flags[ship.flag] + 1}) %}
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% for flag, count in flags.items()|sort(attribute='1', reverse=true) %}
+                                <tr>
+                                    <td><strong>{{ flag }}</strong></td>
+                                    <td class="text-center">{{ count }}</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-success" role="progressbar"
+                                                 style="width: {{ (count / data|length * 100)|round }}%;"
+                                                 aria-valuenow="{{ (count / data|length * 100)|round }}"
+                                                 aria-valuemin="0" aria-valuemax="100">
+                                                {{ (count / data|length * 100)|round }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    توزيع السفن حسب شهر الوصول
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الشهر</th>
+                                    <th>عدد السفن</th>
+                                    <th>النسبة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set months = {} %}
+                                {% for ship in data %}
+                                    {% if ship.arrival_date %}
+                                        {% set month_key = ship.arrival_date.strftime('%Y-%m') %}
+                                        {% if month_key not in months %}
+                                            {% set _ = months.update({month_key: {'count': 1, 'name': ship.arrival_date.strftime('%B %Y')}}) %}
+                                        {% else %}
+                                            {% set _ = months.update({month_key: {'count': months[month_key]['count'] + 1, 'name': months[month_key]['name']}}) %}
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% for month_key, month_data in months.items()|sort %}
+                                <tr>
+                                    <td><strong>{{ month_data.name }}</strong></td>
+                                    <td class="text-center">{{ month_data.count }}</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-info" role="progressbar"
+                                                 style="width: {{ (month_data.count / data|length * 100)|round }}%;"
+                                                 aria-valuenow="{{ (month_data.count / data|length * 100)|round }}"
+                                                 aria-valuemin="0" aria-valuemax="100">
+                                                {{ (month_data.count / data|length * 100)|round }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- بطاقات إضافية للأنواع -->
     <div class="row mb-4">
         <div class="col-md-4">
@@ -153,7 +258,7 @@
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
                 <i class="fas fa-list me-2"></i>
-                قائمة السفن
+                قائمة السفن - البيانات المدخلة
             </h5>
             <span class="badge bg-light text-primary">{{ data|length }} سفينة</span>
         </div>
@@ -166,12 +271,11 @@
                             <th>اسم السفينة</th>
                             <th>رقم IMO</th>
                             <th>الشركة الملاحية</th>
-                            <th>النوع</th>
+                            <th>نوع السفينة</th>
                             <th>الأبعاد (م)</th>
-                            <th>سعة الحمولة</th>
+                            <th>سعة الحمولة (طن)</th>
                             <th>تاريخ الوصول</th>
                             <th>رقم الرصيف</th>
-                            <th>الحالة</th>
                             <th>ملاحظات</th>
                         </tr>
                     </thead>
@@ -181,6 +285,9 @@
                             <td>{{ loop.index }}</td>
                             <td>
                                 <strong>{{ ship.name }}</strong>
+                                {% if ship.notes %}
+                                    <i class="fas fa-info-circle text-info ms-1" title="{{ ship.notes }}"></i>
+                                {% endif %}
                             </td>
                             <td><code>{{ ship.imo_number }}</code></td>
                             <td>{{ ship.flag or '—' }}</td>
@@ -198,19 +305,19 @@
                             <td>
                                 {% if ship.length or ship.width or ship.draft %}
                                     <small>
-                                        {% if ship.length %}ط: {{ ship.length }}{% endif %}
-                                        {% if ship.width %}× ع: {{ ship.width }}{% endif %}
-                                        {% if ship.draft %}× غ: {{ ship.draft }}{% endif %}
+                                        {% if ship.length and ship.length > 0 %}ط: {{ ship.length }}{% endif %}
+                                        {% if ship.width and ship.width > 0 %}× ع: {{ ship.width }}{% endif %}
+                                        {% if ship.draft and ship.draft > 0 %}× غ: {{ ship.draft }}{% endif %}
                                     </small>
                                 {% else %}
-                                    —
+                                    <span class="text-muted">غير محدد</span>
                                 {% endif %}
                             </td>
                             <td class="text-center">
                                 {% if ship.cargo_capacity and ship.cargo_capacity > 0 %}
-                                    <strong>{{ ship.cargo_capacity }}</strong> <small>طن</small>
+                                    <strong>{{ ship.cargo_capacity }}</strong>
                                 {% else %}
-                                    —
+                                    <span class="text-muted">—</span>
                                 {% endif %}
                             </td>
                             <td>{{ ship.arrival_date.strftime('%Y-%m-%d') if ship.arrival_date else '—' }}</td>
@@ -222,19 +329,8 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if ship.status == 'arrived' %}
-                                    <span class="badge bg-warning">واصلة</span>
-                                {% elif ship.status == 'berthed' %}
-                                    <span class="badge bg-success">راسية</span>
-                                {% elif ship.status == 'departed' %}
-                                    <span class="badge bg-secondary">مغادرة</span>
-                                {% else %}
-                                    {{ ship.status }}
-                                {% endif %}
-                            </td>
-                            <td>
                                 {% if ship.notes %}
-                                    <i class="fas fa-comment-dots text-info" title="{{ ship.notes }}"></i>
+                                    <span class="badge bg-secondary" title="{{ ship.notes }}">{{ ship.notes|truncate(15) }}</span>
                                 {% else %}
                                     —
                                 {% endif %}
@@ -242,7 +338,7 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="11" class="text-center text-muted py-4">
+                            <td colspan="10" class="text-center text-muted py-4">
                                 <i class="fas fa-ship fa-3x mb-3"></i>
                                 <p>لا توجد سفن في هذه الفترة</p>
                             </td>
@@ -254,12 +350,12 @@
         </div>
     </div>
 
-    <!-- ملخص الأرصفة -->
+    <!-- ملخص الأرصفة من البيانات المدخلة -->
     <div class="card mt-4">
         <div class="card-header bg-primary text-white">
             <h5 class="mb-0">
                 <i class="fas fa-anchor me-2"></i>
-                توزيع السفن على الأرصفة
+                توزيع السفن على الأرصفة (حسب البيانات المدخلة)
             </h5>
         </div>
         <div class="card-body">
@@ -268,27 +364,99 @@
                 {% for ship in data %}
                     {% if ship.berth_number %}
                         {% if ship.berth_number not in berths_summary %}
-                            {% set _ = berths_summary.update({ship.berth_number: 0}) %}
+                            {% set _ = berths_summary.update({ship.berth_number: {'count': 0, 'ships': []}}) %}
                         {% endif %}
-                        {% set _ = berths_summary.update({ship.berth_number: berths_summary[ship.berth_number] + 1}) %}
+                        {% set _ = berths_summary[ship.berth_number].update({'count': berths_summary[ship.berth_number].count + 1}) %}
+                        {% set _ = berths_summary[ship.berth_number].ships.append(ship.name) %}
                     {% endif %}
                 {% endfor %}
 
-                {% for berth, count in berths_summary.items()|sort %}
+                {% for berth, data in berths_summary.items()|sort %}
                 <div class="col-md-3 mb-3">
                     <div class="card bg-light">
-                        <div class="card-body text-center">
-                            <h3>{{ berth }}</h3>
-                            <p class="display-4">{{ count }}</p>
-                            <small class="text-muted">سفينة</small>
+                        <div class="card-body">
+                            <h3 class="text-center">{{ berth }}</h3>
+                            <p class="display-4 text-center">{{ data.count }}</p>
+                            <small class="text-muted d-block text-center">سفينة</small>
+                            <hr>
+                            <small>
+                                <strong>السفن:</strong>
+                                <ul class="mt-2 mb-0">
+                                    {% for ship_name in data.ships[:3] %}
+                                    <li>{{ ship_name }}</li>
+                                    {% endfor %}
+                                    {% if data.ships|length > 3 %}
+                                    <li class="text-muted">...و {{ data.ships|length - 3 }} أخرى</li>
+                                    {% endif %}
+                                </ul>
+                            </small>
                         </div>
                     </div>
                 </div>
                 {% else %}
                 <div class="col-12 text-center text-muted">
+                    <i class="fas fa-anchor fa-3x mb-3"></i>
                     <p>لا توجد سفن على الأرصفة</p>
                 </div>
                 {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ملخص البضائع -->
+    <div class="card mt-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-boxes me-2"></i>
+                ملخص البضائع (من الملاحظات)
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-success">
+                        <tr>
+                            <th>نوع البضاعة</th>
+                            <th>عدد السفن</th>
+                            <th>السفن</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set cargo_types = {} %}
+                        {% for ship in data %}
+                            {% if ship.notes %}
+                                {% set note_lower = ship.notes|lower %}
+                                {% if note_lower not in cargo_types %}
+                                    {% set _ = cargo_types.update({note_lower: {'count': 1, 'ships': [ship.name], 'original': ship.notes}}) %}
+                                {% else %}
+                                    {% set _ = cargo_types[note_lower].update({'count': cargo_types[note_lower].count + 1}) %}
+                                    {% set _ = cargo_types[note_lower].ships.append(ship.name) %}
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {% for cargo_key, cargo_data in cargo_types.items()|sort(attribute='1.count', reverse=true) %}
+                        <tr>
+                            <td><strong>{{ cargo_data.original }}</strong></td>
+                            <td class="text-center">{{ cargo_data.count }}</td>
+                            <td>
+                                <small>
+                                    {% for ship_name in cargo_data.ships[:5] %}
+                                        {{ ship_name }}{% if not loop.last %}, {% endif %}
+                                    {% endfor %}
+                                    {% if cargo_data.ships|length > 5 %}
+                                        ... و {{ cargo_data.ships|length - 5 }} أخرى
+                                    {% endif %}
+                                </small>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">لا توجد بيانات بضائع</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -369,6 +537,11 @@
 
     .table td {
         vertical-align: middle;
+    }
+
+    .progress {
+        background-color: #e9ecef;
+        border-radius: 10px;
     }
 
     /* للطباعة */

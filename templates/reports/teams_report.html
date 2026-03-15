@@ -1,0 +1,356 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير فرق العمل - مكتب عمال ميناء رأس عيسى{% endblock %}
+
+{% block page_title %}تقرير فرق العمل{% endblock %}
+{% block page_icon %}fas fa-people-arrows{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('reports_index') }}">التقارير</a></li>
+<li class="breadcrumb-item active">تقرير فرق العمل</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-file-export"></i> تصدير
+    </button>
+    <ul class="dropdown-menu">
+        <li>
+            <form action="{{ url_for('generate_report') }}" method="POST" style="display: inline;">
+                <input type="hidden" name="report_type" value="teams">
+                <input type="hidden" name="date_from" value="{{ date_from.strftime('%Y-%m-%d') }}">
+                <input type="hidden" name="date_to" value="{{ date_to.strftime('%Y-%m-%d') }}">
+                <input type="hidden" name="format" value="excel">
+                <button type="submit" class="dropdown-item">
+                    <i class="fas fa-file-excel text-success"></i> تصدير Excel
+                </button>
+            </form>
+        </li>
+        <li>
+            <form action="{{ url_for('generate_report') }}" method="POST" style="display: inline;">
+                <input type="hidden" name="report_type" value="teams">
+                <input type="hidden" name="date_from" value="{{ date_from.strftime('%Y-%m-%d') }}">
+                <input type="hidden" name="date_to" value="{{ date_to.strftime('%Y-%m-%d') }}">
+                <input type="hidden" name="format" value="pdf">
+                <button type="submit" class="dropdown-item">
+                    <i class="fas fa-file-pdf text-danger"></i> تصدير PDF
+                </button>
+            </form>
+        </li>
+    </ul>
+    <button class="btn btn-secondary btn-sm" onclick="window.print()">
+        <i class="fas fa-print"></i> طباعة
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- معلومات التقرير -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-light border-0">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <i class="fas fa-calendar-alt fa-2x text-primary float-end me-3"></i>
+                        <h6 class="mb-1">الفترة</h6>
+                        <p class="h5 mb-0">{{ date_from.strftime('%Y-%m-%d') }} <i class="fas fa-arrow-left mx-2"></i> {{ date_to.strftime('%Y-%m-%d') }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <i class="fas fa-users fa-2x text-success float-end me-3"></i>
+                        <h6 class="mb-1">إجمالي الفرق</h6>
+                        <p class="h5 mb-0">{{ teams_data|length }} فريق</p>
+                    </div>
+                    <div class="col-md-4">
+                        <i class="fas fa-clock fa-2x text-info float-end me-3"></i>
+                        <h6 class="mb-1">تاريخ التقرير</h6>
+                        <p class="h5 mb-0">{{ now().strftime('%Y-%m-%d %H:%M') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- إحصائيات سريعة -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-users stat-icon"></i>
+            <div class="stat-title">إجمالي الفرق</div>
+            <div class="stat-value">{{ teams_data|length }}</div>
+            <div class="stat-desc">فريق</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-user-tie stat-icon"></i>
+            <div class="stat-title">إجمالي الأعضاء</div>
+            <div class="stat-value">
+                {% set total_members = 0 %}
+                {% for team in teams_data %}
+                    {% set total_members = total_members + team.members_count %}
+                {% endfor %}
+                {{ total_members }}
+            </div>
+            <div class="stat-desc">موظف</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-crown stat-icon"></i>
+            <div class="stat-title">عدد القادة</div>
+            <div class="stat-value">
+                {% set total_leaders = 0 %}
+                {% for team in teams_data %}
+                    {% if team.leader %}
+                        {% set total_leaders = total_leaders + 1 %}
+                    {% endif %}
+                {% endfor %}
+                {{ total_leaders }}
+            </div>
+            <div class="stat-desc">قائد</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-check-circle stat-icon"></i>
+            <div class="stat-title">فرق نشطة</div>
+            <div class="stat-value">
+                {% set active_teams = 0 %}
+                {% for team in teams_data %}
+                    {% if team.team.is_active %}
+                        {% set active_teams = active_teams + 1 %}
+                    {% endif %}
+                {% endfor %}
+                {{ active_teams }}
+            </div>
+            <div class="stat-desc">فريق</div>
+        </div>
+    </div>
+</div>
+
+<!-- جدول الفرق -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>
+            قائمة فرق العمل
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered" id="teamsTable">
+                <thead class="table-primary">
+                    <tr>
+                        <th>#</th>
+                        <th>اسم الفرقة</th>
+                        <th>نوع الفرقة</th>
+                        <th>عدد الأعضاء</th>
+                        <th>القائد</th>
+                        <th>الحالة</th>
+                        <th>تاريخ الإنشاء</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team_data in teams_data %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><strong>{{ team_data.team.name }}</strong></td>
+                        <td>
+                            <span class="badge {% if team_data.team.team_type == 'loading' %}bg-success
+                                          {% elif team_data.team.team_type == 'unloading' %}bg-warning text-dark
+                                          {% elif team_data.team.team_type == 'maintenance' %}bg-info
+                                          {% elif team_data.team.team_type == 'security' %}bg-danger
+                                          {% else %}bg-secondary{% endif %}">
+                                {% if team_data.team.team_type == 'loading' %}تحميل
+                                {% elif team_data.team.team_type == 'unloading' %}تفريغ
+                                {% elif team_data.team.team_type == 'maintenance' %}صيانة
+                                {% elif team_data.team.team_type == 'security' %}أمن
+                                {% else %}{{ team_data.team.team_type }}{% endif %}
+                            </span>
+                        </td>
+                        <td class="text-center"><strong>{{ team_data.members_count }}</strong></td>
+                        <td>
+                            {% if team_data.leader %}
+                                <i class="fas fa-crown text-warning"></i> {{ team_data.leader.name }}
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if team_data.team.is_active %}
+                                <span class="badge bg-success">نشطة</span>
+                            {% else %}
+                                <span class="badge bg-secondary">غير نشطة</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ team_data.team.created_at.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- تفاصيل أعضاء الفرق -->
+<div class="card">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-user-friends me-2"></i>
+            تفاصيل أعضاء الفرق
+        </h5>
+    </div>
+    <div class="card-body">
+        {% for team_data in teams_data %}
+        <div class="mb-4">
+            <h6 class="border-bottom pb-2 mb-3">
+                <span class="badge bg-primary">{{ team_data.team.name }}</span>
+                <small class="text-muted me-3">({{ team_data.members_count }} عضو)</small>
+            </h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>الاسم</th>
+                            <th>المهنة</th>
+                            <th>رقم الهاتف</th>
+                            <th>المنصب</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for member in team_data.members %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ member.name }}</td>
+                            <td>{{ member.profession }}</td>
+                            <td>{{ member.phone or '—' }}</td>
+                            <td>
+                                {% if member.id == team_data.team.leader_id %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-crown"></i> قائد الفرقة
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">عضو</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ملخص الفرق -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>ملخص:</strong>
+            <ul class="mb-0 mt-2">
+                <li>إجمالي عدد الفرق: <strong>{{ teams_data|length }}</strong></li>
+                <li>إجمالي عدد الأعضاء: <strong>{{ total_members }}</strong></li>
+                <li>عدد القادة: <strong>{{ total_leaders }}</strong></li>
+                <li>الفرق النشطة: <strong>{{ active_teams }}</strong></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('#teamsTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
+            },
+            pageLength: 25,
+            order: [[0, 'asc']],
+            responsive: true
+        });
+    });
+</script>
+
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s;
+        height: 100%;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 20px rgba(102,126,234,0.3);
+    }
+
+    .stat-icon {
+        position: absolute;
+        left: 15px;
+        top: 15px;
+        font-size: 3.5rem;
+        opacity: 0.15;
+        color: #667eea;
+    }
+
+    .stat-title {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+        font-size: 2.2rem;
+        font-weight: bold;
+        color: #333;
+        line-height: 1.2;
+    }
+
+    .stat-desc {
+        color: #999;
+        font-size: 0.8rem;
+        margin-top: 5px;
+    }
+
+    .badge {
+        font-size: 0.85rem;
+        padding: 0.5em 0.7em;
+        margin: 2px;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    .border-bottom {
+        border-bottom: 2px solid #667eea;
+    }
+
+    /* للطباعة */
+    @media print {
+        .btn-group, .btn, .dataTables_filter, .dataTables_length, .dataTables_paginate {
+            display: none !important;
+        }
+        .card {
+            box-shadow: none;
+            border: 1px solid #ddd;
+        }
+        .stat-card {
+            box-shadow: none;
+            border: 1px solid #ddd;
+        }
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,513 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير الموظفين - مكتب عمال ميناء رأس عيسى{% endblock %}
+
+{% block page_title %}تقرير الموظفين{% endblock %}
+{% block page_icon %}fas fa-users{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('reports_index') }}">التقارير</a></li>
+<li class="breadcrumb-item active">تقرير الموظفين</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-file-export"></i> تصدير
+    </button>
+    <ul class="dropdown-menu">
+        <li>
+            <form action="{{ url_for('generate_report') }}" method="POST" style="display: inline;">
+                <input type="hidden" name="report_type" value="employees">
+                <input type="hidden" name="date_from" value="{{ date_from.strftime('%Y-%m-%d') }}">
+                <input type="hidden" name="date_to" value="{{ date_to.strftime('%Y-%m-%d') }}">
+                <input type="hidden" name="format" value="excel">
+                <button type="submit" class="dropdown-item">
+                    <i class="fas fa-file-excel text-success"></i> تصدير Excel
+                </button>
+            </form>
+        </li>
+        <li>
+            <form action="{{ url_for('generate_report') }}" method="POST" style="display: inline;">
+                <input type="hidden" name="report_type" value="employees">
+                <input type="hidden" name="date_from" value="{{ date_from.strftime('%Y-%m-%d') }}">
+                <input type="hidden" name="date_to" value="{{ date_to.strftime('%Y-%m-%d') }}">
+                <input type="hidden" name="format" value="pdf">
+                <button type="submit" class="dropdown-item">
+                    <i class="fas fa-file-pdf text-danger"></i> تصدير PDF
+                </button>
+            </form>
+        </li>
+    </ul>
+    <button class="btn btn-secondary btn-sm" onclick="window.print()">
+        <i class="fas fa-print"></i> طباعة
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- معلومات التقرير -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-light border-0">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <i class="fas fa-calendar-alt fa-2x text-primary float-end me-3"></i>
+                        <h6 class="mb-1">الفترة</h6>
+                        <p class="h5 mb-0">{{ date_from.strftime('%Y-%m-%d') }} <i class="fas fa-arrow-left mx-2"></i> {{ date_to.strftime('%Y-%m-%d') }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <i class="fas fa-users fa-2x text-success float-end me-3"></i>
+                        <h6 class="mb-1">إجمالي الموظفين</h6>
+                        <p class="h5 mb-0">{{ data|length }} موظف</p>
+                    </div>
+                    <div class="col-md-4">
+                        <i class="fas fa-clock fa-2x text-info float-end me-3"></i>
+                        <h6 class="mb-1">تاريخ التقرير</h6>
+                        <p class="h5 mb-0">{{ now().strftime('%Y-%m-%d %H:%M') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- إحصائيات سريعة -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-users stat-icon"></i>
+            <div class="stat-title">إجمالي الموظفين</div>
+            <div class="stat-value">{{ data|length }}</div>
+            <div class="stat-desc">موظف</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-user-tie stat-icon"></i>
+            <div class="stat-title">قادة الفرق</div>
+            <div class="stat-value">{{ data|selectattr('profession', 'equalto', 'رئيس فرقة')|list|length }}</div>
+            <div class="stat-desc">قائد</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-people-arrows stat-icon"></i>
+            <div class="stat-title">موظفون في فرق</div>
+            <div class="stat-value">{{ data|selectattr('team_id', 'ne', none)|list|length }}</div>
+            <div class="stat-desc">موظف</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-check-circle stat-icon"></i>
+            <div class="stat-title">موظفون نشطون</div>
+            <div class="stat-value">{{ data|selectattr('is_active', 'equalto', true)|list|length }}</div>
+            <div class="stat-desc">موظف</div>
+        </div>
+    </div>
+</div>
+
+<!-- توزيع الموظفين حسب المهنة -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    توزيع الموظفين حسب المهنة
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>المهنة</th>
+                                <th>العدد</th>
+                                <th>النسبة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set professions = {} %}
+                            {% for emp in data %}
+                                {% if emp.profession not in professions %}
+                                    {% set _ = professions.update({emp.profession: 1}) %}
+                                {% else %}
+                                    {% set _ = professions.update({emp.profession: professions[emp.profession] + 1}) %}
+                                {% endif %}
+                            {% endfor %}
+
+                            {% for prof, count in professions.items()|sort(attribute='1', reverse=true) %}
+                            <tr>
+                                <td>{{ prof }}</td>
+                                <td class="text-center">{{ count }}</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-success" role="progressbar"
+                                             style="width: {{ (count / data|length * 100)|round }}%;"
+                                             aria-valuenow="{{ (count / data|length * 100)|round }}"
+                                             aria-valuemin="0" aria-valuemax="100">
+                                            {{ (count / data|length * 100)|round }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- توزيع الموظفين حسب مكان الميلاد -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-map-marker-alt me-2"></i>
+                    توزيع الموظفين حسب مكان الميلاد
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>مكان الميلاد</th>
+                                <th>العدد</th>
+                                <th>النسبة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set birth_places = {} %}
+                            {% for emp in data %}
+                                {% if emp.birth_place not in birth_places %}
+                                    {% set _ = birth_places.update({emp.birth_place: 1}) %}
+                                {% else %}
+                                    {% set _ = birth_places.update({emp.birth_place: birth_places[emp.birth_place] + 1}) %}
+                                {% endif %}
+                            {% endfor %}
+
+                            {% for place, count in birth_places.items()|sort(attribute='1', reverse=true) %}
+                            <tr>
+                                <td>{{ place }}</td>
+                                <td class="text-center">{{ count }}</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-warning" role="progressbar"
+                                             style="width: {{ (count / data|length * 100)|round }}%;"
+                                             aria-valuenow="{{ (count / data|length * 100)|round }}"
+                                             aria-valuemin="0" aria-valuemax="100">
+                                            {{ (count / data|length * 100)|round }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- جدول الموظفين الرئيسي -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>
+            قائمة الموظفين
+        </h5>
+        <span class="badge bg-light text-primary">{{ data|length }} موظف</span>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered" id="employeesTable">
+                <thead class="table-primary">
+                    <tr>
+                        <th>#</th>
+                        <th>الاسم</th>
+                        <th>الرقم الوطني</th>
+                        <th>المهنة</th>
+                        <th>مكان الميلاد</th>
+                        <th>السكن</th>
+                        <th>تاريخ الميلاد</th>
+                        <th>الفرقة</th>
+                        <th>رقم الهاتف</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in data %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><strong>{{ emp.name }}</strong></td>
+                        <td>{{ emp.national_id }}</td>
+                        <td>
+                            {% if emp.profession == 'رئيس فرقة' %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-crown"></i> {{ emp.profession }}
+                                </span>
+                            {% else %}
+                                {{ emp.profession }}
+                            {% endif %}
+                        </td>
+                        <td>{{ emp.birth_place }}</td>
+                        <td>{{ emp.current_address }}</td>
+                        <td>{{ emp.birth_date.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            {% if emp.team %}
+                                <span class="badge bg-info">{{ emp.team.name }}</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ emp.phone or '—' }}</td>
+                        <td>
+                            {% if emp.is_active %}
+                                <span class="badge bg-success">نشط</span>
+                            {% else %}
+                                <span class="badge bg-secondary">غير نشط</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="10" class="text-center text-muted py-4">
+                            <i class="fas fa-users fa-3x mb-3"></i>
+                            <p>لا توجد بيانات موظفين في هذه الفترة</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ملخص الأعمار -->
+<div class="card mb-4">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-birthday-cake me-2"></i>
+            توزيع الأعمار
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% set age_groups = {'أقل من 20': 0, '20-30': 0, '31-40': 0, '41-50': 0, 'أكثر من 50': 0} %}
+            {% for emp in data %}
+                {% set age = now().year - emp.birth_date.year %}
+                {% if emp.birth_date.month > now().month or (emp.birth_date.month == now().month and emp.birth_date.day > now().day) %}
+                    {% set age = age - 1 %}
+                {% endif %}
+
+                {% if age < 20 %}
+                    {% set _ = age_groups.update({'أقل من 20': age_groups['أقل من 20'] + 1}) %}
+                {% elif age <= 30 %}
+                    {% set _ = age_groups.update({'20-30': age_groups['20-30'] + 1}) %}
+                {% elif age <= 40 %}
+                    {% set _ = age_groups.update({'31-40': age_groups['31-40'] + 1}) %}
+                {% elif age <= 50 %}
+                    {% set _ = age_groups.update({'41-50': age_groups['41-50'] + 1}) %}
+                {% else %}
+                    {% set _ = age_groups.update({'أكثر من 50': age_groups['أكثر من 50'] + 1}) %}
+                {% endif %}
+            {% endfor %}
+
+            {% for group, count in age_groups.items() %}
+            <div class="col-md-2-4 col-6 mb-3">
+                <div class="card bg-light text-center">
+                    <div class="card-body">
+                        <h6>{{ group }}</h6>
+                        <h3>{{ count }}</h3>
+                        <small class="text-muted">موظف</small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- ملخص الفرق -->
+<div class="card">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">
+            <i class="fas fa-people-arrows me-2"></i>
+            توزيع الموظفين على الفرق
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>الفرقة</th>
+                        <th>عدد الموظفين</th>
+                        <th>القائد</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set teams_summary = {} %}
+                    {% for emp in data %}
+                        {% if emp.team %}
+                            {% if emp.team.id not in teams_summary %}
+                                {% set _ = teams_summary.update({emp.team.id: {'name': emp.team.name, 'count': 0, 'leader': '—'}}) %}
+                            {% endif %}
+                            {% set _ = teams_summary[emp.team.id].update({'count': teams_summary[emp.team.id].count + 1}) %}
+                            {% if emp.profession == 'رئيس فرقة' %}
+                                {% set _ = teams_summary[emp.team.id].update({'leader': emp.name}) %}
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {% for team_id, team_data in teams_summary.items()|sort(attribute='1.count', reverse=true) %}
+                    <tr>
+                        <td><strong>{{ team_data.name }}</strong></td>
+                        <td class="text-center">{{ team_data.count }}</td>
+                        <td>{{ team_data.leader }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted">لا يوجد موظفون في فرق</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- نصائح وإرشادات -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info d-flex align-items-center">
+            <i class="fas fa-lightbulb fa-2x me-3"></i>
+            <div>
+                <strong>ملاحظات:</strong>
+                <ul class="mb-0 mt-2">
+                    <li>👥 <strong>إجمالي الموظفين:</strong> {{ data|length }} موظف</li>
+                    <li>👑 <strong>قادة الفرق:</strong> {{ data|selectattr('profession', 'equalto', 'رئيس فرقة')|list|length }} قائد</li>
+                    <li>📊 <strong>متوسط الأعمار:</strong> تم توزيع الموظفين حسب الفئات العمرية</li>
+                    <li>🏢 <strong>الفرق:</strong> {{ teams_summary|length }} فرقة تضم موظفين</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('#employeesTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
+            },
+            pageLength: 25,
+            order: [[0, 'asc']],
+            responsive: true
+        });
+    });
+</script>
+
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s;
+        height: 100%;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 20px rgba(102,126,234,0.3);
+    }
+
+    .stat-icon {
+        position: absolute;
+        left: 15px;
+        top: 15px;
+        font-size: 3.5rem;
+        opacity: 0.15;
+        color: #667eea;
+    }
+
+    .stat-title {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+        font-size: 2.2rem;
+        font-weight: bold;
+        color: #333;
+        line-height: 1.2;
+    }
+
+    .stat-desc {
+        color: #999;
+        font-size: 0.8rem;
+        margin-top: 5px;
+    }
+
+    .badge {
+        font-size: 0.8rem;
+        padding: 0.4em 0.7em;
+        margin: 2px;
+        font-weight: 500;
+    }
+
+    .table th {
+        white-space: nowrap;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    .progress {
+        background-color: #e9ecef;
+        border-radius: 10px;
+    }
+
+    .col-md-2-4 {
+        flex: 0 0 20%;
+        max-width: 20%;
+        padding: 0 10px;
+    }
+
+    @media (max-width: 768px) {
+        .col-md-2-4 {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+    }
+
+    /* للطباعة */
+    @media print {
+        .btn-group, .btn, .dataTables_filter, .dataTables_length, .dataTables_paginate {
+            display: none !important;
+        }
+        .card {
+            box-shadow: none;
+            border: 1px solid #ddd;
+        }
+        .stat-card {
+            box-shadow: none;
+            border: 1px solid #ddd;
+        }
+    }
+</style>
+{% endblock %}
