@@ -75,6 +75,20 @@
             color: #333;
         }
 
+        /* معلومات الفترة */
+        .period-info {
+            background: #e7f3ff;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-right: 4px solid #17a2b8;
+            font-size: 11px;
+        }
+
+        .period-info strong {
+            color: #17a2b8;
+        }
+
         /* بطاقات الإحصائيات */
         .stats-container {
             display: flex;
@@ -258,6 +272,7 @@
             display: flex;
             justify-content: space-between;
             padding: 0 30px;
+            page-break-inside: avoid;
         }
 
         .signature-box {
@@ -280,6 +295,7 @@
             font-size: 9px;
             border-top: 1px solid #eee;
             padding-top: 15px;
+            page-break-inside: avoid;
         }
 
         .footer-logo {
@@ -287,6 +303,14 @@
             font-weight: bold;
             color: #667eea;
             margin-bottom: 5px;
+        }
+
+        /* رسالة عدم وجود بيانات */
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 12px;
         }
     </style>
 </head>
@@ -313,6 +337,12 @@
         </div>
     </div>
 
+    <!-- معلومات الفترة الزمنية -->
+    <div class="period-info">
+        <strong>📅 الفترة:</strong> من {{ date_from.strftime('%Y-%m-%d') }} إلى {{ date_to.strftime('%Y-%m-%d') }}
+        <span style="margin-right: 20px;"><strong>🚢 السفن في هذه الفترة:</strong> {{ stats.total_ships }}</span>
+    </div>
+
     <!-- بطاقات الإحصائيات الرئيسية -->
     <div class="stats-container">
         <div class="stat-card">
@@ -322,7 +352,7 @@
         </div>
         <div class="stat-card">
             <div class="stat-icon">✅</div>
-            <div class="stat-number">{{ stats.active }}</div>
+            <div class="stat-number">{{ stats.available }}</div>
             <div class="stat-label">أرصفة متاحة</div>
         </div>
         <div class="stat-card">
@@ -333,7 +363,7 @@
         <div class="stat-card">
             <div class="stat-icon">🚢</div>
             <div class="stat-number">{{ stats.total_ships }}</div>
-            <div class="stat-label">إجمالي السفن</div>
+            <div class="stat-label">السفن في الفترة</div>
         </div>
     </div>
 
@@ -343,9 +373,9 @@
             <div class="summary-title">📏 متوسط الطول</div>
             <div class="summary-value">
                 {% set total_length = 0 %}
-                {% for berth in berths %}
-                    {% if berth.length %}
-                        {% set total_length = total_length + berth.length %}
+                {% for berth_data in berths_data %}
+                    {% if berth_data.berth.length %}
+                        {% set total_length = total_length + berth_data.berth.length %}
                     {% endif %}
                 {% endfor %}
                 {{ (total_length / stats.total) | round(1) if stats.total > 0 else 0 }}
@@ -356,9 +386,9 @@
             <div class="summary-title">🌊 متوسط العمق</div>
             <div class="summary-value">
                 {% set total_depth = 0 %}
-                {% for berth in berths %}
-                    {% if berth.depth %}
-                        {% set total_depth = total_depth + berth.depth %}
+                {% for berth_data in berths_data %}
+                    {% if berth_data.berth.depth %}
+                        {% set total_depth = total_depth + berth_data.berth.depth %}
                     {% endif %}
                 {% endfor %}
                 {{ (total_depth / stats.total) | round(1) if stats.total > 0 else 0 }}
@@ -377,6 +407,7 @@
         </div>
     </div>
 
+    {% if berths_data %}
     <!-- الجدول الرئيسي للأرصفة -->
     <table>
         <thead>
@@ -394,41 +425,47 @@
             </tr>
         </thead>
         <tbody>
-            {% for berth in berths %}
+            {% for berth_data in berths_data %}
             <tr>
                 <td>{{ loop.index }}</td>
-                <td><strong>{{ berth.number }}</strong></td>
-                <td>{{ berth.length or '—' }}</td>
-                <td>{{ berth.depth or '—' }}</td>
-                <td><strong>{{ berth.ships_count }}</strong></td>
+                <td><strong>{{ berth_data.berth.number }}</strong></td>
+                <td>{{ berth_data.berth.length or '—' }}</td>
+                <td>{{ berth_data.berth.depth or '—' }}</td>
+                <td><strong>{{ berth_data.ships_count }}</strong></td>
                 <td>
-                    {% if berth.current_ship %}
-                        {{ berth.current_ship.name }}
+                    {% if berth_data.current_ship and berth_data.current_ship != '—' %}
+                        {{ berth_data.current_ship }}
                         <br>
-                        <small class="ship-badge">{{ berth.current_ship.ship_type }}</small>
-                    {% else %}
-                        —
-                    {% endif %}
-                </td>
-                <td>{{ berth.current_ship.imo_number if berth.current_ship else '—' }}</td>
-                <td>
-                    {% if berth.current_ship %}
-                        <span class="badge-info">{{ berth.current_ship.ship_type }}</span>
+                        <small class="ship-badge">{{ berth_data.ships[0].ship_type if berth_data.ships else '' }}</small>
                     {% else %}
                         —
                     {% endif %}
                 </td>
                 <td>
-                    {% if berth.is_available %}
+                    {% if berth_data.ships and berth_data.ships[0] %}
+                        {{ berth_data.ships[0].imo_number }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>
+                    {% if berth_data.ships and berth_data.ships[0] %}
+                        <span class="badge-info">{{ berth_data.ships[0].ship_type }}</span>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>
+                    {% if berth_data.is_available %}
                         <span class="badge-success">متاح</span>
                     {% else %}
                         <span class="badge-danger">غير متاح</span>
                     {% endif %}
-                    {% if berth.is_occupied %}
+                    {% if berth_data.is_occupied %}
                         <br><span class="badge-warning">مشغول</span>
                     {% endif %}
                 </td>
-                <td><small>{{ berth.notes or '—' }}</small></td>
+                <td><small>{{ berth_data.berth.notes or '—' }}</small></td>
             </tr>
             {% endfor %}
         </tbody>
@@ -436,14 +473,15 @@
 
     <!-- قائمة السفن في كل رصيف -->
     <div class="ships-summary">
-        <h3 style="color: #667eea; text-align: center;">🚢 قائمة السفن حسب الرصيف</h3>
+        <h3 style="color: #667eea; text-align: center;">🚢 قائمة السفن حسب الرصيف (الفترة: {{ date_from.strftime('%Y-%m-%d') }} - {{ date_to.strftime('%Y-%m-%d') }})</h3>
 
-        {% for berth in berths %}
+        {% for berth_data in berths_data %}
         <div style="margin-bottom: 15px;">
             <h4 style="color: #667eea; border-bottom: 1px solid #667eea; padding-bottom: 5px;">
-                رصيف {{ berth.number }} - ({{ berth.ships_count }} سفن)
+                رصيف {{ berth_data.berth.number }} - ({{ berth_data.ships_count }} سفن)
             </h4>
 
+            {% if berth_data.ships %}
             <table class="ships-table">
                 <thead>
                     <tr>
@@ -456,57 +494,46 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% set ships = berth.ships_list if berth.ships_list is defined else [] %}
-                    {% if ships %}
-                        {% for ship in ships %}
-                        <tr>
-                            <td>{{ loop.index }}</td>
-                            <td>{{ ship.name }}</td>
-                            <td>{{ ship.imo_number }}</td>
-                            <td><span class="badge-info">{{ ship.ship_type }}</span></td>
-                            <td>{{ ship.arrival_date.strftime('%Y-%m-%d') if ship.arrival_date else '—' }}</td>
-                            <td>
-                                {% if ship.status == 'arrived' %}
-                                    <span class="badge-warning">واصلة</span>
-                                {% elif ship.status == 'berthed' %}
-                                    <span class="badge-success">راسية</span>
-                                {% elif ship.status == 'departed' %}
-                                    <span class="badge-danger">مغادرة</span>
-                                {% else %}
-                                    —
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="6" style="text-align: center; color: #999;">لا توجد سفن في هذا الرصيف</td>
-                        </tr>
-                    {% endif %}
+                    {% for ship in berth_data.ships %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ ship.name }}</td>
+                        <td>{{ ship.imo_number }}</td>
+                        <td><span class="badge-info">{{ ship.ship_type }}</span></td>
+                        <td>{{ ship.arrival_date.strftime('%Y-%m-%d') if ship.arrival_date else '—' }}</td>
+                        <td>
+                            {% if ship.status == 'arrived' %}
+                                <span class="badge-warning">واصلة</span>
+                            {% elif ship.status == 'berthed' %}
+                                <span class="badge-success">راسية</span>
+                            {% elif ship.status == 'departed' %}
+                                <span class="badge-danger">مغادرة</span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
+            {% else %}
+            <p style="text-align: center; color: #999; padding: 10px;">لا توجد سفن في هذا الرصيف خلال الفترة المحددة</p>
+            {% endif %}
         </div>
         {% endfor %}
     </div>
-
-    <!-- توقيع التقرير -->
-    <div class="signature-section">
-        <div class="signature-box">
-            <div class="signature-line">مدير الميناء</div>
-        </div>
-        <div class="signature-box">
-            <div class="signature-line">رئيس قسم الأرصفة</div>
-        </div>
-        <div class="signature-box">
-            <div class="signature-line">مسؤول التقارير</div>
-        </div>
+    {% else %}
+    <div class="no-data">
+        <p>لا توجد بيانات أرصفة للعرض</p>
     </div>
+    {% endif %}
+
 
     <!-- تذييل التقرير -->
     <div class="footer">
         <div class="footer-logo">⚓ مكتب عمال ميناء رأس عيسى</div>
         <p>جميع الحقوق محفوظة © {{ current_date.year }}</p>
-        <p>للاستفسارات: 77301401 | البريد: ali.mubark582021@mail.com</p>
+        <p>للاستفسارات: 773014017 | البريد: ali.mubark582021@mail.com</p>
         <p>تم إنشاء هذا التقرير بواسطة نظام إدارة الميناء - الإصدار 1.0</p>
     </div>
 </body>

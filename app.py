@@ -1935,6 +1935,8 @@ def operations_report_page():
 @login_required
 def berths_report_page():
     """صفحة تقرير الأرصفة"""
+    from datetime import datetime, timedelta
+
     # استلام التواريخ
     date_from = request.args.get('date_from')
     date_to = request.args.get('date_to')
@@ -1945,13 +1947,32 @@ def berths_report_page():
     if not date_to:
         date_to = datetime.now().strftime('%Y-%m-%d')
 
+    # تحويل التواريخ
     date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
     date_to_obj = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
 
-    # تجهيز بيانات الأرصفة
+    # جلب جميع الأرصفة
     berths = Berth.query.all()
-    berths_data = []
 
+    # إحصائيات
+    total_berths = len(berths)
+    available_berths = sum(1 for b in berths if b.is_available)
+    occupied_berths = sum(1 for b in berths if b.is_occupied)
+
+    # حساب عدد السفن في الفترة المحددة فقط
+    ships_in_period = Ship.query.filter(
+        Ship.arrival_date.between(date_from_obj, date_to_obj)
+    ).count()
+
+    print("=" * 50)
+    print(f"📊 تقرير الأرصفة - الفترة: {date_from} إلى {date_to}")
+    print(f"إجمالي الأرصفة: {total_berths}")
+    print(f"السفن في الفترة: {ships_in_period}")
+    print(f"إجمالي السفن في قاعدة البيانات: {Ship.query.count()}")
+    print("=" * 50)
+
+    # تجهيز بيانات الأرصفة
+    berths_data = []
     for berth in berths:
         # جلب السفن التي وصلت في الفترة المحددة فقط
         ships = Ship.query.filter_by(berth_number=berth.number).filter(
@@ -1970,10 +1991,10 @@ def berths_report_page():
         })
 
     stats = {
-        'total': len(berths),
-        'available': sum(1 for b in berths if b.is_available),
-        'occupied': sum(1 for b in berths if b.is_occupied),
-        'total_ships': sum(len(ships) for ships in berths_data)
+        'total': total_berths,
+        'available': available_berths,
+        'occupied': occupied_berths,
+        'total_ships': ships_in_period  # استخدام عدد السفن في الفترة
     }
 
     return render_template('reports/berths_report.html',
