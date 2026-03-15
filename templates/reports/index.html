@@ -4,12 +4,145 @@
 
 {% block page_title %}التقارير والإحصائيات{% endblock %}
 
+{% block page_icon %}fas fa-chart-bar{% endblock %}
+
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
 <li class="breadcrumb-item active">التقارير</li>
 {% endblock %}
 
 {% block content %}
+<!-- نموذج إنشاء تقرير مخصص - في الأعلى -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-sliders-h me-2"></i>
+                    إنشاء تقرير مخصص - اختر النوع والتاريخ
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('generate_report') }}" id="reportForm" target="_blank">
+                    <div class="row align-items-end">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-file-alt me-1 text-primary"></i>
+                                نوع التقرير
+                            </label>
+                            <select class="form-select form-select-lg" name="report_type" required>
+                                <option value="" disabled selected>-- اختر نوع التقرير --</option>
+                                <option value="ships">🚢 تقرير السفن</option>
+                                <option value="employees">👥 تقرير الموظفين</option>
+                                <option value="teams">👥 تقرير فرق العمل</option>
+                                <option value="operations">⚙️ تقرير العمليات</option>
+                                <option value="berths">⚓ تقرير الأرصفة</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-calendar-alt me-1 text-success"></i>
+                                من تاريخ
+                            </label>
+                            <input type="date" class="form-control form-control-lg" name="date_from" required>
+                        </div>
+
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-calendar-alt me-1 text-danger"></i>
+                                إلى تاريخ
+                            </label>
+                            <input type="date" class="form-control form-control-lg" name="date_to" required>
+                        </div>
+
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-download me-1 text-info"></i>
+                                صيغة التقرير
+                            </label>
+                            <select class="form-select form-select-lg" name="format" required>
+                                <option value="html">🌐 HTML (عرض)</option>
+                                <option value="pdf" selected>📑 PDF (للطباعة)</option>
+                                <option value="excel">📊 Excel (للتحليل)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="fas fa-file-export me-2"></i>
+                                إنشاء التقرير
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- خيارات سريعة للفترات الزمنية -->
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <div class="btn-group w-100" role="group">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('today')">
+                                    <i class="fas fa-sun"></i> اليوم
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('yesterday')">
+                                    <i class="fas fa-calendar-day"></i> أمس
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('week')">
+                                    <i class="fas fa-calendar-week"></i> آخر 7 أيام
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month')">
+                                    <i class="fas fa-calendar-alt"></i> آخر 30 يوم
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month-current')">
+                                    <i class="fas fa-calendar-check"></i> هذا الشهر
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month-last')">
+                                    <i class="fas fa-calendar-minus"></i> الشهر الماضي
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('year')">
+                                    <i class="fas fa-calendar"></i> آخر سنة
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- إحصائيات سريعة -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-pie me-2"></i>
+                إحصائيات سريعة
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 col-6 text-center mb-3">
+                        <div class="display-4 text-primary">{{ stats.total_ships or 0 }}</div>
+                        <div class="text-muted">إجمالي السفن</div>
+                        <small class="text-success">{{ stats.active_ships or 0 }} نشطة</small>
+                    </div>
+                    <div class="col-md-3 col-6 text-center mb-3">
+                        <div class="display-4 text-success">{{ stats.total_employees or 0 }}</div>
+                        <div class="text-muted">إجمالي الموظفين</div>
+                    </div>
+                    <div class="col-md-3 col-6 text-center mb-3">
+                        <div class="display-4 text-warning">{{ stats.total_teams or 0 }}</div>
+                        <div class="text-muted">فرق العمل</div>
+                    </div>
+                    <div class="col-md-3 col-6 text-center mb-3">
+                        <div class="display-4 text-info">{{ stats.total_operations or 0 }}</div>
+                        <div class="text-muted">إجمالي العمليات</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- بطاقات التقارير السريعة - الصف الأول -->
 <div class="row">
     <!-- تقرير السفن -->
@@ -99,38 +232,6 @@
 
 <!-- بطاقات التقارير السريعة - الصف الثاني -->
 <div class="row">
-    <!-- تقرير فرق العمل مع العمليات -->
-    <div class="col-md-3 mb-4">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <div class="icon-circle bg-info mb-3">
-                    <i class="fas fa-users-cog fa-2x text-white"></i>
-                </div>
-                <h5>تقرير فرق العمل مع العمليات</h5>
-                <p class="text-muted small">تحليل أداء الفرق وساعات العمل ومدة العمليات</p>
-                <a href="{{ url_for('teams_operations_report') }}" class="btn btn-sm btn-outline-info">
-                    <i class="fas fa-chart-line me-1"></i> عرض التقرير
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- تقرير مدة العمليات -->
-    <div class="col-md-3 mb-4">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <div class="icon-circle bg-danger mb-3">
-                    <i class="fas fa-hourglass-half fa-2x text-white"></i>
-                </div>
-                <h5>تقرير مدة العمليات</h5>
-                <p class="text-muted small">مدة كل عملية ومتوسط الوقت</p>
-                <a href="{{ url_for('operations_duration_report') }}" class="btn btn-sm btn-outline-danger">
-                    <i class="fas fa-clock me-1"></i> عرض التقرير
-                </a>
-            </div>
-        </div>
-    </div>
-
     <!-- تقرير الأرصفة -->
     <div class="col-md-3 mb-4">
         <div class="card h-100">
@@ -140,117 +241,62 @@
                 </div>
                 <h5>تقرير الأرصفة</h5>
                 <p class="text-muted small">حالة الأرصفة والإشغال</p>
-                <button class="btn btn-sm btn-outline-secondary" onclick="quickReport('berths', 'pdf')">
-                    <i class="fas fa-file-pdf me-1"></i> PDF
-                </button>
-                <button class="btn btn-sm btn-outline-success" onclick="quickReport('berths', 'excel')">
-                    <i class="fas fa-file-excel me-1"></i> Excel
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- إحصائيات سريعة -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-chart-pie me-2"></i>
-                إحصائيات سريعة
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 col-6 text-center mb-3">
-                        <div class="display-4 text-primary">{{ stats.total_ships or 0 }}</div>
-                        <div class="text-muted">إجمالي السفن</div>
-                    </div>
-                    <div class="col-md-3 col-6 text-center mb-3">
-                        <div class="display-4 text-success">{{ stats.total_employees or 0 }}</div>
-                        <div class="text-muted">إجمالي الموظفين</div>
-                    </div>
-                    <div class="col-md-3 col-6 text-center mb-3">
-                        <div class="display-4 text-warning">{{ stats.total_teams or 0 }}</div>
-                        <div class="text-muted">فرق العمل</div>
-                    </div>
-                    <div class="col-md-3 col-6 text-center mb-3">
-                        <div class="display-4 text-info">{{ stats.active_ships or 0 }}</div>
-                        <div class="text-muted">سفن نشطة</div>
-                    </div>
+                <div class="mt-3">
+                    <button class="btn btn-sm btn-outline-primary" onclick="quickReport('berths', 'pdf')">
+                        <i class="fas fa-file-pdf me-1"></i> PDF
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="quickReport('berths', 'excel')">
+                        <i class="fas fa-file-excel me-1"></i> Excel
+                    </button>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- تقرير فرق العمل مع العمليات -->
+    <div class="col-md-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="icon-circle bg-info mb-3">
+                    <i class="fas fa-users-cog fa-2x text-white"></i>
+                </div>
+                <h5>تقرير فرق العمل مع العمليات</h5>
+                <p class="text-muted small">تحليل أداء الفرق وساعات العمل</p>
+                <a href="{{ url_for('teams_operations_report') }}" class="btn btn-sm btn-outline-info w-100">
+                    <i class="fas fa-chart-line me-1"></i> عرض التقرير
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- تقرير الأداء والكفاءة -->
+<div class="col-md-3 mb-4">
+    <div class="card h-100">
+        <div class="card-body text-center">
+            <div class="icon-circle bg-gradient mb-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <i class="fas fa-chart-line fa-2x text-white"></i>
+            </div>
+            <h5>تقرير الأداء والكفاءة</h5>
+            <p class="text-muted small">تحليل أداء الفرق والسفن - تقييم الإنجاز والكفاءة</p>
+            <a href="{{ url_for('performance_report') }}" class="btn btn-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <i class="fas fa-chart-line me-1"></i> عرض التقرير
+            </a>
+        </div>
+    </div>
 </div>
 
-<!-- نموذج إنشاء تقرير مخصص -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-cog me-2"></i>
-                إنشاء تقرير مخصص
-            </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('generate_report') }}" id="reportForm" target="_blank">
-                    <div class="row">
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">
-                                <i class="fas fa-file-alt me-1"></i>
-                                نوع التقرير
-                            </label>
-                            <select class="form-select" name="report_type" required>
-                                <option value="">-- اختر نوع التقرير --</option>
-                                <option value="ships">🚢 تقرير السفن</option>
-                                <option value="employees">👥 تقرير الموظفين</option>
-                                <option value="teams">👥 فرق العمل</option>
-                                <option value="operations">⚙️ تقرير العمليات</option>
-                                <option value="berths">⚓ تقرير الأرصفة</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">
-                                <i class="fas fa-calendar-alt me-1"></i>
-                                من تاريخ
-                            </label>
-                            <input type="date" class="form-control" name="date_from" required>
-                        </div>
-
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">
-                                <i class="fas fa-calendar-alt me-1"></i>
-                                إلى تاريخ
-                            </label>
-                            <input type="date" class="form-control" name="date_to" required>
-                        </div>
-
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">
-                                <i class="fas fa-download me-1"></i>
-                                صيغة التقرير
-                            </label>
-                            <select class="form-select" name="format" required>
-                                <option value="html">🌐 HTML (عرض)</option>
-                                <option value="pdf" selected>📑 PDF (للطباعة)</option>
-                                <option value="excel">📊 Excel (للتحليل)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-12 text-center">
-                            <button type="submit" class="btn btn-primary px-5">
-                                <i class="fas fa-file-export me-2"></i>
-                                إنشاء التقرير
-                            </button>
-                            <a href="{{ url_for('reports_charts') }}" class="btn btn-info px-5">
-                                <i class="fas fa-chart-bar me-2"></i>
-                                عرض الرسومات البيانية
-                            </a>
-                        </div>
-                    </div>
-                </form>
+    <!-- الرسومات البيانية -->
+    <div class="col-md-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="icon-circle bg-purple mb-3" style="background: #6f42c1;">
+                    <i class="fas fa-chart-pie fa-2x text-white"></i>
+                </div>
+                <h5>الرسومات البيانية</h5>
+                <p class="text-muted small">تصور بياني للبيانات والإحصائيات</p>
+                <a href="{{ url_for('reports_charts') }}" class="btn btn-sm" style="background: #6f42c1; color: white;">
+                    <i class="fas fa-chart-bar me-1"></i> عرض الرسومات
+                </a>
             </div>
         </div>
     </div>
@@ -259,15 +305,18 @@
 <!-- نصائح للتقارير -->
 <div class="row mt-4">
     <div class="col-12">
-        <div class="alert alert-info">
-            <i class="fas fa-info-circle me-2"></i>
-            <strong>نصائح للتقارير:</strong>
-            <ul class="mb-0 mt-2">
-                <li>📑 تقارير PDF مصممة خصيصاً للطباعة مع ترويسة وتذييل</li>
-                <li>📊 تقارير Excel تحتوي على عدة أوراق عمل للبيانات المفصلة</li>
-                <li>👥 تقرير فرق العمل مع العمليات يعرض أداء كل فريق وتحليلاً شاملاً</li>
-                <li>⚡ يمكنك تحديد نطاق زمني مخصص للتقارير</li>
-            </ul>
+        <div class="alert alert-info d-flex align-items-center">
+            <i class="fas fa-info-circle fa-2x me-3"></i>
+            <div>
+                <strong>نصائح للتقارير:</strong>
+                <ul class="mb-0 mt-2">
+                    <li>📑 تقارير PDF مصممة خصيصاً للطباعة مع ترويسة وتذييل</li>
+                    <li>📊 تقارير Excel تحتوي على عدة أوراق عمل للبيانات المفصلة</li>
+                    <li>👥 تقرير فرق العمل مع العمليات يعرض أداء كل فريق وتحليلاً شاملاً</li>
+                    <li>⚡ يمكنك تحديد نطاق زمني مخصص للتقارير من النموذج في الأعلى</li>
+                    <li>🔄 استخدم الأزرار السريعة لتحديد فترات زمنية شائعة</li>
+                </ul>
+            </div>
         </div>
     </div>
 </div>
@@ -303,6 +352,18 @@
         font-weight: 300;
         line-height: 1.2;
     }
+
+    .bg-purple {
+        background: #6f42c1;
+    }
+
+    .form-select-lg, .form-control-lg {
+        font-size: 1rem;
+    }
+
+    .btn-group .btn {
+        font-size: 0.85rem;
+    }
 </style>
 {% endblock %}
 
@@ -316,26 +377,58 @@
         // تعيين الصيغة
         $('select[name="format"]').val(format);
 
-        // تعيين تاريخ افتراضي (آخر 30 يوم)
-        var today = new Date();
-        var lastMonth = new Date();
-        lastMonth.setDate(lastMonth.getDate() - 30);
-
-        $('input[name="date_to"]').val(today.toISOString().split('T')[0]);
-        $('input[name="date_from"]').val(lastMonth.toISOString().split('T')[0]);
-
         // إرسال النموذج
         $('#reportForm').submit();
     }
 
+    // دالة تعيين نطاق التاريخ
+    function setDateRange(range) {
+        var today = new Date();
+        var dateFrom, dateTo;
+
+        switch(range) {
+            case 'today':
+                dateFrom = new Date(today);
+                dateTo = new Date(today);
+                break;
+            case 'yesterday':
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 1);
+                dateTo = new Date(dateFrom);
+                break;
+            case 'week':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 7);
+                break;
+            case 'month':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 30);
+                break;
+            case 'month-current':
+                dateFrom = new Date(today.getFullYear(), today.getMonth(), 1);
+                dateTo = new Date(today);
+                break;
+            case 'month-last':
+                dateFrom = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                dateTo = new Date(today.getFullYear(), today.getMonth(), 0);
+                break;
+            case 'year':
+                dateTo = new Date(today);
+                dateFrom = new Date(today);
+                dateFrom.setFullYear(dateFrom.getFullYear() - 1);
+                break;
+        }
+
+        $('input[name="date_from"]').val(dateFrom.toISOString().split('T')[0]);
+        $('input[name="date_to"]').val(dateTo.toISOString().split('T')[0]);
+    }
+
     // تعيين التواريخ الافتراضية عند تحميل الصفحة
     $(document).ready(function() {
-        var today = new Date();
-        var lastMonth = new Date();
-        lastMonth.setDate(lastMonth.getDate() - 30);
-
-        $('input[name="date_to"]').val(today.toISOString().split('T')[0]);
-        $('input[name="date_from"]').val(lastMonth.toISOString().split('T')[0]);
+        // تعيين التاريخ الافتراضي لآخر 30 يوم
+        setDateRange('month');
 
         // التحقق من صحة التواريخ
         $('#reportForm').on('submit', function(e) {
@@ -348,6 +441,16 @@
                     icon: 'error',
                     title: 'خطأ في التواريخ',
                     text: 'تاريخ "من" يجب أن يكون أصغر من تاريخ "إلى"'
+                });
+                return false;
+            }
+
+            if (!$('select[name="report_type"]').val()) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'نوع التقرير مطلوب',
+                    text: 'الرجاء اختيار نوع التقرير'
                 });
                 return false;
             }

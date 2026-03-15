@@ -1515,6 +1515,129 @@ def reports_index():
     return render_template('reports/index.html', stats=stats)
 
 
+@app.route('/reports/performance')
+@login_required
+def performance_report():
+    """تقرير الأداء والكفاءة"""
+    from sqlalchemy import func
+    from datetime import datetime, timedelta
+    from collections import defaultdict
+
+    # استلام التواريخ
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+
+    # تعيين التواريخ الافتراضية
+    if not date_from:
+        date_from = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+    if not date_to:
+        date_to = datetime.now().strftime('%Y-%m-%d')
+
+    date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
+    date_to_obj = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+
+    # جلب العمليات في الفترة
+    operations = ShipOperation.query.filter(
+        ShipOperation.start_time.between(date_from_obj, date_to_obj)
+    ).all()
+
+    total_days = (date_to_obj - date_from_obj).days
+
+    # إحصائيات عامة
+    total_operations = len(operations)
+    completed_operations = len([op for op in operations if op.end_time])
+    total_hours = sum([op.duration for op in operations if op.duration])
+    avg_duration = total_hours / total_operations if total_operations > 0 else 0
+
+    summary = {
+        'total_operations': total_operations,
+        'completed_operations': completed_operations,
+        'total_hours': total_hours,
+        'avg_duration': avg_duration,
+        'completion_rate': (completed_operations / total_operations * 100) if total_operations > 0 else 0
+    }
+
+    # تحليل أداء الفرق
+    team_stats = defaultdict(lambda: {'count': 0, 'hours': 0, 'operations': []})
+
+    for op in operations:
+        for ot in op.operation_teams:
+            if ot.team:
+                team_stats[ot.team.id]['name'] = ot.team.name
+                team_stats[ot.team.id]['count'] += 1
+                if op.duration:
+                    team_stats[ot.team.id]['hours'] += op.duration
+                team_stats[ot.team.id]['operations'].append(op)
+
+    team_performance = []
+    for team_id, stats in team_stats.items():
+        team_performance.append({
+            'id': team_id,
+            'name': stats['name'],
+            'operations_count': stats['count'],
+            'total_hours': stats['hours'],
+            'avg_duration': stats['hours'] / stats['count'] if stats['count'] > 0 else 0,
+            'participation_rate': (stats['count'] / total_operations * 100) if total_operations > 0 else 0
+        })
+
+    # ترتيب الفرق حسب عدد العمليات
+    team_performance.sort(key=lambda x: x['operations_count'], reverse=True)
+
+    # تحليل أداء السفن
+    ship_stats = defaultdict(lambda: {'count': 0, 'hours': 0, 'cargo': 0})
+
+    for op in operations:
+        if op.ship:
+            ship_stats[op.ship.id]['name'] = op.ship.name
+            ship_stats[op.ship.id]['count'] += 1
+            if op.duration:
+                ship_stats[op.ship.id]['hours'] += op.duration
+            if op.cargo_quantity:
+                ship_stats[op.ship.id]['cargo'] += op.cargo_quantity
+
+    ship_performance = []
+    for ship_id, stats in ship_stats.items():
+        ship_performance.append({
+            'id': ship_id,
+            'name': stats['name'],
+            'operations_count': stats['count'],
+            'total_hours': stats['hours'],
+            'avg_duration': stats['hours'] / stats['count'] if stats['count'] > 0 else 0,
+            'total_cargo': stats['cargo']
+        })
+
+    ship_performance.sort(key=lambda x: x['operations_count'], reverse=True)
+
+    # تحليل الأداء اليومي
+    daily_stats = defaultdict(lambda: {'count': 0, 'hours': 0, 'ships': []})
+
+    for op in operations:
+        day = op.start_time.date()
+        daily_stats[day]['count'] += 1
+        if op.duration:
+            daily_stats[day]['hours'] += op.duration
+        if op.ship and op.ship.name not in daily_stats[day]['ships']:
+            daily_stats[day]['ships'].append(op.ship.name)
+
+    daily_performance = []
+    for day, stats in sorted(daily_stats.items()):
+        daily_performance.append({
+            'date': day,
+            'operations_count': stats['count'],
+            'total_hours': stats['hours'],
+            'avg_duration': stats['hours'] / stats['count'] if stats['count'] > 0 else 0,
+            'most_active_ship': stats['ships'][0] if stats['ships'] else None
+        })
+
+    return render_template('reports/performance_report.html',
+                           date_from=date_from_obj,
+                           date_to=date_to_obj,
+                           total_days=total_days,
+                           summary=summary,
+                           team_performance=team_performance,
+                           ship_performance=ship_performance,
+                           daily_performance=daily_performance)
+
 @app.route('/reports/charts')
 @login_required
 def reports_charts():
