@@ -1808,7 +1808,6 @@ def reports_charts():
 # ============================================
 # Reports Routes - صفحات التقارير المنفصلة
 # ============================================
-
 @app.route('/reports/ships', methods=['GET'])
 @login_required
 def ships_report_page():
@@ -1831,11 +1830,20 @@ def ships_report_page():
         Ship.arrival_date.between(date_from_obj, date_to_obj)
     ).all()
 
+    # ✅ تعريف stats هنا
+    stats = {
+        'total_ships': len(data),
+        'arrived_ships': len([s for s in data if s.status == 'arrived']),
+        'berthed_ships': len([s for s in data if s.status == 'berthed']),
+        'departed_ships': len([s for s in data if s.status == 'departed']),
+        'total_cargo': sum(s.cargo_capacity or 0 for s in data)
+    }
+
     return render_template('reports/ships_report.html',
                            data=data,
+                           stats=stats,
                            date_from=date_from_obj,
                            date_to=date_to_obj)
-
 
 @app.route('/reports/employees', methods=['GET'])
 @login_required
