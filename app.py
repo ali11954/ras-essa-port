@@ -605,6 +605,14 @@ def test_enroll_from_device():
 
 
 from zk import ZK
+# محاولة استيراد مكتبة البصمة (اختيارية)
+try:
+    from zk import ZK
+    ZK_AVAILABLE = True
+except ImportError:
+    ZK_AVAILABLE = False
+    ZK = None
+    print("⚠️  تحذير: مكتبة ZK غير متوفرة. وظائف البصمة متعطلة.")
 from datetime import datetime, timedelta
 
 
