@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}تشخيص نظام البصمة{% endblock %}
+
+{% block page_title %}تشخيص نظام البصمة{% endblock %}
+{% block page_icon %}fas fa-stethoscope{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">📊 إحصائيات عامة</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="alert alert-info">
+                            <strong>🖥️ أجهزة البصمة:</strong><br>
+                            {{ stats.total_devices }} جهاز<br>
+                            <span class="text-success">{{ stats.active_devices }} نشط</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="alert alert-success">
+                            <strong>👆 تسجيلات البصمة:</strong><br>
+                            {{ stats.total_enrollments }} تسجيل<br>
+                            <span class="text-success">{{ stats.active_enrollments }} نشط</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="alert alert-warning">
+                            <strong>📝 سجلات الحضور:</strong><br>
+                            {{ stats.total_attendance }} إجمالي<br>
+                            {{ stats.today_attendance }} اليوم
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="alert alert-info">
+                            <strong>✅ حالة السجلات:</strong><br>
+                            <span class="text-success">ناجح: {{ stats.success_attendance }}</span><br>
+                            <span class="text-danger">مرفوض: {{ stats.denied_attendance }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- قسم إدارة سجلات الحضور - الجديد -->
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-trash-alt me-2"></i>
+                    إدارة سجلات الحضور
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>تحذير:</strong> هذه العمليات لا يمكن التراجع عنها!
+                </div>
+                <div class="btn-group">
+                    <a href="{{ url_for('clear_test_logs') }}" class="btn btn-warning"
+                       onclick="return confirm('هل أنت متأكد من حذف سجلات الاختبار فقط؟')">
+                        <i class="fas fa-trash-alt"></i> حذف سجلات الاختبار
+                    </a>
+                    <a href="{{ url_for('clear_all_logs') }}" class="btn btn-danger"
+                       onclick="return confirm('⚠️ تحذير: سيتم حذف جميع سجلات الحضور نهائياً! هل أنت متأكد؟')">
+                        <i class="fas fa-trash-alt"></i> حذف جميع السجلات
+                    </a>
+                </div>
+                <div class="mt-2 text-muted small">
+                    <i class="fas fa-info-circle"></i>
+                    "سجلات الاختبار" هي السجلات التي تحتوي على كلمة "اختبار" في سبب التسجيل.
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">👥 الموظفين المسجلين بصمة</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>الموظف</th>
+                                <th>الكود</th>
+                                <th>عدد البصمات</th>
+                                <th>الأجهزة المسجل عليها</th>
+                             </thead>
+                        <tbody>
+                            {% for item in enrolled_employees %}
+                               <tr>
+                                   <td>{{ item.employee.name }}</td>
+                                   <td><code>{{ item.employee.employee_code }}</code></td>
+                                   <td class="text-center">{{ item.count }}</td>
+                                   <td>
+                                      {% for device in item.devices %}
+                                          <span class="badge bg-info">{{ device }}</span>
+                                      {% endfor %}
+                                   </td>
+                               </tr>
+                            {% else %}
+                               <tr><td colspan="4" class="text-center text-muted">لا توجد تسجيلات بصمة</td></tr>
+                            {% endfor %}
+                        </tbody>
+                     </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">📝 آخر 20 سجل حضور</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                             <tr>
+                                <th>الوقت</th>
+                                <th>الموظف</th>
+                                <th>الكود</th>
+                                <th>الجهاز</th>
+                                <th>الحالة</th>
+                                <th>السبب</th>
+                             </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in recent_logs %}
+                            <tr class="{% if log.status == 'success' %}table-success{% elif log.status == 'denied' %}table-danger{% endif %}">
+                                <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td>{{ log.employee.name if log.employee else 'غير معروف' }}</td>
+                                <td><code>{{ log.employee.employee_code if log.employee else '—' }}</code></td>
+                                <td>{{ log.device.device_name if log.device else '—' }}</td>
+                                <td>
+                                    {% if log.status == 'success' %}
+                                        <span class="badge bg-success">✅ ناجح</span>
+                                    {% elif log.status == 'denied' %}
+                                        <span class="badge bg-danger">❌ مرفوض</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">⚠️ خطأ</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ log.reason or '—' }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="6" class="text-center text-muted">لا توجد سجلات حضور</td></tr>
+                            {% endfor %}
+                        </tbody>
+                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-lightbulb me-2"></i>
+            <strong>نصائح للتشخيص:</strong>
+            <ul class="mt-2">
+                <li>🔍 إذا لم تظهر سجلات، استخدم <a href="/test-fingerprint-api">/test-fingerprint-api</a> لاختبار API</li>
+                <li>📱 تأكد من أن جهاز البصمة يرسل البيانات إلى <code>/api/fingerprint/verify-public</code></li>
+                <li>🔢 تأكد من أن الموظف لديه <code>employee_code</code> مسجل في النظام</li>
+                <li>👥 تأكد من أن الموظف ينتمي لفريق مصرح له بالعمل على العملية الحالية</li>
+                <li>📡 تأكد من أن الجهاز متصل بالشبكة من خلال <a href="/fingerprint/devices/status">حالة الاتصال</a></li>
+                <li>🗑️ لحذف سجلات الاختبار، استخدم الأزرار أعلاه</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

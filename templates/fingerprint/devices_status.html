@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}حالة أجهزة البصمة - نظام إدارة الميناء{% endblock %}
+
+{% block page_title %}حالة أجهزة البصمة{% endblock %}
+{% block page_icon %}fas fa-microchip{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('fingerprint_devices_list') }}">أجهزة البصمة</a></li>
+<li class="breadcrumb-item active">حالة الأجهزة</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-network-wired me-2"></i>
+                    حالة اتصال أجهزة البصمة
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered" id="devicesStatusTable">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>#</th>
+                                <th>اسم الجهاز</th>
+                                <th>عنوان IP</th>
+                                <th>المنفذ</th>
+                                <th>الرصيف</th>
+                                <th>حالة الاتصال</th>
+                                <th>آخر اتصال</th>
+                                <th>عدد البصمات</th>
+                                <th>آخر حضور</th>
+                             </thead>
+                        <tbody>
+                            {% for status in devices_status %}
+                             <tr class="{% if status.connection.connected %}table-success{% else %}table-danger{% endif %}">
+                                  <td class="text-center">{{ loop.index }}</td>
+                                  <td>
+                                     <strong>{{ status.device.name }}</strong>
+                                     <br>
+                                     <small class="text-muted">{{ status.device.type }}</small>
+                                   </td>
+                                  <td>{{ status.device.ip or '—' }}</td>
+                                  <td>{{ status.device.port }}</td>
+                                  <td>
+                                    {% if status.device.berth %}
+                                        <span class="badge bg-info">رصيف {{ status.device.berth }}</span>
+                                    {% else %}
+                                        <span class="text-muted">غير مرتبط</span>
+                                    {% endif %}
+                                   </td>
+                                  <td class="text-center">
+                                    {% if status.connection.connected %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle"></i> متصل
+                                        </span>
+                                        <br>
+                                        <small class="text-muted">
+                                            <i class="fas fa-{{ 'wifi' if status.connection.method == 'ping' else 'plug' }}"></i>
+                                            {{ status.connection.method }}
+                                        </small>
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times-circle"></i> غير متصل
+                                        </span>
+                                        <br>
+                                        <small class="text-muted text-danger">
+                                            {{ status.connection.error }}
+                                        </small>
+                                    {% endif %}
+                                   </td>
+                                  <td class="text-center">
+                                    {% if status.device.is_active %}
+                                        <span class="badge bg-success">نشط</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">غير نشط</span>
+                                    {% endif %}
+                                   </td>
+                                  <td class="text-center">
+                                    <span class="badge bg-primary">{{ status.statistics.enrollments_count }}</span>
+                                   </td>
+                                  <td>
+                                    {{ status.statistics.last_attendance or '—' }}
+                                    {% if status.statistics.total_attendance > 0 %}
+                                        <br>
+                                        <small class="text-muted">إجمالي {{ status.statistics.total_attendance }} حضور</small>
+                                    {% endif %}
+                                   </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- إحصائيات سريعة -->
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <i class="fas fa-microchip stat-icon"></i>
+            <div class="stat-title">إجمالي الأجهزة</div>
+            <div class="stat-value">{{ devices_status|length }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <i class="fas fa-check-circle stat-icon"></i>
+            <div class="stat-title">أجهزة متصلة</div>
+            <div class="stat-value text-success">
+                {{ devices_status|selectattr('connection.connected', 'equalto', true)|list|length }}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <i class="fas fa-times-circle stat-icon"></i>
+            <div class="stat-title">أجهزة غير متصلة</div>
+            <div class="stat-value text-danger">
+                {{ devices_status|selectattr('connection.connected', 'equalto', false)|list|length }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- دليل المستخدم -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>معلومات عن حالة الاتصال:</strong>
+            <ul class="mb-0 mt-2">
+                <li>✅ <strong>متصل (Ping):</strong> الجهاز يستجيب لأمر ping على الشبكة</li>
+                <li>✅ <strong>متصل (TCP):</strong> الجهاز يستجيب على المنفذ المحدد (عادة 80 أو 4370)</li>
+                <li>❌ <strong>غير متصل:</strong> لا يمكن الوصول إلى الجهاز على الشبكة</li>
+                <li>⚠️ <strong>غير نشط:</strong> الجهاز معطل في النظام (يمكن تفعيله من الإعدادات)</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('#devicesStatusTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
+            },
+            pageLength: 10,
+            order: [[0, 'asc']],
+            columnDefs: [
+                { orderable: false, targets: [5, 7] }
+            ]
+        });
+
+        // تحديث حالة الأجهزة كل 30 ثانية
+        setInterval(function() {
+            location.reload();
+        }, 30000);
+    });
+</script>
+
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    }
+
+    .stat-icon {
+        position: absolute;
+        left: 15px;
+        top: 15px;
+        font-size: 2rem;
+        opacity: 0.2;
+    }
+
+    .stat-title {
+        color: #6c757d;
+        font-size: 0.8rem;
+        margin-bottom: 5px;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .table-success {
+        background-color: #d4edda !important;
+    }
+
+    .table-danger {
+        background-color: #f8d7da !important;
+    }
+</style>
+{% endblock %}

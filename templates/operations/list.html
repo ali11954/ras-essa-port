@@ -101,6 +101,7 @@
                         <th><i class="fas fa-users"></i> الفرق المنفذة</th>
                         <th><i class="fas fa-box"></i> نوع البضاعة</th>
                         <th><i class="fas fa-weight-hanging"></i> الكمية</th>
+                        <th><i class="fas fa-fingerprint"></i> صلاحيات البصمة</th>
                         <th><i class="fas fa-sticky-note"></i> ملاحظات</th>
                         {% if current_user.is_admin() %}
                         <th><i class="fas fa-cogs"></i> الإجراءات</th>
@@ -156,6 +157,16 @@
                             {% else %}
                                 —
                             {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ url_for('fingerprint_operation_teams', operation_id=op.id) }}"
+                               class="btn btn-sm btn-info"
+                               title="إدارة صلاحيات البصمة للفرق">
+                                <i class="fas fa-fingerprint"></i>
+                                {% if op.team_permissions|length > 0 %}
+                                    <span class="badge bg-success ms-1">{{ op.team_permissions|length }}</span>
+                                {% endif %}
+                            </a>
                         </td>
                         <td>
                             {% if op.notes %}
@@ -225,7 +236,7 @@
             pageLength: 25,
             order: [[3, 'desc']],  // ترتيب حسب تاريخ البدء
             columnDefs: [
-                { orderable: false, targets: [5, 9, 10] }  // أعمدة غير قابلة للترتيب
+                { orderable: false, targets: [5, 9, 10, 11] }  // أعمدة غير قابلة للترتيب
             ]
         });
 
@@ -315,8 +326,12 @@
                             <td>${cells[8].innerText}</td>
                         </tr>
                         <tr>
+                            <th><i class="fas fa-fingerprint text-primary"></i> صلاحيات البصمة:</th>
+                            <td>${cells[9].innerHTML}</td>
+                        </tr>
+                        <tr>
                             <th><i class="fas fa-sticky-note text-primary"></i> ملاحظات:</th>
-                            <td>${cells[9].innerText}</td>
+                            <td>${cells[10].innerText}</td>
                         </tr>
                     </table>
                 </div>

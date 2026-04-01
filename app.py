@@ -9,9 +9,9 @@ import pandas as pd
 from io import BytesIO
 from functools import wraps
 from config import Config
-from forms import LoginForm, EmployeeForm, ShipForm, TeamForm, ReportForm, UserForm, UserEditForm, OperationForm
+from forms import LoginForm, EmployeeForm, ShipForm, TeamForm, ReportForm, UserForm, UserEditForm, OperationForm, BerthForm, FingerprintDeviceForm, EnrollFingerprintForm, AttendanceFilterForm
 from datetime import datetime, timedelta
-from models import db, User, Employee, Team, Ship, Berth, ShipOperation, Report, OperationTeam
+from models import db, User, Employee, Team, Ship, Berth, ShipOperation, Report, OperationTeam, FingerprintDevice, FingerprintEnrollment, AttendanceLog, ShipOperationTeamPermission
 from flask import request  # إذا لم يكن موجوداً
 
 app = Flask(__name__)
@@ -21,6 +21,1347 @@ db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+# ============================================
+# Helper Functions for Permissions (يجب أن تكون قبل استخدامها)
+# ============================================
+
+def admin_required(f):
+    """Decorator to require admin privileges"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            flash('الرجاء تسجيل الدخول أولاً', 'warning')
+            return redirect(url_for('login'))
+        if not current_user.is_admin():
+            flash('ليس لديك صلاحية للوصول إلى هذه الصفحة', 'danger')
+            return redirect(url_for('dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_or_self_required(user_id):
+    """Decorator to require admin privileges or the user themselves"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not current_user.is_authenticated:
+                flash('الرجاء تسجيل الدخول أولاً', 'warning')
+                return redirect(url_for('login'))
+            if not current_user.is_admin() and current_user.id != user_id:
+                flash('ليس لديك صلاحية للوصول إلى هذه الصفحة', 'danger')
+                return redirect(url_for('dashboard'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+# ============================================
+# Context Processors (يجب أن تكون بعد الدوال المساعدة)
+# ============================================
+
+@app.context_processor
+def inject_now():
+    """إتاحة دالة now() في جميع القوالب"""
+    from datetime import datetime
+    return {'now': datetime.now}
+
+@app.context_processor
+def inject_utilities():
+    """إتاحة دوال مساعدة في جميع القوالب"""
+    from datetime import datetime
+
+    def format_date(date, format='%Y-%m-%d'):
+        """تنسيق التاريخ"""
+        if date:
+            return date.strftime(format)
+        return ''
+
+    def format_datetime(date, format='%Y-%m-%d %H:%M'):
+        """تنسيق التاريخ والوقت"""
+        if date:
+            return date.strftime(format)
+        return ''
+
+    def calculate_age(birth_date):
+        """حساب العمر من تاريخ الميلاد"""
+        if birth_date:
+            today = datetime.now().date()
+            age = today.year - birth_date.year
+            if today.month < birth_date.month or (today.month == birth_date.month and today.day < birth_date.day):
+                age -= 1
+            return age
+        return ''
+
+    return {
+        'now': datetime.now,
+        'format_date': format_date,
+        'format_datetime': format_datetime,
+        'calculate_age': calculate_age
+    }
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# Create upload folder if not exists
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+import traceback
+import sys
+import os
+
+# ============================================
+# باقي مسارات التطبيق تبدأ من هنا
+# ============================================
+
+# ... باقي الكود ...
+# أضف هذه المسارات في ملف app.py بعد مسارات العمليات
+
+# ============================================
+# Fingerprint Management Routes (إدارة البصمة)
+# ============================================
+
+@app.route('/fingerprint/devices')
+@login_required
+def fingerprint_devices_list():
+    """عرض أجهزة البصمة"""
+    if not current_user.is_admin():
+        flash('ليس لديك صلاحية للوصول إلى هذه الصفحة', 'danger')
+        return redirect(url_for('dashboard'))
+
+    devices = FingerprintDevice.query.all()
+    return render_template('fingerprint/devices.html', devices=devices)
+
+
+@app.route('/fingerprint/devices/add', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def fingerprint_device_add():
+    """إضافة جهاز بصمة جديد"""
+    form = FingerprintDeviceForm()
+
+    # تعيين خيارات الأرصفة
+    berths = Berth.query.all()
+    form.berth_id.choices = [(0, 'غير مرتبط برصيف')] + [(b.id, f'رصيف {b.number}') for b in berths]
+
+    if form.validate_on_submit():
+        device = FingerprintDevice(
+            device_name=form.device_name.data,
+            device_ip=form.device_ip.data,
+            device_port=form.device_port.data,
+            device_type=form.device_type.data,
+            berth_id=form.berth_id.data if form.berth_id.data != 0 else None,
+            is_active=form.is_active.data
+        )
+        db.session.add(device)
+        db.session.commit()
+        flash(f'✅ تم إضافة جهاز "{device.device_name}" بنجاح', 'success')
+        return redirect(url_for('fingerprint_devices_list'))
+
+    return render_template('fingerprint/device_add.html', form=form)
+
+
+@app.route('/fingerprint/devices/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def fingerprint_device_edit(id):
+    """تعديل جهاز بصمة"""
+    device = FingerprintDevice.query.get_or_404(id)
+    form = FingerprintDeviceForm(obj=device)
+
+    berths = Berth.query.all()
+    form.berth_id.choices = [(0, 'غير مرتبط برصيف')] + [(b.id, f'رصيف {b.number}') for b in berths]
+
+    if form.validate_on_submit():
+        device.device_name = form.device_name.data
+        device.device_ip = form.device_ip.data
+        device.device_port = form.device_port.data
+        device.device_type = form.device_type.data
+        device.berth_id = form.berth_id.data if form.berth_id.data != 0 else None
+        device.is_active = form.is_active.data
+
+        db.session.commit()
+        flash(f'✅ تم تحديث جهاز "{device.device_name}" بنجاح', 'success')
+        return redirect(url_for('fingerprint_devices_list'))
+
+    return render_template('fingerprint/device_edit.html', form=form, device=device)
+
+
+@app.route('/fingerprint/devices/delete/<int:id>')
+@login_required
+@admin_required
+def fingerprint_device_delete(id):
+    """حذف جهاز بصمة"""
+    device = FingerprintDevice.query.get_or_404(id)
+
+    # التحقق من وجود تسجيلات بصمة
+    enrollments_count = FingerprintEnrollment.query.filter_by(device_id=id).count()
+    if enrollments_count > 0:
+        flash(f'❌ لا يمكن حذف الجهاز لوجود {enrollments_count} بصمة مسجلة', 'danger')
+        return redirect(url_for('fingerprint_devices_list'))
+
+    db.session.delete(device)
+    db.session.commit()
+    flash(f'✅ تم حذف جهاز "{device.device_name}" بنجاح', 'success')
+    return redirect(url_for('fingerprint_devices_list'))
+
+
+@app.route('/fingerprint/enroll')
+@login_required
+@admin_required
+def fingerprint_enroll_list():
+    """عرض تسجيلات البصمة"""
+    enrollments = FingerprintEnrollment.query.all()
+    return render_template('fingerprint/enrollments.html', enrollments=enrollments)
+
+
+
+@app.route('/fingerprint/attendance')
+@login_required
+def fingerprint_attendance_list():
+    """عرض سجلات الحضور"""
+    form = AttendanceFilterForm()
+
+    # تعيين خيارات الفلترة
+    employees = Employee.query.all()
+    form.employee_id.choices = [(0, 'الكل')] + [(e.id, e.name) for e in employees]
+
+    operations = ShipOperation.query.all()
+    form.operation_id.choices = [(0, 'الكل')] + [(op.id, f'{op.ship.name} - {op.operation_type}') for op in operations]
+
+    # بناء الاستعلام
+    query = AttendanceLog.query
+
+    if form.date_from.data:
+        query = query.filter(AttendanceLog.timestamp >= form.date_from.data)
+    if form.date_to.data:
+        query = query.filter(AttendanceLog.timestamp <= form.date_to.data + timedelta(days=1))
+    if form.employee_id.data and form.employee_id.data != 0:
+        query = query.filter(AttendanceLog.employee_id == form.employee_id.data)
+    if form.operation_id.data and form.operation_id.data != 0:
+        query = query.filter(AttendanceLog.operation_id == form.operation_id.data)
+    if form.status.data:
+        query = query.filter(AttendanceLog.status == form.status.data)
+
+    logs = query.order_by(AttendanceLog.timestamp.desc()).all()
+
+    # إحصائيات
+    stats = {
+        'total': len(logs),
+        'success': len([l for l in logs if l.status == 'success']),
+        'denied': len([l for l in logs if l.status == 'denied']),
+        'error': len([l for l in logs if l.status == 'error']),
+        'today': len([l for l in logs if l.timestamp.date() == datetime.now().date()])
+    }
+
+    return render_template('fingerprint/attendance.html', logs=logs, stats=stats, form=form)
+
+
+@app.route('/api/fingerprint/verify', methods=['POST'])
+@login_required
+def fingerprint_verify_api():
+    """API للتحقق من البصمة (يتم استدعاؤها من جهاز البصمة)"""
+    data = request.get_json()
+
+    # بيانات من الجهاز
+    device_id = data.get('device_id')
+    fingerprint_data = data.get('fingerprint_data')
+    timestamp = datetime.fromisoformat(data.get('timestamp', datetime.now().isoformat()))
+
+    device = FingerprintDevice.query.get(device_id)
+    if not device or not device.is_active:
+        return jsonify({'success': False, 'error': 'جهاز غير معروف أو غير نشط'}), 401
+
+    # البحث عن الموظف الذي تطابق بصمته
+    enrollment = FingerprintEnrollment.query.filter_by(
+        device_id=device_id,
+        fingerprint_template=fingerprint_data
+    ).first()
+
+    if not enrollment:
+        # تسجيل محاولة فاشلة
+        log = AttendanceLog(
+            employee_id=None,
+            device_id=device_id,
+            timestamp=timestamp,
+            attendance_type='check_in',
+            status='denied',
+            reason='بصمة غير مسجلة',
+            fingerprint_data=fingerprint_data
+        )
+        db.session.add(log)
+        db.session.commit()
+        return jsonify({'success': False, 'error': 'بصمة غير معروفة'}), 403
+
+    employee = enrollment.employee
+
+    # التحقق من أن الموظف نشط
+    if not employee.is_active:
+        log = AttendanceLog(
+            employee_id=employee.id,
+            device_id=device_id,
+            timestamp=timestamp,
+            attendance_type='check_in',
+            status='denied',
+            reason='الموظف غير نشط',
+            fingerprint_data=fingerprint_data
+        )
+        db.session.add(log)
+        db.session.commit()
+        return jsonify({'success': False, 'error': 'الموظف غير نشط'}), 403
+
+    # التحقق من وجود عملية نشطة على هذا الرصيف
+    current_operation = None
+    if device.berth_id:
+        # البحث عن عملية نشطة على هذا الرصيف
+        current_operation = ShipOperation.query.filter(
+            ShipOperation.ship.has(berth_number=device.berth.number),
+            ShipOperation.end_time == None
+        ).first()
+
+    # التحقق من صلاحية الفريق للعمل على هذه العملية
+    if current_operation:
+        # التحقق من أن الموظف ينتمي لفريق
+        if employee.team:
+            # التحقق من أن الفريق مصرح له بالعمل
+            permission = ShipOperationTeamPermission.query.filter_by(
+                operation_id=current_operation.id,
+                team_id=employee.team.id,
+                is_allowed=True
+            ).first()
+
+            if not permission:
+                log = AttendanceLog(
+                    employee_id=employee.id,
+                    device_id=device_id,
+                    operation_id=current_operation.id,
+                    timestamp=timestamp,
+                    attendance_type='check_in',
+                    status='denied',
+                    reason=f'الفريق {employee.team.name} غير مصرح له بالعمل على هذه السفينة',
+                    fingerprint_data=fingerprint_data
+                )
+                db.session.add(log)
+                db.session.commit()
+                return jsonify({'success': False, 'error': 'فريقك غير مصرح له بالعمل على هذه السفينة'}), 403
+        else:
+            log = AttendanceLog(
+                employee_id=employee.id,
+                device_id=device_id,
+                operation_id=current_operation.id,
+                timestamp=timestamp,
+                attendance_type='check_in',
+                status='denied',
+                reason='الموظف لا ينتمي لأي فريق',
+                fingerprint_data=fingerprint_data
+            )
+            db.session.add(log)
+            db.session.commit()
+            return jsonify({'success': False, 'error': 'أنت لا تنتمي لأي فريق'}), 403
+
+    # تسجيل الحضور الناجح
+    log = AttendanceLog(
+        employee_id=employee.id,
+        device_id=device_id,
+        operation_id=current_operation.id if current_operation else None,
+        timestamp=timestamp,
+        attendance_type='check_in',
+        status='success',
+        fingerprint_data=fingerprint_data
+    )
+    db.session.add(log)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'employee': {
+            'id': employee.id,
+            'name': employee.name,
+            'team': employee.team.name if employee.team else None,
+            'profession': employee.profession
+        },
+        'operation': {
+            'id': current_operation.id,
+            'ship_name': current_operation.ship.name,
+            'berth': current_operation.ship.berth_number
+        } if current_operation else None
+    })
+
+
+@app.route('/api/fingerprint/enroll', methods=['POST'])
+def fingerprint_enroll_from_device():
+    """استقبال تسجيل بصمة جديدة من جهاز البصمة الفعلي"""
+    import json
+
+    # تسجيل الطلب للتشخيص
+    with open('fingerprint_enroll_log.txt', 'a', encoding='utf-8') as f:
+        f.write(f"\n{'=' * 50}\n")
+        f.write(f"الوقت: {datetime.now()}\n")
+        f.write(f"البيانات: {request.get_data(as_text=True)}\n")
+
+    try:
+        # قراءة البيانات
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+
+        # استخراج البيانات
+        device_id = data.get('device_id')
+        employee_code = data.get('employee_code')
+        fingerprint_data = data.get('fingerprint_data')
+        finger_index = data.get('finger_index', 1)
+
+        # البحث عن الجهاز
+        device = None
+        if device_id:
+            device = FingerprintDevice.query.get(device_id)
+
+        if not device:
+            device = FingerprintDevice.query.first()
+
+        if not device:
+            return jsonify({'success': False, 'error': 'لا توجد أجهزة بصمة في النظام'}), 401
+
+        # البحث عن الموظف
+        employee = None
+        if employee_code:
+            employee = Employee.query.filter_by(employee_code=employee_code, is_active=True).first()
+
+        if not employee:
+            return jsonify({
+                'success': False,
+                'error': f'موظف بالكود {employee_code} غير موجود في النظام'
+            }), 404
+
+        # التحقق من عدم وجود تسجيل مسبق
+        existing = FingerprintEnrollment.query.filter_by(
+            employee_id=employee.id,
+            device_id=device.id,
+            fingerprint_index=finger_index
+        ).first()
+
+        if existing:
+            return jsonify({
+                'success': False,
+                'error': f'بصمة {get_finger_name(finger_index)} للموظف {employee.name} مسجلة مسبقاً'
+            }), 409
+
+        # تسجيل البصمة في قاعدة البيانات
+        enrollment = FingerprintEnrollment(
+            employee_id=employee.id,
+            device_id=device.id,
+            fingerprint_template=fingerprint_data,
+            fingerprint_index=finger_index,
+            is_active=True
+        )
+        db.session.add(enrollment)
+        db.session.commit()
+
+        with open('fingerprint_enroll_log.txt', 'a', encoding='utf-8') as f:
+            f.write(f"✅ تم تسجيل بصمة {get_finger_name(finger_index)} للموظف {employee.name}\n")
+
+        return jsonify({
+            'success': True,
+            'message': f'تم تسجيل بصمة {get_finger_name(finger_index)} للموظف {employee.name}',
+            'employee': {
+                'id': employee.id,
+                'name': employee.name,
+                'code': employee.employee_code
+            },
+            'enrollment_id': enrollment.id
+        })
+
+    except Exception as e:
+        import traceback
+        with open('fingerprint_enroll_log.txt', 'a', encoding='utf-8') as f:
+            f.write(f"❌ خطأ: {traceback.format_exc()}\n")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/test-enroll-from-device', methods=['GET', 'POST'])
+def test_enroll_from_device():
+    """اختبار تسجيل بصمة من جهاز البصمة"""
+    if request.method == 'POST':
+        try:
+            device_id = int(request.form.get('device_id', 1))
+            employee_code = request.form.get('employee_code', '3456')
+            finger_index = int(request.form.get('finger_index', 1))
+
+            test_data = {
+                'device_id': device_id,
+                'employee_code': employee_code,
+                'fingerprint_data': f'template_{employee_code}_{finger_index}_{datetime.now().strftime("%H%M%S")}',
+                'finger_index': finger_index
+            }
+
+            # استدعاء API التسجيل
+            with app.test_client() as client:
+                response = client.post('/api/fingerprint/enroll',
+                                       json=test_data,
+                                       headers={'Content-Type': 'application/json'})
+                response_data = response.get_json()
+                status_code = response.status_code
+
+            return f"""
+            <html dir="rtl">
+                <head>
+                    <style>
+                        body {{ font-family: Arial; padding: 20px; direction: rtl; background: #f5f7fa; }}
+                        .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; }}
+                        .success {{ color: green; }}
+                        .error {{ color: red; }}
+                        pre {{ background: #f0f0f0; padding: 10px; border-radius: 5px; }}
+                        .btn {{ display: inline-block; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 5px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h2>🔬 نتيجة تسجيل بصمة من جهاز البصمة</h2>
+
+                        <h4>📤 البيانات المرسلة:</h4>
+                        <pre>{json.dumps(test_data, indent=2, ensure_ascii=False)}</pre>
+
+                        <h4>📥 الرد من الخادم:</h4>
+                        <pre>حالة HTTP: {status_code}</pre>
+                        <pre>{json.dumps(response_data, indent=2, ensure_ascii=False)}</pre>
+
+                        <div class="alert alert-{'success' if response_data and response_data.get('success') else 'danger'}">
+                            {'✅ تم تسجيل البصمة بنجاح!' if response_data and response_data.get('success') else '❌ فشل التسجيل: ' + (response_data.get('error', 'خطأ غير معروف') if response_data else 'لا توجد استجابة')}
+                        </div>
+
+                        <hr>
+                        <a href="/test-enroll-from-device" class="btn">🔙 العودة للاختبار</a>
+                        <a href="/fingerprint/enroll" class="btn">📋 عرض تسجيلات البصمة</a>
+                    </div>
+                </body>
+            </html>
+            """
+        except Exception as e:
+            return f"<h1 style='color:red'>خطأ: {str(e)}</h1>"
+
+    # عرض نموذج الاختبار
+    devices = FingerprintDevice.query.all()
+    employees = Employee.query.filter(Employee.employee_code.isnot(None)).all()
+
+    device_options = ''.join([f'<option value="{d.id}">{d.device_name} (ID: {d.id})</option>' for d in devices])
+    employee_options = ''.join(
+        [f'<option value="{e.employee_code}">{e.name} - كود: {e.employee_code}</option>' for e in employees])
+
+    return f"""
+    <html dir="rtl">
+        <head>
+            <style>
+                body {{ font-family: Arial; padding: 20px; direction: rtl; background: #f5f7fa; }}
+                .container {{ max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; }}
+                input, select {{ width: 100%; padding: 8px; margin: 5px 0 15px; border: 1px solid #ddd; border-radius: 5px; }}
+                button {{ background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }}
+                .info {{ background: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h2>🔬 اختبار تسجيل بصمة من جهاز البصمة</h2>
+                <p>محاكاة لما يرسله جهاز البصمة عند تسجيل بصمة جديدة</p>
+
+                <form method="POST">
+                    <label>📟 معرف الجهاز:</label>
+                    <select name="device_id">
+                        {device_options}
+                    </select>
+
+                    <label>👤 كود الموظف:</label>
+                    <select name="employee_code">
+                        {employee_options}
+                    </select>
+
+                    <label>🖐️ رقم الإصبع:</label>
+                    <select name="finger_index">
+                        <option value="1">الإبهام</option>
+                        <option value="2">السبابة</option>
+                        <option value="3">الوسطى</option>
+                        <option value="4">البنصر</option>
+                        <option value="5">الخنصر</option>
+                    </select>
+
+                    <button type="submit">🚀 محاكاة تسجيل بصمة</button>
+                </form>
+
+                <div class="info">
+                    <strong>📌 ملاحظات:</strong>
+                    <ul>
+                        <li>هذا الاختبار يحاكي ما يرسله جهاز البصمة عند تسجيل بصمة جديدة</li>
+                        <li>يجب أن يكون الموظف موجوداً في النظام وله <code>employee_code</code></li>
+                        <li>بعد التسجيل، ستظهر البصمة في صفحة <a href="/fingerprint/enroll">تسجيلات البصمة</a></li>
+                    </ul>
+                </div>
+
+                <hr>
+                <a href="/fingerprint/enroll">📋 عرض تسجيلات البصمة</a>
+                <a href="/fingerprint/diagnose">🔍 تشخيص النظام</a>
+            </div>
+        </body>
+    </html>
+    """
+
+
+from zk import ZK
+from datetime import datetime, timedelta
+
+
+def fetch_fingerprint_from_device(device_ip, device_port=4370, timeout=30):
+    """
+    جلب بيانات البصمة من جهاز مباشرة - مثل النظام الثاني
+    """
+    try:
+        zk = ZK(device_ip, port=device_port, timeout=timeout)
+        conn = zk.connect()
+        conn.disable_device()
+
+        attendance = conn.get_attendance()
+
+        conn.enable_device()
+        conn.disconnect()
+
+        return attendance
+    except Exception as e:
+        print(f"❌ خطأ في الاتصال بالجهاز {device_ip}: {e}")
+        return []
+
+
+def sync_fingerprint_from_devices(start_date=None, end_date=None):
+    """
+    مزامنة البصمات من جميع الأجهزة - مثل النظام الثاني
+    """
+    devices = FingerprintDeviceConfig.query.filter_by(enabled=True).all()
+
+    if not start_date:
+        start_date = datetime.now().date()
+    if not end_date:
+        end_date = datetime.now().date()
+
+    all_records = []
+
+    for device in devices:
+        print(f"🔌 الاتصال بجهاز: {device.name} ({device.ip})")
+
+        attendance = fetch_fingerprint_from_device(device.ip, device.port, device.timeout)
+
+        for att in attendance:
+            att_date = att.timestamp.date()
+
+            # فلترة حسب التاريخ
+            if start_date <= att_date <= end_date:
+                all_records.append({
+                    'employee_code': str(att.user_id),
+                    'timestamp': att.timestamp,
+                    'device_id': device.id,
+                    'device_name': device.name,
+                    'check_in': att.timestamp.strftime('%H:%M'),
+                    'check_out': None
+                })
+
+    return merge_attendance_records(all_records)
+
+
+def merge_attendance_records(records):
+    """
+    دمج سجلات الدخول والخروج - مثل النظام الثاني
+    """
+    merged = {}
+
+    for rec in records:
+        emp_code = rec['employee_code']
+        date_key = rec['timestamp'].strftime('%Y-%m-%d')
+        key = (emp_code, date_key)
+
+        if key not in merged:
+            merged[key] = {
+                'employee_code': emp_code,
+                'date': rec['timestamp'].date(),
+                'check_in': rec['check_in'],
+                'check_out': rec['check_out'],
+                'device_name': rec.get('device_name', 'غير معروف')
+            }
+        else:
+            # تحديث وقت الخروج
+            if rec['check_in'] > merged[key]['check_in']:
+                merged[key]['check_out'] = rec['check_in']
+
+    return list(merged.values())
+
+
+@app.route('/fingerprint/sync')
+@login_required
+@admin_required
+def fingerprint_sync():
+    """مزامنة البصمات من الأجهزة مباشرة - مثل النظام الثاني"""
+    try:
+        # جلب الأجهزة من التكوين الجديد
+        devices = FingerprintDeviceConfig.query.filter_by(enabled=True).all()
+
+        if not devices:
+            flash('❌ لا توجد أجهزة بصمة مفعلة', 'danger')
+            return redirect(url_for('fingerprint_devices_list'))
+
+        # مزامنة البيانات من الأجهزة
+        records = sync_fingerprint_from_devices()
+
+        saved_count = 0
+        for rec in records:
+            # البحث عن الموظف
+            employee = Employee.query.filter_by(employee_code=rec['employee_code']).first()
+
+            if employee:
+                # تسجيل الحضور في AttendanceLog
+                log = AttendanceLog(
+                    employee_id=employee.id,
+                    device_id=1,  # معرف افتراضي
+                    timestamp=datetime.combine(rec['date'], datetime.strptime(rec['check_in'], '%H:%M').time()),
+                    attendance_type='check_in',
+                    status='success',
+                    reason='مزامنة من جهاز البصمة'
+                )
+                db.session.add(log)
+                saved_count += 1
+
+        db.session.commit()
+
+        flash(f'✅ تم مزامنة {saved_count} سجل حضور من الأجهزة', 'success')
+
+    except Exception as e:
+        flash(f'❌ خطأ في المزامنة: {str(e)}', 'danger')
+
+    return redirect(url_for('fingerprint_attendance_list'))
+
+
+@app.route('/fingerprint/sync-all')
+@login_required
+@admin_required
+def fingerprint_sync_all():
+    """مزامنة جميع البيانات مع عرض النتائج - مثل النظام الثاني"""
+    devices = FingerprintDeviceConfig.query.filter_by(enabled=True).all()
+    results = []
+
+    for device in devices:
+        try:
+            attendance = fetch_fingerprint_from_device(device.ip, device.port, device.timeout)
+
+            results.append({
+                'device_name': device.name,
+                'device_ip': device.ip,
+                'status': 'success',
+                'records_count': len(attendance)
+            })
+
+        except Exception as e:
+            results.append({
+                'device_name': device.name,
+                'device_ip': device.ip,
+                'status': 'error',
+                'error': str(e)
+            })
+
+    return render_template('fingerprint/sync_results.html', results=results)
+
+@app.route('/fingerprint/operations')
+@login_required
+@admin_required
+def fingerprint_operation_teams_list():
+    """عرض قائمة العمليات لإدارة صلاحيات البصمة"""
+    operations = ShipOperation.query.order_by(ShipOperation.start_time.desc()).all()
+
+    # تجهيز بيانات العمليات مع معلومات الصلاحيات
+    operations_data = []
+    for op in operations:
+        allowed_teams = [p.team_id for p in op.team_permissions]
+        operations_data.append({
+            'operation': op,
+            'allowed_teams': allowed_teams,
+            'allowed_teams_count': len(allowed_teams),
+            'ship_name': op.ship.name if op.ship else '—',
+            'is_active': op.end_time is None
+        })
+
+    return render_template('fingerprint/operations_list.html',
+                           operations=operations_data)
+
+
+@app.route('/fingerprint/operations/<int:operation_id>/teams', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def fingerprint_operation_teams(operation_id):
+    """إدارة الفرق المسموح لها بالعمل على عملية معينة"""
+    # التحقق من وجود العملية
+    operation = ShipOperation.query.get(operation_id)
+    if not operation:
+        flash('⚠️ العملية غير موجودة', 'warning')
+        return redirect(url_for('fingerprint_operation_teams_list'))
+
+    if request.method == 'POST':
+        # تحديث الصلاحيات
+        team_ids = request.form.getlist('team_ids')
+
+        # حذف الصلاحيات القديمة
+        ShipOperationTeamPermission.query.filter_by(operation_id=operation_id).delete()
+
+        # إضافة الصلاحيات الجديدة
+        for team_id in team_ids:
+            if team_id and team_id.isdigit():
+                permission = ShipOperationTeamPermission(
+                    operation_id=operation_id,
+                    team_id=int(team_id),
+                    granted_by=current_user.id
+                )
+                db.session.add(permission)
+
+        db.session.commit()
+        flash(f'✅ تم تحديث الفرق المسموح لها بالعمل على عملية {operation.id}', 'success')
+        return redirect(url_for('fingerprint_operation_teams', operation_id=operation_id))
+
+    # عرض الصلاحيات الحالية
+    all_teams = Team.query.filter_by(is_active=True).all()
+    allowed_teams = [p.team_id for p in operation.team_permissions]
+
+    return render_template('fingerprint/operation_teams.html',
+                           operation=operation,
+                           all_teams=all_teams,
+                           allowed_teams=allowed_teams)
+
+# دوال مساعدة للاتصال بأجهزة البصمة
+def enroll_fingerprint_to_device(device_id, employee_id, finger_index):
+    """تسجيل بصمة على جهاز فعلي"""
+    # هذه دالة محاكاة - في التطبيق الفعلي ستتصل بالجهاز عبر SDK
+    device = FingerprintDevice.query.get(device_id)
+
+    # محاكاة الاتصال بالجهاز
+    if device and device.is_active:
+        # هنا يتم الاتصال الفعلي بجهاز البصمة
+        return {
+            'success': True,
+            'template': f'TEMPLATE_{employee_id}_{finger_index}'
+        }
+    else:
+        return {
+            'success': False,
+            'error': 'الجهاز غير متاح'
+        }
+
+
+def delete_fingerprint_from_device(device_id, employee_id, finger_index):
+    """حذف بصمة من جهاز فعلي"""
+    # دالة محاكاة
+    return {'success': True}
+
+
+def get_finger_name(index):
+    """الحصول على اسم الإصبع بالعربية"""
+    fingers = {
+        1: 'الإبهام',
+        2: 'السبابة',
+        3: 'الوسطى',
+        4: 'البنصر',
+        5: 'الخنصر'
+    }
+    return fingers.get(index, f'إصبع {index}')
+
+
+# أضف هذه الدالة بعد دوال البصمة المساعدة
+
+def check_device_connection(device_id):
+    """التحقق من اتصال جهاز البصمة بالشبكة"""
+    device = FingerprintDevice.query.get(device_id)
+
+    if not device:
+        return {
+            'connected': False,
+            'error': 'الجهاز غير موجود في قاعدة البيانات',
+            'status': 'not_found'
+        }
+
+    if not device.is_active:
+        return {
+            'connected': False,
+            'error': 'الجهاز غير نشط في النظام',
+            'status': 'inactive'
+        }
+
+    if not device.device_ip:
+        return {
+            'connected': False,
+            'error': 'لم يتم تعيين عنوان IP للجهاز',
+            'status': 'no_ip'
+        }
+
+    # محاولة الاتصال بالجهاز عبر ping أو HTTP
+    import subprocess
+    import platform
+    import socket
+
+    try:
+        # طريقة 1: محاولة ping
+        param = '-n' if platform.system().lower() == 'windows' else '-c'
+        result = subprocess.run(['ping', param, '1', device.device_ip],
+                                capture_output=True,
+                                timeout=5)
+
+        if result.returncode == 0:
+            # ping ناجح
+            return {
+                'connected': True,
+                'status': 'online',
+                'ip': device.device_ip,
+                'port': device.device_port,
+                'method': 'ping'
+            }
+
+        # طريقة 2: محاولة اتصال TCP على المنفذ
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(3)
+        result = sock.connect_ex((device.device_ip, device.device_port))
+        sock.close()
+
+        if result == 0:
+            return {
+                'connected': True,
+                'status': 'online',
+                'ip': device.device_ip,
+                'port': device.device_port,
+                'method': 'tcp'
+            }
+
+        return {
+            'connected': False,
+            'error': f'لا يمكن الاتصال بالجهاز {device.device_ip}:{device.device_port}',
+            'status': 'offline'
+        }
+
+    except subprocess.TimeoutExpired:
+        return {
+            'connected': False,
+            'error': 'انتهت مهلة الاتصال بالجهاز',
+            'status': 'timeout'
+        }
+    except Exception as e:
+        return {
+            'connected': False,
+            'error': f'خطأ في الاتصال: {str(e)}',
+            'status': 'error'
+        }
+
+
+def get_device_status(device_id):
+    """الحصول على حالة الجهاز بشكل مفصل"""
+    connection = check_device_connection(device_id)
+
+    device = FingerprintDevice.query.get(device_id)
+
+    # حساب عدد البصمات المسجلة
+    enrollments_count = FingerprintEnrollment.query.filter_by(
+        device_id=device_id,
+        is_active=True
+    ).count()
+
+    # آخر تسجيل حضور
+    last_attendance = AttendanceLog.query.filter_by(
+        device_id=device_id
+    ).order_by(AttendanceLog.timestamp.desc()).first()
+
+    return {
+        'connection': connection,
+        'device': {
+            'id': device.id,
+            'name': device.device_name,
+            'ip': device.device_ip,
+            'port': device.device_port,
+            'type': device.device_type,
+            'berth': device.berth.number if device.berth else None,
+            'is_active': device.is_active
+        },
+        'statistics': {
+            'enrollments_count': enrollments_count,
+            'last_attendance': last_attendance.timestamp.strftime('%Y-%m-%d %H:%M:%S') if last_attendance else None,
+            'total_attendance': AttendanceLog.query.filter_by(device_id=device_id).count()
+        }
+    }
+
+
+# إضافة مسار API للتحقق من حالة الجهاز
+@app.route('/api/fingerprint/device/<int:device_id>/status')
+@login_required
+def api_device_status(device_id):
+    """API للتحقق من حالة جهاز البصمة"""
+    if not current_user.is_admin():
+        return jsonify({'error': 'غير مصرح'}), 403
+
+    status = get_device_status(device_id)
+    return jsonify(status)
+
+
+# إضافة مسار لعرض حالة جميع الأجهزة
+@app.route('/fingerprint/devices/status')
+@login_required
+def fingerprint_devices_status():
+    """عرض حالة جميع أجهزة البصمة"""
+    if not current_user.is_admin():
+        flash('ليس لديك صلاحية للوصول إلى هذه الصفحة', 'danger')
+        return redirect(url_for('dashboard'))
+
+    devices = FingerprintDevice.query.all()
+    devices_status = []
+
+    for device in devices:
+        status = get_device_status(device.id)
+        devices_status.append(status)
+
+    return render_template('fingerprint/devices_status.html', devices_status=devices_status)
+
+
+
+# تحديث دالة تسجيل البصمة لتشمل التحقق من الاتصال
+@app.route('/fingerprint/enroll/add', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def fingerprint_enroll_add():
+    """تسجيل بصمة جديدة مع التحقق من اتصال الجهاز"""
+    form = EnrollFingerprintForm()
+
+    # تعيين خيارات الموظفين
+    employees = Employee.query.filter_by(is_active=True).all()
+    form.employee_id.choices = [(e.id, f'{e.name} ({e.national_id})') for e in employees]
+
+    # تعيين خيارات الأجهزة
+    devices = FingerprintDevice.query.filter_by(is_active=True).all()
+    form.device_id.choices = [(d.id, d.device_name) for d in devices]
+
+    if form.validate_on_submit():
+        # التحقق من اتصال الجهاز قبل محاولة التسجيل
+        device_check = check_device_connection(form.device_id.data)
+
+        if not device_check['connected']:
+            flash(f'❌ لا يمكن الاتصال بالجهاز: {device_check["error"]}', 'danger')
+            return render_template('fingerprint/enroll_add.html', form=form)
+
+        # التحقق من عدم وجود تسجيل مسبق
+        existing = FingerprintEnrollment.query.filter_by(
+            employee_id=form.employee_id.data,
+            device_id=form.device_id.data,
+            fingerprint_index=form.finger_index.data
+        ).first()
+
+        if existing:
+            flash('⚠️ هذا الموظف مسجل بنفس الإصبع على هذا الجهاز مسبقاً', 'warning')
+            return render_template('fingerprint/enroll_add.html', form=form)
+
+        try:
+            # استدعاء دالة الاتصال بالجهاز
+            result = enroll_fingerprint_to_device(
+                device_id=form.device_id.data,
+                employee_id=form.employee_id.data,
+                finger_index=form.finger_index.data
+            )
+
+            if result['success']:
+                enrollment = FingerprintEnrollment(
+                    employee_id=form.employee_id.data,
+                    device_id=form.device_id.data,
+                    fingerprint_template=result['template'],
+                    fingerprint_index=form.finger_index.data,
+                    is_active=True
+                )
+                db.session.add(enrollment)
+                db.session.commit()
+
+                employee = Employee.query.get(form.employee_id.data)
+                flash(f'✅ تم تسجيل بصمة {get_finger_name(form.finger_index.data)} للموظف {employee.name}', 'success')
+            else:
+                flash(f'❌ فشل تسجيل البصمة: {result["error"]}', 'danger')
+
+        except Exception as e:
+            flash(f'❌ خطأ في الاتصال بالجهاز: {str(e)}', 'danger')
+
+        return redirect(url_for('fingerprint_enroll_list'))
+
+    return render_template('fingerprint/enroll_add.html', form=form)
+
+
+@app.route('/fingerprint/enroll/delete/<int:id>')
+@login_required
+@admin_required
+def fingerprint_enroll_delete(id):
+    """حذف تسجيل بصمة"""
+    enrollment = FingerprintEnrollment.query.get_or_404(id)
+
+    # حفظ معلومات للتأكيد
+    employee_name = enrollment.employee.name
+    device_name = enrollment.device.device_name
+    finger_name = get_finger_name(enrollment.fingerprint_index)
+
+    try:
+        # محاولة حذف البصمة من الجهاز الفعلي
+        result = delete_fingerprint_from_device(
+            device_id=enrollment.device_id,
+            employee_id=enrollment.employee_id,
+            finger_index=enrollment.fingerprint_index
+        )
+
+        # حذف من قاعدة البيانات
+        db.session.delete(enrollment)
+        db.session.commit()
+
+        if result['success']:
+            flash(f'✅ تم حذف بصمة {finger_name} للموظف {employee_name} من الجهاز {device_name}', 'success')
+        else:
+            flash(f'⚠️ تم حذف البصمة من قاعدة البيانات لكن فشل الحذف من الجهاز: {result["error"]}', 'warning')
+
+    except Exception as e:
+        # حتى لو فشل الاتصال بالجهاز، نحذف من قاعدة البيانات
+        db.session.delete(enrollment)
+        db.session.commit()
+        flash(f'⚠️ تم حذف البصمة من قاعدة البيانات مع خطأ في الاتصال بالجهاز: {str(e)}', 'warning')
+
+    return redirect(url_for('fingerprint_enroll_list'))
+
+
+@app.route('/fingerprint/enroll/delete-multiple', methods=['POST'])
+@login_required
+@admin_required
+def fingerprint_enroll_delete_multiple():
+    """حذف عدة تسجيلات بصمة"""
+    try:
+        data = request.get_json()
+        ids = data.get('ids', [])
+
+        deleted_count = 0
+        for id in ids:
+            enrollment = FingerprintEnrollment.query.get(id)
+            if enrollment:
+                db.session.delete(enrollment)
+                deleted_count += 1
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'deleted': deleted_count
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/fingerprint/enroll/delete-all', methods=['POST'])
+@login_required
+@admin_required
+def fingerprint_enroll_delete_all():
+    """حذف جميع تسجيلات البصمة"""
+    try:
+        count = FingerprintEnrollment.query.count()
+        FingerprintEnrollment.query.delete()
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'deleted': count
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+def generate_employee_code():
+    """توليد كود موظف فريد"""
+    # البحث عن أكبر كود موجود
+    last_employee = Employee.query.order_by(Employee.id.desc()).first()
+
+    if last_employee and last_employee.employee_code:
+        # استخراج الرقم من الكود
+        try:
+            code_num = int(last_employee.employee_code)
+            new_num = code_num + 1
+        except:
+            new_num = 100001
+    else:
+        # أول موظف يبدأ من 100001
+        new_num = 100001
+
+    # التأكد من عدم التكرار
+    while True:
+        code = str(new_num)
+        existing = Employee.query.filter_by(employee_code=code).first()
+        if not existing:
+            break
+        new_num += 1
+
+    return code
+
+# app.py - إضافة مسار لإضافة موظف تجريبي
+# app.py - تحديث مسار إضافة الموظف التجريبي
+
+@app.route('/add-test-employee')
+def add_test_employee():
+    """إضافة موظف تجريبي للاختبار بكود 3456"""
+    try:
+        # التحقق من عدم وجود الموظف مسبقاً
+        existing = Employee.query.filter_by(employee_code='3456').first()
+        if existing:
+            return f"""
+            <html dir="rtl">
+                <head>
+                    <style>
+                        body {{ font-family: Arial; padding: 40px; background: #f5f7fa; text-align: center; }}
+                        .warning {{ color: #ffc107; font-size: 24px; }}
+                        .card {{ background: white; padding: 30px; border-radius: 15px; max-width: 500px; margin: 0 auto; }}
+                        .btn {{ display: inline-block; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 10px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="card">
+                        <h2 class="warning">⚠️ الموظف موجود مسبقاً</h2>
+                        <p><strong>الكود:</strong> <span style="font-size: 24px; font-weight: bold;">{existing.employee_code}</span></p>
+                        <p><strong>الاسم:</strong> {existing.name}</p>
+                        <p><strong>الرقم الوطني:</strong> {existing.national_id}</p>
+                        <a href="/employees" class="btn">عرض الموظفين</a>
+                    </div>
+                </body>
+            </html>
+            """
+
+        # التحقق من عدم وجود كود 3456
+        code_exists = Employee.query.filter_by(employee_code='3456').first()
+        if code_exists:
+            return f"""
+            <html dir="rtl">
+                <body>
+                    <h1>⚠️ الكود 3456 مستخدم من قبل موظف آخر</h1>
+                    <a href="/employees">عرض الموظفين</a>
+                </body>
+            </html>
+            """
+
+        # إنشاء الموظف التجريبي بالكود 3456
+        test_employee = Employee(
+            employee_code='3456',  # الكود المطلوب
+            name='علي أحمد علي مبارك',
+            national_id='34567890123456',
+            birth_place='عدن',
+            current_address='المعلا - عدن',
+            birth_date=datetime(1985, 5, 15).date(),
+            profession='عامل',
+            team_id=None,
+            phone='777123456',
+            hire_date=datetime.now().date(),
+            is_active=True
+        )
+
+        db.session.add(test_employee)
+        db.session.commit()
+
+        return f"""
+        <html dir="rtl">
+            <head>
+                <style>
+                    body {{ font-family: Arial; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; margin: 0; }}
+                    .card {{ background: white; padding: 40px; border-radius: 20px; max-width: 600px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }}
+                    .success {{ color: #28a745; font-size: 28px; margin-bottom: 20px; }}
+                    .employee-code {{ background: #667eea; color: white; padding: 15px; border-radius: 10px; text-align: center; margin: 20px 0; }}
+                    .employee-code span {{ font-size: 48px; font-weight: bold; letter-spacing: 5px; }}
+                    .info {{ background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; }}
+                    .info-item {{ display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }}
+                    .info-item:last-child {{ border-bottom: none; }}
+                    .badge {{ background: #28a745; color: white; padding: 5px 10px; border-radius: 5px; font-size: 14px; }}
+                    .btn {{ display: inline-block; padding: 12px 25px; background: #28a745; color: white; text-decoration: none; border-radius: 8px; margin: 5px; font-weight: bold; }}
+                    .btn-secondary {{ background: #667eea; }}
+                    .fingerprint-icon {{ font-size: 24px; margin-left: 10px; }}
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <h1 class="success">✅ تم إضافة الموظف التجريبي بنجاح!</h1>
+
+                    <div class="employee-code">
+                        <i class="fas fa-qrcode fingerprint-icon"></i>
+                        <span>{test_employee.employee_code}</span>
+                        <br>
+                        <small>كود الموظف للبصمة</small>
+                    </div>
+
+                    <div class="info">
+                        <h3>📋 بيانات الموظف:</h3>
+                        <div class="info-item">
+                            <strong>الاسم:</strong>
+                            <span>{test_employee.name}</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>الرقم الوطني:</strong>
+                            <span>{test_employee.national_id}</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>مكان الميلاد:</strong>
+                            <span>{test_employee.birth_place}</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>السكن الحالي:</strong>
+                            <span>{test_employee.current_address}</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>المهنة:</strong>
+                            <span>{test_employee.profession}</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>رقم الهاتف:</strong>
+                            <span>{test_employee.phone}</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>تاريخ الميلاد:</strong>
+                            <span>{test_employee.birth_date.strftime('%Y-%m-%d')}</span>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <a href="/employees" class="btn">👥 عرض جميع الموظفين</a>
+                        <a href="/fingerprint/enroll/add?employee_id={test_employee.id}" class="btn btn-secondary">
+                            🔐 تسجيل بصمة للموظف
+                        </a>
+                    </div>
+
+                    <hr>
+                    <div style="text-align: center; margin-top: 20px; color: #6c757d; font-size: 12px;">
+                        <i class="fas fa-info-circle"></i>
+                        ملاحظة: كود الموظف <strong>3456</strong> هو الكود الذي سيتم استخدامه في جهاز البصمة
+                    </div>
+                </div>
+            </body>
+        </html>
+        """
+
+    except Exception as e:
+        import traceback
+        return f"""
+        <html dir="rtl">
+            <head>
+                <style>
+                    body {{ font-family: Arial; padding: 40px; background: #f8f9fa; }}
+                    .error {{ color: #dc3545; }}
+                    pre {{ background: #f0f0f0; padding: 15px; border-radius: 5px; overflow-x: auto; }}
+                </style>
+            </head>
+            <body>
+                <h1 class="error">❌ خطأ في إضافة الموظف</h1>
+                <pre>{str(e)}</pre>
+                <pre>{traceback.format_exc()}</pre>
+                <a href="/">🏠 العودة للرئيسية</a>
+            </body>
+        </html>
+        """, 500
+
+# ============================================
+# نهاية مسارات البصمة
+# ============================================
 
 # ============================================
 # Helper Functions for Permissions
@@ -568,25 +1909,98 @@ def dashboard():
                            unique_birth_places=unique_birth_places,
                            unique_residences=unique_residences)
 
+
 @app.route('/employees')
 @login_required
 def employee_list():
-    # أي موظف مسجل يمكنه رؤية القائمة
+    """عرض قائمة الموظفين"""
     employees = Employee.query.all()
     teams = Team.query.all()
-    return render_template('employees/list.html', employees=employees, teams=teams)
 
+    # تجهيز بيانات الموظفين للإرسال إلى JavaScript
+    employees_data = {}
+    fingerprint_count = 0
+
+    for emp in employees:
+        # حساب البصمات النشطة
+        active_enrollments = [e for e in emp.fingerprint_enrollments if e.is_active]
+        has_fingerprint = len(active_enrollments) > 0
+        fingerprints_count = len(active_enrollments)
+
+        if has_fingerprint:
+            fingerprint_count += 1
+
+        employees_data[emp.id] = {
+            'id': emp.id,
+            'code': emp.employee_code if hasattr(emp, 'employee_code') else '100001',
+            'name': emp.name,
+            'national_id': emp.national_id,
+            'profession': emp.profession,
+            'team': emp.team.name if emp.team else "غير موزع",
+            'birth_place': emp.birth_place or "غير محدد",
+            'current_address': emp.current_address or "غير محدد",
+            'birth_date': emp.birth_date.strftime('%Y-%m-%d') if emp.birth_date else '',
+            'phone': emp.phone or "غير محدد",
+            'has_fingerprint': has_fingerprint,
+            'fingerprints_count': fingerprints_count
+        }
+
+    # حساب عدد قادة الفرق
+    leaders_count = len([e for e in employees if e.profession == 'رئيس فرقة'])
+
+    # حساب عدد الأكواد المخصصة
+    custom_codes_count = 0
+    for e in employees:
+        if hasattr(e, 'employee_code') and e.employee_code:
+            try:
+                if e.employee_code.isdigit() and int(e.employee_code) < 100000:
+                    custom_codes_count += 1
+            except (ValueError, TypeError):
+                pass
+
+    # تجميع أماكن الميلاد الفريدة
+    birth_places = []
+    for emp in employees:
+        if emp.birth_place and emp.birth_place not in birth_places:
+            birth_places.append(emp.birth_place)
+    birth_places.sort()
+
+    stats = {
+        'fingerprint_count': fingerprint_count,
+        'leaders_count': leaders_count,
+        'custom_codes_count': custom_codes_count,
+        'total_employees': len(employees),
+        'birth_places': birth_places
+    }
+
+    return render_template('employees/list.html',
+                           employees=employees,
+                           teams=teams,
+                           stats=stats,
+                           employees_data=employees_data)
+
+# app.py - تحديث add_employee للسماح بإدخال كود مخصص
 
 @app.route('/employees/add', methods=['GET', 'POST'])
 @login_required
-@admin_required  # فقط المشرف يمكنه الإضافة
+@admin_required
 def add_employee():
     form = EmployeeForm()
     teams = Team.query.filter_by(is_active=True).all()
     form.team_id.choices = [(0, 'اختر الفرقة')] + [(t.id, t.name) for t in teams]
 
     if form.validate_on_submit():
+        # التحقق من الكود المدخل
+        employee_code = form.employee_code.data if form.employee_code.data else generate_employee_code()
+
+        # التحقق من عدم تكرار الكود
+        existing = Employee.query.filter_by(employee_code=employee_code).first()
+        if existing:
+            flash(f'⚠️ الكود {employee_code} مستخدم من قبل موظف آخر', 'danger')
+            return render_template('employees/add.html', form=form, teams=teams)
+
         employee = Employee(
+            employee_code=employee_code,
             name=form.name.data,
             national_id=form.national_id.data,
             birth_place=form.birth_place.data,
@@ -595,14 +2009,16 @@ def add_employee():
             profession=form.profession.data,
             team_id=form.team_id.data if form.team_id.data != 0 else None,
             phone=form.phone.data,
+            hire_date=datetime.now().date(),
+            is_active=True
         )
         db.session.add(employee)
         db.session.commit()
-        flash('تم إضافة الموظف بنجاح', 'success')
+
+        flash(f'✅ تم إضافة الموظف {employee.name} برقم كود: {employee.employee_code}', 'success')
         return redirect(url_for('employee_list'))
 
     return render_template('employees/add.html', form=form, teams=teams)
-
 
 @app.route('/employees/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -1289,6 +2705,7 @@ def add_operation():
 
     return render_template('operations/add.html', form=form, teams=teams)
 
+
 @app.route('/operations/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -1301,13 +2718,17 @@ def edit_operation(id):
     ships = Ship.query.all()
     form.ship_id.choices = [(0, 'اختر السفينة')] + [(s.id, f"{s.name} - {s.imo_number}") for s in ships]
 
-    # خيارات الفرق - يجب تعيينها قبل validate_on_submit
+    # خيارات الفرق
     teams = Team.query.filter_by(is_active=True).all()
     form.team_ids.choices = [(t.id, t.name) for t in teams]
 
     # تعيين الفرق المحددة مسبقاً
+    current_team_ids = [ot.team_id for ot in operation.operation_teams]
+
     if request.method == 'GET':
-        form.team_ids.data = [ot.team_id for ot in operation.operation_teams]
+        # تعيين البيانات الافتراضية للنموذج
+        form.team_ids.data = current_team_ids
+        print(f"📋 الفرق الحالية للعملية {id}: {current_team_ids}")  # للتشخيص
 
     if request.method == 'POST':
         # معالجة التواريخ
@@ -1319,7 +2740,11 @@ def edit_operation(id):
                 form.start_time.data = datetime.strptime(start_time_str, '%Y-%m-%dT%H:%M')
         except (ValueError, TypeError):
             flash('❌ تنسيق تاريخ البدء غير صحيح', 'danger')
-            return render_template('operations/edit.html', form=form, operation=operation, teams=teams)
+            return render_template('operations/edit.html',
+                                   form=form,
+                                   operation=operation,
+                                   teams=teams,
+                                   selected_teams=current_team_ids)
 
         try:
             if end_time_str and end_time_str.strip():
@@ -1328,7 +2753,11 @@ def edit_operation(id):
                 form.end_time.data = None
         except (ValueError, TypeError):
             flash('❌ تنسيق تاريخ الانتهاء غير صحيح', 'danger')
-            return render_template('operations/edit.html', form=form, operation=operation, teams=teams)
+            return render_template('operations/edit.html',
+                                   form=form,
+                                   operation=operation,
+                                   teams=teams,
+                                   selected_teams=current_team_ids)
 
     if form.validate_on_submit():
         try:
@@ -1346,6 +2775,8 @@ def edit_operation(id):
 
             # إضافة العلاقات الجديدة
             team_ids = request.form.getlist('team_ids')
+            print(f"📋 الفرق المختارة في التعديل: {team_ids}")  # للتشخيص
+
             for team_id in team_ids:
                 if team_id and team_id.isdigit():
                     operation_team = OperationTeam(
@@ -1355,19 +2786,50 @@ def edit_operation(id):
                     db.session.add(operation_team)
 
             db.session.commit()
+
+            # تحديث صلاحيات البصمة إذا لزم الأمر
+            # حذف الصلاحيات القديمة للفرق التي لم تعد موجودة
+            new_team_ids = [int(tid) for tid in team_ids if tid.isdigit()]
+            old_team_ids = current_team_ids
+
+            # حذف الصلاحيات للفرق التي تم إزالتها
+            for team_id in old_team_ids:
+                if team_id not in new_team_ids:
+                    ShipOperationTeamPermission.query.filter_by(
+                        operation_id=operation.id,
+                        team_id=team_id
+                    ).delete()
+
+            # إضافة صلاحيات للفرق الجديدة (اختياري - يمكن تعطيلها)
+            for team_id in new_team_ids:
+                if team_id not in old_team_ids:
+                    # لا نضيف صلاحية تلقائياً، بل تترك لإدارة البصمة
+                    pass
+
+            db.session.commit()
+
             flash(f'✅ تم تحديث العملية بنجاح مع {len(team_ids)} فرق', 'success')
             return redirect(url_for('operation_list'))
 
         except Exception as e:
             db.session.rollback()
+            print(f"❌ خطأ في حفظ العملية: {str(e)}")
+            import traceback
+            traceback.print_exc()
             flash(f'❌ حدث خطأ: {str(e)}', 'danger')
     else:
         if request.method == 'POST':
+            print("❌ أخطاء النموذج:", form.errors)
             for field, errors in form.errors.items():
                 for error in errors:
                     flash(f'❌ {getattr(form, field).label.text}: {error}', 'danger')
 
-    return render_template('operations/edit.html', form=form, operation=operation, teams=teams)
+    # إعادة عرض النموذج مع البيانات
+    return render_template('operations/edit.html',
+                           form=form,
+                           operation=operation,
+                           teams=teams,
+                           selected_teams=current_team_ids)  # تمرير الفرق المحددة
 
 @app.route('/operations/delete/<int:id>')
 @login_required
@@ -3295,6 +4757,520 @@ def import_ships_route():
         </body>
     </html>
     """
+
+
+@app.route('/fingerprint/diagnose')
+@login_required
+@admin_required
+def fingerprint_diagnose():
+    """تشخيص نظام البصمة"""
+    from sqlalchemy import func
+
+    # إحصائيات عامة
+    stats = {
+        'total_devices': FingerprintDevice.query.count(),
+        'active_devices': FingerprintDevice.query.filter_by(is_active=True).count(),
+        'total_enrollments': FingerprintEnrollment.query.count(),
+        'active_enrollments': FingerprintEnrollment.query.filter_by(is_active=True).count(),
+        'total_attendance': AttendanceLog.query.count(),
+        'today_attendance': AttendanceLog.query.filter(
+            func.date(AttendanceLog.timestamp) == datetime.now().date()
+        ).count(),
+        'success_attendance': AttendanceLog.query.filter_by(status='success').count(),
+        'denied_attendance': AttendanceLog.query.filter_by(status='denied').count(),
+    }
+
+    # آخر 20 سجل حضور
+    recent_logs = AttendanceLog.query.order_by(AttendanceLog.timestamp.desc()).limit(20).all()
+
+    # الموظفين المسجلين بصمة
+    enrolled_employees = []
+    for emp in Employee.query.filter_by(is_active=True).all():
+        enrollments = [e for e in emp.fingerprint_enrollments if e.is_active]
+        if enrollments:
+            enrolled_employees.append({
+                'employee': emp,
+                'enrollments': enrollments,
+                'count': len(enrollments),
+                'devices': [e.device.device_name for e in enrollments]
+            })
+
+    return render_template('fingerprint/diagnose.html',
+                           stats=stats,
+                           recent_logs=recent_logs,
+                           enrolled_employees=enrolled_employees)
+
+
+@app.route('/fingerprint/logs')
+@login_required
+@admin_required
+def fingerprint_request_logs():
+    """عرض سجلات الطلبات من جهاز البصمة"""
+    import os
+
+    log_file = 'fingerprint_requests.log'
+    logs = []
+
+    if os.path.exists(log_file):
+        with open(log_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+            logs = content.split('=' * 50)
+            logs = [l.strip() for l in logs if l.strip()]
+            logs.reverse()  # أحدثها أولاً
+
+    return render_template('fingerprint/logs.html', logs=logs[:50])
+
+
+@app.route('/fingerprint/clear-test-logs')
+@login_required
+@admin_required
+def clear_test_logs():
+    """حذف سجلات الاختبار القديمة"""
+    try:
+        # حذف سجلات الاختبار (التي تحتوي على سبب "تسجيل يدوي للاختبار" أو "اختبار")
+        test_logs = AttendanceLog.query.filter(
+            AttendanceLog.reason.like('%اختبار%')
+        ).all()
+
+        count = len(test_logs)
+
+        for log in test_logs:
+            db.session.delete(log)
+
+        db.session.commit()
+
+        return f"""
+        <html dir="rtl">
+            <head>
+                <style>
+                    body {{ font-family: Arial; padding: 40px; background: #f5f7fa; direction: rtl; }}
+                    .container {{ max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; }}
+                    .success {{ color: green; }}
+                    .btn {{ display: inline-block; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 5px; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h2 class="success">✅ تم حذف {count} سجل اختبار</h2>
+                    <p>تم حذف جميع سجلات الحضور التي تحتوي على كلمة "اختبار".</p>
+                    <a href="/fingerprint/attendance" class="btn">📋 عرض سجلات الحضور</a>
+                    <a href="/fingerprint/diagnose" class="btn">🔍 تشخيص البصمة</a>
+                </div>
+            </body>
+        </html>
+        """
+    except Exception as e:
+        return f"<h1 style='color:red'>خطأ: {str(e)}</h1>"
+
+
+@app.route('/fingerprint/clear-all-logs')
+@login_required
+@admin_required
+def clear_all_logs():
+    """حذف جميع سجلات الحضور (تحذير: لا يمكن التراجع)"""
+    try:
+        count = AttendanceLog.query.count()
+
+        if count > 0:
+            # حذف جميع السجلات
+            AttendanceLog.query.delete()
+            db.session.commit()
+
+            return f"""
+            <html dir="rtl">
+                <head>
+                    <style>
+                        body {{ font-family: Arial; padding: 40px; background: #f5f7fa; direction: rtl; }}
+                        .container {{ max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; }}
+                        .success {{ color: green; }}
+                        .warning {{ color: orange; }}
+                        .btn {{ display: inline-block; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 5px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h2 class="success">✅ تم حذف {count} سجل حضور</h2>
+                        <p class="warning">⚠️ تم حذف جميع سجلات الحضور نهائياً.</p>
+                        <a href="/fingerprint/attendance" class="btn">📋 عرض سجلات الحضور</a>
+                        <a href="/fingerprint/diagnose" class="btn">🔍 تشخيص البصمة</a>
+                    </div>
+                </body>
+            </html>
+            """
+        else:
+            return f"""
+            <html dir="rtl">
+                <body>
+                    <h2>ℹ️ لا توجد سجلات حضور لحذفها</h2>
+                    <a href="/fingerprint/diagnose">🔙 العودة</a>
+                </body>
+            </html>
+            """
+    except Exception as e:
+        return f"<h1 style='color:red'>خطأ: {str(e)}</h1>"
+
+
+@app.route('/test-fingerprint-api', methods=['GET', 'POST'])
+def test_fingerprint_api():
+    """صفحة لاختبار API البصمة يدوياً"""
+    import requests
+
+    if request.method == 'POST':
+        try:
+            # محاكاة بيانات من جهاز البصمة
+            device_id = int(request.form.get('device_id', 1))
+            employee_code = request.form.get('employee_code', '3456')
+            fingerprint_data = request.form.get('fingerprint_data', 'test_template_123')
+
+            test_data = {
+                'device_id': device_id,
+                'employee_code': employee_code,
+                'fingerprint_data': fingerprint_data,
+                'timestamp': datetime.now().isoformat()
+            }
+
+            # استدعاء API التحقق العام باستخدام requests
+            with app.test_client() as client:
+                response = client.post('/api/fingerprint/verify-public',
+                                       json=test_data,
+                                       headers={'Content-Type': 'application/json'})
+                response_data = response.get_json()
+                status_code = response.status_code
+
+            return f"""
+            <html dir="rtl">
+                <head>
+                    <style>
+                        body {{ font-family: Arial; padding: 20px; direction: rtl; background: #f5f7fa; }}
+                        .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; }}
+                        .success {{ color: green; }}
+                        .error {{ color: red; }}
+                        pre {{ background: #f0f0f0; padding: 10px; border-radius: 5px; overflow-x: auto; }}
+                        .btn {{ display: inline-block; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 5px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h2>🔬 نتيجة اختبار API البصمة</h2>
+
+                        <h4>📤 البيانات المرسلة:</h4>
+                        <pre>{json.dumps(test_data, indent=2, ensure_ascii=False)}</pre>
+
+                        <h4>📥 الرد من الخادم:</h4>
+                        <pre>حالة HTTP: {status_code}</pre>
+                        <pre>{json.dumps(response_data, indent=2, ensure_ascii=False)}</pre>
+
+                        <div class="alert alert-{'success' if response_data and response_data.get('success') else 'danger'}">
+                            {'✅ تم تسجيل الحضور بنجاح!' if response_data and response_data.get('success') else '❌ فشل تسجيل الحضور: ' + (response_data.get('error', 'خطأ غير معروف') if response_data else 'لا توجد استجابة')}
+                        </div>
+
+                        <hr>
+                        <a href="/test-fingerprint-api" class="btn">🔙 العودة للاختبار</a>
+                        <a href="/fingerprint/attendance" class="btn">📋 عرض سجلات الحضور</a>
+                        <a href="/fingerprint/logs" class="btn">📝 سجلات الطلبات</a>
+                    </div>
+                </body>
+            </html>
+            """
+        except Exception as e:
+            import traceback
+            return f"""
+            <html dir="rtl">
+                <body>
+                    <h1 style="color:red">❌ خطأ: {str(e)}</h1>
+                    <pre>{traceback.format_exc()}</pre>
+                    <a href="/test-fingerprint-api">🔙 العودة</a>
+                </body>
+            </html>
+            """
+
+    # عرض نموذج الاختبار (GET)
+    devices = FingerprintDevice.query.all()
+    employees = Employee.query.filter(Employee.employee_code.isnot(None)).all()
+
+    device_options = ''.join([f'<option value="{d.id}">{d.device_name} (ID: {d.id})</option>' for d in devices])
+    employee_options = ''.join(
+        [f'<option value="{e.employee_code}">{e.name} - كود: {e.employee_code}</option>' for e in employees])
+
+    return f"""
+    <html dir="rtl">
+        <head>
+            <style>
+                body {{ font-family: Arial; padding: 20px; direction: rtl; background: #f5f7fa; }}
+                .container {{ max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                input, select {{ width: 100%; padding: 8px; margin: 5px 0 15px; border: 1px solid #ddd; border-radius: 5px; }}
+                button {{ background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }}
+                button:hover {{ background: #764ba2; }}
+                .info {{ background: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+                .nav-links {{ margin-top: 20px; text-align: center; }}
+                .nav-links a {{ margin: 0 10px; color: #667eea; text-decoration: none; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h2>🔬 اختبار API البصمة</h2>
+                <p>استخدم هذا النموذج لمحاكاة طلب من جهاز البصمة</p>
+
+                <form method="POST">
+                    <label>📟 معرف الجهاز (device_id):</label>
+                    <select name="device_id">
+                        {device_options}
+                    </select>
+
+                    <label>👤 كود الموظف (employee_code):</label>
+                    <select name="employee_code">
+                        {employee_options}
+                    </select>
+
+                    <label>🔐 بيانات البصمة (محاكاة):</label>
+                    <input type="text" name="fingerprint_data" value="test_template_{datetime.now().strftime('%H%M%S')}" placeholder="أدخل بيانات البصمة">
+
+                    <button type="submit">🚀 إرسال اختبار</button>
+                </form>
+
+                <div class="info">
+                    <strong>📌 ملاحظات:</strong>
+                    <ul>
+                        <li>هذا الاختبار يحاكي الطلب الذي يرسله جهاز البصمة الفعلي</li>
+                        <li>بعد الإرسال، سيتم استدعاء API التحقق الحقيقي</li>
+                        <li>النتيجة ستظهر في الصفحة التالية</li>
+                        <li>يمكنك بعدها رؤية السجل في <a href="/fingerprint/attendance">سجلات الحضور</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-links">
+                    <hr>
+                    <a href="/fingerprint/diagnose">🔍 صفحة التشخيص</a>
+                    <a href="/fingerprint/attendance">📋 سجلات الحضور</a>
+                    <a href="/fingerprint/logs">📝 سجلات الطلبات</a>
+                    <a href="/fix-employee-codes">🔧 إصلاح أكواد الموظفين</a>
+                </div>
+            </div>
+        </body>
+    </html>
+    """
+
+@app.route('/api/fingerprint/verify-public', methods=['POST'])
+def fingerprint_verify_public():
+    """API عام للتحقق من البصمة - لا يتطلب تسجيل دخول (يستخدم من جهاز البصمة)"""
+    import json
+    import logging
+
+    # تسجيل كل الطلبات لملف للتشخيص
+    with open('fingerprint_requests.log', 'a', encoding='utf-8') as f:
+        f.write(f"\n{'=' * 50}\n")
+        f.write(f"الوقت: {datetime.now()}\n")
+        f.write(f"البيانات الخام: {request.get_data(as_text=True)}\n")
+
+    try:
+        # محاولة قراءة JSON
+        if request.is_json:
+            data = request.get_json()
+        else:
+            # محاولة قراءة البيانات كـ form data
+            data = request.form.to_dict()
+
+        with open('fingerprint_requests.log', 'a', encoding='utf-8') as f:
+            f.write(f"البيانات المحولة: {json.dumps(data, ensure_ascii=False)}\n")
+
+        # التحقق من البيانات
+        if not data:
+            return jsonify({'success': False, 'error': 'لا توجد بيانات'}), 400
+
+        # استخراج البيانات (قد تختلف أسماء الحقول حسب جهاز البصمة)
+        device_id = data.get('device_id') or data.get('deviceId') or data.get('DeviceID')
+        fingerprint_data = data.get('fingerprint_data') or data.get('fingerprint') or data.get('template')
+        employee_code = data.get('employee_code') or data.get('userId') or data.get('UserID') or data.get('code')
+
+        with open('fingerprint_requests.log', 'a', encoding='utf-8') as f:
+            f.write(f"المستخلص: device_id={device_id}, employee_code={employee_code}\n")
+
+        # البحث عن الجهاز
+        device = None
+        if device_id:
+            device = FingerprintDevice.query.filter_by(id=device_id).first()
+            if not device:
+                device = FingerprintDevice.query.filter_by(device_name=device_id).first()
+
+        if not device:
+            device = FingerprintDevice.query.first()  # افتراضي
+
+        if not device:
+            return jsonify({'success': False, 'error': 'جهاز غير معروف'}), 401
+
+        # البحث عن الموظف
+        employee = None
+        if employee_code:
+            employee = Employee.query.filter_by(employee_code=employee_code, is_active=True).first()
+
+        with open('fingerprint_requests.log', 'a', encoding='utf-8') as f:
+            f.write(f"الموظف: {'موجود' if employee else 'غير موجود'}\n")
+
+        # تسجيل المحاولة
+        log = AttendanceLog(
+            employee_id=employee.id if employee else None,
+            device_id=device.id,
+            timestamp=datetime.now(),
+            attendance_type='check_in',
+            status='success' if employee else 'denied',
+            reason='بصمة مقبولة' if employee else f'كود غير معروف: {employee_code}',
+            fingerprint_data=str(fingerprint_data)[:500] if fingerprint_data else None
+        )
+        db.session.add(log)
+        db.session.commit()
+
+        with open('fingerprint_requests.log', 'a', encoding='utf-8') as f:
+            f.write(f"✅ تم تسجيل المحاولة في قاعدة البيانات (ID: {log.id})\n")
+
+        return jsonify({
+            'success': employee is not None,
+            'employee': {
+                'id': employee.id,
+                'code': employee.employee_code,
+                'name': employee.name,
+                'team': employee.team.name if employee.team else None
+            } if employee else None,
+            'message': 'تم التسجيل بنجاح' if employee else 'كود غير معروف',
+            'log_id': log.id
+        })
+
+    except Exception as e:
+        import traceback
+        error_msg = traceback.format_exc()
+        with open('fingerprint_requests.log', 'a', encoding='utf-8') as f:
+            f.write(f"❌ خطأ: {error_msg}\n")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/test-attendance', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def test_attendance():
+    """اختبار تسجيل حضور يدوي"""
+    if request.method == 'POST':
+        employee_code = request.form.get('employee_code')
+        device_id = request.form.get('device_id')
+
+        # البحث عن الموظف
+        employee = Employee.query.filter_by(employee_code=employee_code).first()
+        device = FingerprintDevice.query.get(device_id)
+
+        if not employee:
+            flash(f'❌ موظف بالكود {employee_code} غير موجود', 'danger')
+        elif not device:
+            flash(f'❌ جهاز بالرقم {device_id} غير موجود', 'danger')
+        else:
+            # تسجيل حضور
+            log = AttendanceLog(
+                employee_id=employee.id,
+                device_id=device.id,
+                timestamp=datetime.now(),
+                attendance_type='check_in',
+                status='success',
+                reason='تسجيل يدوي للاختبار'
+            )
+            db.session.add(log)
+            db.session.commit()
+            flash(f'✅ تم تسجيل حضور {employee.name} بنجاح', 'success')
+
+        return redirect(url_for('test_attendance'))
+
+    # عرض النموذج
+    employees = Employee.query.filter(Employee.employee_code.isnot(None)).all()
+    devices = FingerprintDevice.query.filter_by(is_active=True).all()
+
+    return render_template('fingerprint/test_attendance.html',
+                           employees=employees,
+                           devices=devices)
+
+
+@app.route('/fix-employee-codes')
+@login_required
+@admin_required
+def fix_employee_codes():
+    """إضافة أكواد للموظفين الذين ليس لديهم أكواد"""
+    try:
+        employees = Employee.query.all()
+        fixed_count = 0
+        results = []
+
+        for emp in employees:
+            # التحقق من أن employee_code غير موجود أو None أو 'None'
+            if not emp.employee_code or emp.employee_code == 'None' or emp.employee_code == '':
+                # توليد كود جديد
+                # البحث عن أكبر كود موجود
+                last_employee = Employee.query.filter(
+                    Employee.employee_code.isnot(None),
+                    Employee.employee_code != 'None',
+                    Employee.employee_code != ''
+                ).order_by(Employee.id.desc()).first()
+
+                if last_employee and last_employee.employee_code and last_employee.employee_code.isdigit():
+                    new_num = int(last_employee.employee_code) + 1
+                else:
+                    new_num = 100001
+
+                # التأكد من عدم التكرار
+                while True:
+                    new_code = str(new_num)
+                    existing = Employee.query.filter_by(employee_code=new_code).first()
+                    if not existing:
+                        break
+                    new_num += 1
+
+                emp.employee_code = new_code
+                fixed_count += 1
+                results.append(f"✅ {emp.name} ← كود: {new_code}")
+
+        if fixed_count > 0:
+            db.session.commit()
+            flash(f'✅ تم تحديث {fixed_count} موظف بأكواد جديدة', 'success')
+        else:
+            flash('✅ جميع الموظفين لديهم أكواد بالفعل', 'info')
+
+        return f"""
+        <html dir="rtl">
+            <head>
+                <style>
+                    body {{ font-family: Arial; padding: 40px; background: #f5f7fa; direction: rtl; }}
+                    .container {{ max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; }}
+                    .success {{ color: green; }}
+                    .info {{ background: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+                    .btn {{ display: inline-block; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 5px; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h2 class="success">✅ تم إصلاح أكواد الموظفين</h2>
+                    <div class="info">
+                        <strong>النتائج:</strong>
+                        <ul>
+                            {"".join([f"<li>{r}</li>" for r in results]) if results else "<li>لا توجد تغييرات</li>"}
+                        </ul>
+                    </div>
+                    <a href="/employees" class="btn">👥 عرض الموظفين</a>
+                    <a href="/fingerprint/diagnose" class="btn">🔍 تشخيص البصمة</a>
+                </div>
+            </body>
+        </html>
+        """
+    except Exception as e:
+        import traceback
+        return f"""
+        <html dir="rtl">
+            <head>
+                <style>
+                    body {{ font-family: Arial; padding: 40px; }}
+                    .error {{ color: red; }}
+                </style>
+            </head>
+            <body>
+                <h1 class="error">❌ خطأ: {str(e)}</h1>
+                <pre>{traceback.format_exc()}</pre>
+                <a href="/">العودة</a>
+            </body>
+        </html>
+        """
 
 if __name__ == '__main__':
     with app.app_context():

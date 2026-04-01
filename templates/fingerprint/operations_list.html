@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}صلاحيات البصمة للعمليات - نظام إدارة الميناء{% endblock %}
+
+{% block page_title %}صلاحيات البصمة للعمليات{% endblock %}
+{% block page_icon %}fas fa-fingerprint{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('fingerprint_devices_list') }}">أجهزة البصمة</a></li>
+<li class="breadcrumb-item active">صلاحيات العمليات</li>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">
+            <i class="fas fa-ship me-2"></i>
+            إدارة صلاحيات البصمة حسب العمليات
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>شرح الصلاحيات:</strong>
+            <ul class="mb-0 mt-2">
+                <li>🔐 يمكنك تحديد الفرق المسموح لها بالعمل على كل عملية</li>
+                <li>👥 فقط الموظفين في الفرق المحددة يمكنهم استخدام البصمة للدخول</li>
+                <li>⚠️ الموظفون من الفرق غير المحددة سيتم رفض بصماتهم</li>
+                <li>📌 العمليات الجارية (غير منتهية) تحتاج إلى تحديد الفرق العاملة</li>
+            </ul>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered" id="operationsTable">
+                <thead class="table-warning">
+                    <tr>
+                        <th>#</th>
+                        <th>السفينة</th>
+                        <th>نوع العملية</th>
+                        <th>تاريخ البدء</th>
+                        <th>تاريخ الانتهاء</th>
+                        <th>الرصيف</th>
+                        <th>الفرق المصرح لها</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </thead>
+                <tbody>
+                    {% for item in operations %}
+                     <tr class="{% if item.is_active %}table-success{% endif %}">
+                         <td class="text-center">{{ loop.index }} </td>
+                         <td>
+                            <strong>{{ item.ship_name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ item.operation.operation_type }}</small>
+                         </td>
+                         <td>
+                            {% if item.operation.operation_type == 'تحميل' %}
+                                <span class="badge bg-success">{{ item.operation.operation_type }}</span>
+                            {% elif item.operation.operation_type == 'تفريغ' %}
+                                <span class="badge bg-warning text-dark">{{ item.operation.operation_type }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ item.operation.operation_type }}</span>
+                            {% endif %}
+                         </td>
+                         <td>{{ item.operation.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                         <td>
+                            {% if item.operation.end_time %}
+                                {{ item.operation.end_time.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                                <span class="badge bg-success">جارية</span>
+                            {% endif %}
+                         </td>
+                         <td>
+                            {% if item.operation.ship and item.operation.ship.berth_number %}
+                                <span class="badge bg-info">رصيف {{ item.operation.ship.berth_number }}</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                         </td>
+                         <td class="text-center">
+                            {% if item.allowed_teams_count > 0 %}
+                                <span class="badge bg-primary">{{ item.allowed_teams_count }} فريق</span>
+                                <br>
+                                <small class="text-muted">محددة</small>
+                            {% else %}
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-exclamation-triangle"></i> غير محددة
+                                </span>
+                            {% endif %}
+                         </td>
+                         <td>
+                            {% if item.is_active %}
+                                <span class="badge bg-success">نشطة</span>
+                            {% else %}
+                                <span class="badge bg-secondary">منتهية</span>
+                            {% endif %}
+                         </td>
+                         <td>
+                            <a href="{{ url_for('fingerprint_operation_teams', operation_id=item.operation.id) }}"
+                               class="btn btn-sm btn-warning"
+                               title="إدارة صلاحيات البصمة">
+                                <i class="fas fa-fingerprint"></i>
+                                {% if item.allowed_teams_count > 0 %}
+                                    <span class="badge bg-success ms-1">{{ item.allowed_teams_count }}</span>
+                                {% endif %}
+                            </a>
+                         </td>
+                     </tr>
+                    {% endfor %}
+                </tbody>
+             </table>
+        </div>
+    </div>
+</div>
+
+<!-- إحصائيات سريعة -->
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <i class="fas fa-tasks stat-icon"></i>
+            <div class="stat-title">إجمالي العمليات</div>
+            <div class="stat-value">{{ operations|length }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <i class="fas fa-play-circle stat-icon"></i>
+            <div class="stat-title">عمليات جارية</div>
+            <div class="stat-value text-success">{{ operations|selectattr('is_active', 'equalto', true)|list|length }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <i class="fas fa-key stat-icon"></i>
+            <div class="stat-title">عمليات محددة الصلاحيات</div>
+            <div class="stat-value text-info">{{ operations|selectattr('allowed_teams_count', '>', 0)|list|length }}</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('#operationsTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
+            },
+            pageLength: 25,
+            order: [[3, 'desc']],  // ترتيب حسب تاريخ البدء
+            columnDefs: [
+                { orderable: false, targets: [6, 7, 8] }
+            ]
+        });
+    });
+</script>
+
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    }
+
+    .stat-icon {
+        position: absolute;
+        left: 15px;
+        top: 15px;
+        font-size: 2rem;
+        opacity: 0.2;
+    }
+
+    .stat-title {
+        color: #6c757d;
+        font-size: 0.8rem;
+        margin-bottom: 5px;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .table-success {
+        background-color: #d4edda !important;
+    }
+</style>
+{% endblock %}

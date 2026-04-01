@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}اختبار تسجيل الحضور{% endblock %}
+
+{% block page_title %}اختبار تسجيل الحضور يدوي{% endblock %}
+{% block page_icon %}fas fa-vial{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-fingerprint me-2"></i>
+                    اختبار تسجيل حضور يدوي
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">الموظف</label>
+                        <select name="employee_code" class="form-select" required>
+                            <option value="">اختر الموظف</option>
+                            {% for emp in employees %}
+                            <option value="{{ emp.employee_code }}">
+                                {{ emp.name }} (كود: {{ emp.employee_code }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">جهاز البصمة</label>
+                        <select name="device_id" class="form-select" required>
+                            <option value="">اختر الجهاز</option>
+                            {% for device in devices %}
+                            <option value="{{ device.id }}">
+                                {{ device.device_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-check-circle"></i> تسجيل حضور
+                    </button>
+                </form>
+
+                <hr>
+
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>ملاحظة:</strong> هذا الاختبار يسجل حضوراً يدوياً في قاعدة البيانات.
+                    إذا نجح، ستظهر السجلات في صفحة "سجلات الحضور".
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-question-circle me-2"></i>
+                    كيفية اختبار جهاز البصمة الفعلي
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>لتجربة جهاز البصمة الفعلي، تأكد من:</p>
+                <ul>
+                    <li>🔌 الجهاز متصل بالشبكة</li>
+                    <li>📡 عنوان IP الصحيح في إعدادات الجهاز</li>
+                    <li>🔢 الموظف لديه <code>employee_code</code> في النظام</li>
+                    <li>📱 الجهاز يرسل البيانات إلى:
+                        <pre style="background: #f0f0f0; padding: 10px;">POST /api/fingerprint/verify-public</pre>
+                    </li>
+                </ul>
+
+                <div class="alert alert-warning">
+                    <strong>⚠️ مهم:</strong>
+                    الموظفون الذين ليس لديهم <code>employee_code</code> لن يتمكنوا من استخدام البصمة!
+                    استخدم <a href="/fix-employee-codes">/fix-employee-codes</a> لإضافة أكواد لهم.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

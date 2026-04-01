@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}سجلات جهاز البصمة{% endblock %}
+
+{% block page_title %}سجلات طلبات جهاز البصمة{% endblock %}
+{% block page_icon %}fas fa-history{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-terminal me-2"></i>
+                    سجلات طلبات جهاز البصمة
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    هذه الصفحة تعرض جميع الطلبات التي استقبلها النظام من جهاز البصمة.
+                    إذا لم تظهر أي سجلات، فهذا يعني أن جهاز البصمة لا يرسل البيانات إلى المسار الصحيح.
+                </div>
+
+                <div class="mb-3">
+                    <button class="btn btn-primary btn-sm" onclick="refreshPage()">
+                        <i class="fas fa-sync-alt"></i> تحديث
+                    </button>
+                    <a href="{{ url_for('fingerprint_diagnose') }}" class="btn btn-info btn-sm">
+                        <i class="fas fa-stethoscope"></i> تشخيص النظام
+                    </a>
+                    <button class="btn btn-danger btn-sm" onclick="clearLogs()">
+                        <i class="fas fa-trash"></i> مسح السجلات
+                    </button>
+                </div>
+
+                {% if logs %}
+                    <div class="accordion" id="logsAccordion">
+                        {% for log in logs %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}">
+                                    <i class="fas fa-file-alt me-2"></i>
+                                    طلب #{{ loop.index }} - {{ log[:100] }}...
+                                </button>
+                            </h2>
+                            <div id="collapse{{ loop.index }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" data-bs-parent="#logsAccordion">
+                                <div class="accordion-body">
+                                    <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; direction: ltr; text-align: left;">{{ log }}</pre>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>لا توجد سجلات!</strong><br>
+                        لم يتم استلام أي طلبات من جهاز البصمة بعد.
+                        <hr>
+                        <strong>تأكد من:</strong>
+                        <ul class="mt-2">
+                            <li>جهاز البصمة متصل بالشبكة</li>
+                            <li>عنوان IP الصحيح في إعدادات الجهاز</li>
+                            <li>المسار الصحيح: <code>/api/fingerprint/verify-public</code></li>
+                            <li>الجهاز يرسل البيانات بتنسيق JSON</li>
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function refreshPage() {
+        location.reload();
+    }
+
+    function clearLogs() {
+        if (confirm('هل أنت متأكد من مسح جميع سجلات جهاز البصمة؟')) {
+            fetch('/fingerprint/clear-logs', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('خطأ في مسح السجلات');
+                    }
+                });
+        }
+    }
+</script>
+{% endblock %}

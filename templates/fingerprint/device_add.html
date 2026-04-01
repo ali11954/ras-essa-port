@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة جهاز بصمة - نظام إدارة الميناء{% endblock %}
+
+{% block page_title %}إضافة جهاز بصمة جديد{% endblock %}
+{% block page_icon %}fas fa-plus-circle{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('fingerprint_devices_list') }}">أجهزة البصمة</a></li>
+<li class="breadcrumb-item active">إضافة جهاز</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-fingerprint me-2"></i>
+                    بيانات الجهاز الجديد
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.device_name.label }}</label>
+                        {{ form.device_name(class="form-control") }}
+                        {% if form.device_name.errors %}
+                            {% for error in form.device_name.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                        <small class="text-muted">اسم مميز للجهاز (مثال: بصمة الرصيف 1)</small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form.device_ip.label }}</label>
+                            {{ form.device_ip(class="form-control", placeholder="192.168.1.100") }}
+                            <small class="text-muted">عنوان IP الخاص بجهاز البصمة</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form.device_port.label }}</label>
+                            {{ form.device_port(class="form-control") }}
+                            <small class="text-muted">المنفذ (عادة 80 أو 4370)</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form.device_type.label }}</label>
+                            {{ form.device_type(class="form-select") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form.berth_id.label }}</label>
+                            {{ form.berth_id(class="form-select") }}
+                            <small class="text-muted">اختر الرصيف المرتبط بهذا الجهاز</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.is_active(class="form-check-input") }}
+                            <label class="form-check-label">{{ form.is_active.label }}</label>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>ملاحظات:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>🔌 تأكد من أن الجهاز متصل بالشبكة قبل الإضافة</li>
+                            <li>📡 عنوان IP الصحيح ضروري للاتصال بالجهاز</li>
+                            <li>🔐 بعد الإضافة، يمكنك تسجيل بصمات الموظفين على هذا الجهاز</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('fingerprint_devices_list') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-right"></i> إلغاء
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> إضافة الجهاز
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

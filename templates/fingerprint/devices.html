@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}أجهزة البصمة - نظام إدارة الميناء{% endblock %}
+
+{% block page_title %}أجهزة البصمة{% endblock %}
+{% block page_icon %}fas fa-fingerprint{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item active">أجهزة البصمة</li>
+{% endblock %}
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <a href="{{ url_for('fingerprint_device_add') }}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus"></i> إضافة جهاز
+    </a>
+    <a href="{{ url_for('fingerprint_enroll_list') }}" class="btn btn-info btn-sm">
+        <i class="fas fa-address-card"></i> تسجيل البصمات
+    </a>
+    <a href="{{ url_for('fingerprint_attendance_list') }}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-clock"></i> سجل الحضور
+    </a>
+    <a href="{{ url_for('fingerprint_devices_status') }}" class="btn btn-success btn-sm">
+        <i class="fas fa-network-wired"></i> حالة الاتصال
+    </a>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-fingerprint me-2"></i>
+                    أجهزة البصمة
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered" id="devicesTable">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>#</th>
+                                <th>اسم الجهاز</th>
+                                <th>عنوان IP</th>
+                                <th>المنفذ</th>
+                                <th>الرصيف المرتبط</th>
+                                <th>عدد البصمات</th>
+                                <th>آخر مزامنة</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </thead>
+                        <tbody>
+                            {% for device in devices %}
+                             <tr>
+                                 <td>{{ loop.index }}</td>
+                                 <td>
+                                     <strong>{{ device.device_name }}</strong>
+                                     <br>
+                                     <small class="text-muted">{{ device.device_type }}</small>
+                                 </td>
+                                 <td>{{ device.device_ip or '—' }}</td>
+                                 <td>{{ device.device_port }}</td>
+                                 <td>
+                                    {% if device.berth %}
+                                        <span class="badge bg-info">رصيف {{ device.berth.number }}</span>
+                                    {% else %}
+                                        <span class="text-muted">غير مرتبط</span>
+                                    {% endif %}
+                                 </td>
+                                 <td class="text-center">
+                                    {% set enrollments_count = device.enrolled_employees|length %}
+                                    <span class="badge bg-primary">{{ enrollments_count }}</span>
+                                 </td>
+                                 <td>
+                                    {% if device.last_sync %}
+                                        {{ device.last_sync.strftime('%Y-%m-%d %H:%M') }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                 </td>
+                                 <td>
+                                    {% if device.is_active %}
+                                        <span class="badge bg-success">نشط</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">غير نشط</span>
+                                    {% endif %}
+                                 </td>
+                                 <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('fingerprint_device_edit', id=device.id) }}" class="btn btn-warning">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{{ url_for('fingerprint_device_delete', id=device.id) }}" class="btn btn-danger" onclick="return confirm('هل أنت متأكد من حذف هذا الجهاز؟')">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                 </td>
+                             </tr>
+                            {% else %}
+                             <tr>
+                                <td colspan="9" class="text-center text-muted py-4">
+                                    <i class="fas fa-fingerprint fa-3x mb-3"></i>
+                                    <p>لا توجد أجهزة بصمة</p>
+                                    <a href="{{ url_for('fingerprint_device_add') }}" class="btn btn-primary btn-sm">إضافة جهاز</a>
+                                </td>
+                             </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-microchip stat-icon"></i>
+            <div class="stat-title">إجمالي الأجهزة</div>
+            <div class="stat-value">{{ devices|length }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-check-circle stat-icon"></i>
+            <div class="stat-title">أجهزة نشطة</div>
+            <div class="stat-value text-success">{{ devices|selectattr('is_active', 'equalto', true)|list|length }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-anchor stat-icon"></i>
+            <div class="stat-title">مرتبطة بأرصفة</div>
+            <div class="stat-value text-info">{{ devices|selectattr('berth_id', 'ne', none)|list|length }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-fingerprint stat-icon"></i>
+            <div class="stat-title">إجمالي البصمات</div>
+            {% set total_enrollments = 0 %}
+            {% for device in devices %}
+                {% set total_enrollments = total_enrollments + device.enrolled_employees|length %}
+            {% endfor %}
+            <div class="stat-value">{{ total_enrollments }}</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        $('#devicesTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
+            },
+            pageLength: 10,
+            order: [[0, 'asc']]
+        });
+    });
+</script>
+{% endblock %}

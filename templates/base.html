@@ -767,6 +767,27 @@
         h3 { font-size: 1.3rem; }
         h4 { font-size: 1.1rem; }
     }
+
+    /* ========== Fingerprint Icon Highlight ========== */
+    .fingerprint-menu {
+        position: relative;
+    }
+
+    .fingerprint-menu .nav-link {
+        background: rgba(255,255,255,0.1);
+        border-radius: 20px;
+    }
+
+    .fingerprint-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #ffc107;
+        color: #333;
+        font-size: 8px;
+        padding: 2px 4px;
+        border-radius: 10px;
+    }
 </style>
 
     {% block extra_css %}{% endblock %}
@@ -856,6 +877,26 @@
                         </a>
                     </li>
 
+                    {% if current_user.is_admin() %}
+<li class="nav-item dropdown fingerprint-menu">
+    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+        <i class="fas fa-fingerprint"></i>
+        نظام البصمة
+    </a>
+    <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="{{ url_for('fingerprint_devices_list') }}"><i class="fas fa-microchip me-2"></i>أجهزة البصمة</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('fingerprint_enroll_list') }}"><i class="fas fa-address-card me-2"></i>تسجيل البصمات</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('fingerprint_attendance_list') }}"><i class="fas fa-clock me-2"></i>سجل الحضور</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('fingerprint_devices_status') }}"><i class="fas fa-network-wired me-2"></i>حالة الاتصال</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('fingerprint_diagnose') }}"><i class="fas fa-stethoscope me-2"></i>تشخيص النظام</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('fingerprint_request_logs') }}"><i class="fas fa-history me-2"></i>سجلات الطلبات</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="{{ url_for('fingerprint_operation_teams_list') }}" style="color: #ffc107;">
+            <i class="fas fa-key me-2"></i>صلاحيات العمليات
+        </a></li>
+    </ul>
+</li>
+{% endif %}
                     <!-- قائمة التقارير -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -865,6 +906,9 @@
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('reports_index') }}"><i class="fas fa-file-alt me-2"></i>التقارير</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('reports_charts') }}"><i class="fas fa-chart-pie me-2"></i>الرسومات البيانية</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('teams_operations_report') }}"><i class="fas fa-chart-line me-2"></i>تقرير فرق العمل</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('operations_duration_report') }}"><i class="fas fa-hourglass-half me-2"></i>تقرير مدة العمليات</a></li>
                         </ul>
                     </li>
                 </ul>

@@ -28,22 +28,30 @@ class User(UserMixin, db.Model):
 
 
 class Employee(db.Model):
+    """Employee Model"""
     __tablename__ = 'employees'
 
     id = db.Column(db.Integer, primary_key=True)
+    employee_code = db.Column(db.String(20), unique=True, nullable=False, default='100001')
     name = db.Column(db.String(100), nullable=False)
     national_id = db.Column(db.String(20), unique=True, nullable=False)
-    birth_place = db.Column(db.String(100), nullable=False)
-    current_address = db.Column(db.String(200), nullable=False)
-    birth_date = db.Column(db.Date, nullable=False)
-    profession = db.Column(db.String(100), nullable=False)
+    birth_place = db.Column(db.String(100))
+    current_address = db.Column(db.String(200))
+    birth_date = db.Column(db.Date)
+    profession = db.Column(db.String(100))
     team_id = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=True)
     phone = db.Column(db.String(20))
     hire_date = db.Column(db.Date, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationship - يتم تعريف العلاقة من جهة Employee فقط
+    # العلاقات - تحديد foreign_keys صريحاً
     team = db.relationship('Team', foreign_keys=[team_id], back_populates='members')
+    fingerprint_enrollments = db.relationship('FingerprintEnrollment', foreign_keys='FingerprintEnrollment.employee_id', back_populates='employee', cascade='all, delete-orphan')
+    attendance_logs = db.relationship('AttendanceLog', foreign_keys='AttendanceLog.employee_id', back_populates='employee', cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<Employee {self.employee_code}: {self.name}>'
 
 
 class Team(db.Model):
@@ -56,10 +64,11 @@ class Team(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
 
-    # Relationships
-    members = db.relationship('Employee', foreign_keys='Employee.team_id', back_populates='team')
+    # العلاقات - تحديد foreign_keys صريحاً
+    members = db.relationship('Employee', foreign_keys=[Employee.team_id], back_populates='team')
     leader = db.relationship('Employee', foreign_keys=[leader_id])
-    operation_teams = db.relationship('OperationTeam', back_populates='team', cascade='all, delete-orphan')
+    operation_teams = db.relationship('OperationTeam', foreign_keys='OperationTeam.team_id', back_populates='team', cascade='all, delete-orphan')
+    operation_permissions = db.relationship('ShipOperationTeamPermission', foreign_keys='ShipOperationTeamPermission.team_id', back_populates='team', cascade='all, delete-orphan')
 
     @property
     def operations(self):
@@ -80,7 +89,6 @@ class Team(db.Model):
                 total += ot.operation.duration
         return round(total, 2)
 
-
     @property
     def current_operations(self):
         """الحصول على العمليات الجارية لهذه الفرقة"""
@@ -89,6 +97,7 @@ class Team(db.Model):
             if not ot.operation.end_time:
                 current_ops.append(ot.operation)
         return current_ops
+
 
 class Ship(db.Model):
     __tablename__ = 'ships'
@@ -108,13 +117,14 @@ class Ship(db.Model):
     status = db.Column(db.String(20), default='arrived')
     notes = db.Column(db.Text)
 
+    # العلاقات
+    operations = db.relationship('ShipOperation', foreign_keys='ShipOperation.ship_id', back_populates='ship', cascade='all, delete-orphan')
+
     @property
     def ongoing_operations(self):
         """الحصول على العمليات الجارية لهذه السفينة"""
-        return ShipOperation.query.filter(
-            ShipOperation.ship_id == self.id,
-            ShipOperation.end_time == None
-        ).all()
+        return [op for op in self.operations if op.end_time is None]
+
 
 class Berth(db.Model):
     __tablename__ = 'berths'
@@ -124,10 +134,12 @@ class Berth(db.Model):
     length = db.Column(db.Float)
     depth = db.Column(db.Float)
     is_available = db.Column(db.Boolean, default=True)
-    current_ship_id = db.Column(db.Integer, db.ForeignKey('ships.id'))
+    current_ship_id = db.Column(db.Integer, db.ForeignKey('ships.id'), nullable=True)
     notes = db.Column(db.Text)
 
-    current_ship = db.relationship('Ship')
+    # العلاقات
+    current_ship = db.relationship('Ship', foreign_keys=[current_ship_id])
+    fingerprint_devices = db.relationship('FingerprintDevice', foreign_keys='FingerprintDevice.berth_id', back_populates='berth')
 
     @property
     def ships_in_berth(self):
@@ -144,6 +156,7 @@ class Berth(db.Model):
         """التحقق مما إذا كان الرصيف مشغولاً حالياً"""
         return self.current_ship_id is not None
 
+
 class ShipOperation(db.Model):
     __tablename__ = 'ship_operations'
 
@@ -157,8 +170,10 @@ class ShipOperation(db.Model):
     notes = db.Column(db.Text)
 
     # العلاقات
-    ship = db.relationship('Ship')
-    operation_teams = db.relationship('OperationTeam', back_populates='operation', cascade='all, delete-orphan')
+    ship = db.relationship('Ship', foreign_keys=[ship_id], back_populates='operations')
+    operation_teams = db.relationship('OperationTeam', foreign_keys='OperationTeam.operation_id', back_populates='operation', cascade='all, delete-orphan')
+    attendance_logs = db.relationship('AttendanceLog', foreign_keys='AttendanceLog.operation_id', back_populates='operation', cascade='all, delete-orphan')
+    team_permissions = db.relationship('ShipOperationTeamPermission', foreign_keys='ShipOperationTeamPermission.operation_id', back_populates='operation', cascade='all, delete-orphan')
 
     @property
     def teams(self):
@@ -187,6 +202,7 @@ class ShipOperation(db.Model):
                 return f"{minutes} دقيقة"
         return '—'
 
+
 class Report(db.Model):
     __tablename__ = 'reports'
 
@@ -198,7 +214,7 @@ class Report(db.Model):
     data = db.Column(db.JSON)
     file_path = db.Column(db.String(500))
 
-    creator = db.relationship('User')
+    creator = db.relationship('User', foreign_keys=[created_by])
 
 
 class OperationTeam(db.Model):
@@ -211,6 +227,111 @@ class OperationTeam(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # العلاقات
-    operation = db.relationship('ShipOperation', back_populates='operation_teams')
-    team = db.relationship('Team', back_populates='operation_teams')
+    operation = db.relationship('ShipOperation', foreign_keys=[operation_id], back_populates='operation_teams')
+    team = db.relationship('Team', foreign_keys=[team_id], back_populates='operation_teams')
 
+
+class FingerprintDevice(db.Model):
+    """جهاز البصمة"""
+    __tablename__ = 'fingerprint_devices'
+
+    id = db.Column(db.Integer, primary_key=True)
+    device_name = db.Column(db.String(100), nullable=False)
+    device_ip = db.Column(db.String(50))
+    device_port = db.Column(db.Integer, default=80)
+    device_type = db.Column(db.String(50))
+    berth_id = db.Column(db.Integer, db.ForeignKey('berths.id'), nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_sync = db.Column(db.DateTime)
+
+    # العلاقات
+    berth = db.relationship('Berth', foreign_keys=[berth_id], back_populates='fingerprint_devices')
+    enrolled_employees = db.relationship('FingerprintEnrollment', foreign_keys='FingerprintEnrollment.device_id', back_populates='device', cascade='all, delete-orphan')
+    attendance_logs = db.relationship('AttendanceLog', foreign_keys='AttendanceLog.device_id', back_populates='device', cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<FingerprintDevice {self.device_name}>'
+
+
+class FingerprintEnrollment(db.Model):
+    """تسجيل بصمة الموظف"""
+    __tablename__ = 'fingerprint_enrollments'
+
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    device_id = db.Column(db.Integer, db.ForeignKey('fingerprint_devices.id'), nullable=False)
+    fingerprint_template = db.Column(db.Text)
+    fingerprint_index = db.Column(db.Integer)
+    enrolled_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
+
+    # العلاقات
+    employee = db.relationship('Employee', foreign_keys=[employee_id], back_populates='fingerprint_enrollments')
+    device = db.relationship('FingerprintDevice', foreign_keys=[device_id], back_populates='enrolled_employees')
+
+    __table_args__ = (
+        db.UniqueConstraint('employee_id', 'device_id', 'fingerprint_index', name='unique_enrollment'),
+    )
+
+
+class AttendanceLog(db.Model):
+    """سجل الحضور والانصراف"""
+    __tablename__ = 'attendance_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    device_id = db.Column(db.Integer, db.ForeignKey('fingerprint_devices.id'), nullable=False)
+    operation_id = db.Column(db.Integer, db.ForeignKey('ship_operations.id'), nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    attendance_type = db.Column(db.String(20), default='check_in')
+    status = db.Column(db.String(20), default='success')
+    reason = db.Column(db.String(200))
+    fingerprint_data = db.Column(db.Text)
+
+    # العلاقات
+    employee = db.relationship('Employee', foreign_keys=[employee_id], back_populates='attendance_logs')
+    device = db.relationship('FingerprintDevice', foreign_keys=[device_id], back_populates='attendance_logs')
+    operation = db.relationship('ShipOperation', foreign_keys=[operation_id], back_populates='attendance_logs')
+
+    __table_args__ = (
+        db.Index('idx_employee_date', 'employee_id', 'timestamp'),
+        db.Index('idx_operation', 'operation_id'),
+    )
+
+
+class ShipOperationTeamPermission(db.Model):
+    """صلاحية الفرق للعمل على سفينة معينة"""
+    __tablename__ = 'ship_operation_team_permissions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    operation_id = db.Column(db.Integer, db.ForeignKey('ship_operations.id'), nullable=False)
+    team_id = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=False)
+    is_allowed = db.Column(db.Boolean, default=True)
+    granted_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    granted_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # العلاقات
+    operation = db.relationship('ShipOperation', foreign_keys=[operation_id], back_populates='team_permissions')
+    team = db.relationship('Team', foreign_keys=[team_id], back_populates='operation_permissions')
+    granted_by_user = db.relationship('User', foreign_keys=[granted_by])
+
+    __table_args__ = (
+        db.UniqueConstraint('operation_id', 'team_id', name='unique_operation_team'),
+    )
+
+
+class FingerprintDeviceConfig(db.Model):
+    """تكوين أجهزة البصمة - مثل النظام الثاني"""
+    __tablename__ = 'fingerprint_device_configs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    ip = db.Column(db.String(50), nullable=False)
+    port = db.Column(db.Integer, default=4370)
+    enabled = db.Column(db.Boolean, default=True)
+    timeout = db.Column(db.Integer, default=30)
+    berth_id = db.Column(db.Integer, db.ForeignKey('berths.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    berth = db.relationship('Berth', backref='fingerprint_devices_config')

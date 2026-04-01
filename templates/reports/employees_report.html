@@ -210,8 +210,7 @@
                                         <th>الفئة العمرية</th>
                                         <th>العدد</th>
                                         <th>النسبة</th>
-                                    </tr>
-                                </thead>
+                                    </thead>
                                 <tbody>
                                     {% for group, count in age_groups.items() %}
                                     <tr>
@@ -476,7 +475,7 @@
 </div>
 
 <!-- ملخص الفرق -->
-<div class="card">
+<div class="card mb-4">
     <div class="card-header bg-warning text-dark">
         <h5 class="mb-0">
             <i class="fas fa-people-arrows me-2"></i>
@@ -524,6 +523,155 @@
     </div>
 </div>
 
+<!-- جدول توزيع العمال حسب الفئات العمرية لكل فرقة -->
+<div class="card mb-4">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-chart-line me-2"></i>
+            توزيع العمال حسب الفئات العمرية لكل فرقة
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-secondary">
+                    <tr>
+                        <th rowspan="2">الفرقة</th>
+                        <th colspan="5" class="text-center">الفئات العمرية</th>
+                        <th rowspan="2">الإجمالي</th>
+                    </tr>
+                    <tr>
+                        <th>أقل من 20</th>
+                        <th>20-30</th>
+                        <th>31-40</th>
+                        <th>41-50</th>
+                        <th>أكثر من 50</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set teams_age_groups = {} %}
+                    {% for emp in data %}
+                        {% if emp.team %}
+                            {% set age = now().year - emp.birth_date.year %}
+                            {% if emp.birth_date.month > now().month or (emp.birth_date.month == now().month and emp.birth_date.day > now().day) %}
+                                {% set age = age - 1 %}
+                            {% endif %}
+
+                            {% set team_name = emp.team.name %}
+                            {% if team_name not in teams_age_groups %}
+                                {% set _ = teams_age_groups.update({team_name: {
+                                    'أقل من 20': 0,
+                                    '20-30': 0,
+                                    '31-40': 0,
+                                    '41-50': 0,
+                                    'أكثر من 50': 0,
+                                    'total': 0
+                                }}) %}
+                            {% endif %}
+
+                            {% if age < 20 %}
+                                {% set _ = teams_age_groups[team_name].update({'أقل من 20': teams_age_groups[team_name]['أقل من 20'] + 1}) %}
+                            {% elif age <= 30 %}
+                                {% set _ = teams_age_groups[team_name].update({'20-30': teams_age_groups[team_name]['20-30'] + 1}) %}
+                            {% elif age <= 40 %}
+                                {% set _ = teams_age_groups[team_name].update({'31-40': teams_age_groups[team_name]['31-40'] + 1}) %}
+                            {% elif age <= 50 %}
+                                {% set _ = teams_age_groups[team_name].update({'41-50': teams_age_groups[team_name]['41-50'] + 1}) %}
+                            {% else %}
+                                {% set _ = teams_age_groups[team_name].update({'أكثر من 50': teams_age_groups[team_name]['أكثر من 50'] + 1}) %}
+                            {% endif %}
+                            {% set _ = teams_age_groups[team_name].update({'total': teams_age_groups[team_name]['total'] + 1}) %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {% for team_name, groups in teams_age_groups.items()|sort %}
+                    <tr>
+                        <td><strong>{{ team_name }}</strong></td>
+                        <td class="text-center">
+                            {{ groups['أقل من 20'] }}
+                            <br>
+                            <small class="text-muted">({{ (groups['أقل من 20'] / groups['total'] * 100)|round(1) if groups['total'] > 0 else 0 }}%)</small>
+                        </td>
+                        <td class="text-center">
+                            {{ groups['20-30'] }}
+                            <br>
+                            <small class="text-muted">({{ (groups['20-30'] / groups['total'] * 100)|round(1) if groups['total'] > 0 else 0 }}%)</small>
+                        </td>
+                        <td class="text-center">
+                            {{ groups['31-40'] }}
+                            <br>
+                            <small class="text-muted">({{ (groups['31-40'] / groups['total'] * 100)|round(1) if groups['total'] > 0 else 0 }}%)</small>
+                        </td>
+                        <td class="text-center">
+                            {{ groups['41-50'] }}
+                            <br>
+                            <small class="text-muted">({{ (groups['41-50'] / groups['total'] * 100)|round(1) if groups['total'] > 0 else 0 }}%)</small>
+                        </td>
+                        <td class="text-center">
+                            {{ groups['أكثر من 50'] }}
+                            <br>
+                            <small class="text-muted">({{ (groups['أكثر من 50'] / groups['total'] * 100)|round(1) if groups['total'] > 0 else 0 }}%)</small>
+                        </td>
+                        <td class="text-center fw-bold">{{ groups['total'] }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="fas fa-users fa-3x mb-3"></i>
+                            <p>لا توجد فرق أو موظفين في الفرق</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light fw-bold">
+                    <tr>
+                        <td>الإجمالي</td>
+                        {% set total_under_20 = teams_age_groups.values()|map(attribute='أقل من 20')|sum %}
+                        {% set total_20_30 = teams_age_groups.values()|map(attribute='20-30')|sum %}
+                        {% set total_31_40 = teams_age_groups.values()|map(attribute='31-40')|sum %}
+                        {% set total_41_50 = teams_age_groups.values()|map(attribute='41-50')|sum %}
+                        {% set total_over_50 = teams_age_groups.values()|map(attribute='أكثر من 50')|sum %}
+                        {% set grand_total = teams_age_groups.values()|map(attribute='total')|sum %}
+                        <td class="text-center">
+                            {{ total_under_20 }}
+                            <br>
+                            <small class="text-muted">({{ (total_under_20 / grand_total * 100)|round(1) if grand_total > 0 else 0 }}%)</small>
+                        </td>
+                        <td class="text-center">
+                            {{ total_20_30 }}
+                            <br>
+                            <small class="text-muted">({{ (total_20_30 / grand_total * 100)|round(1) if grand_total > 0 else 0 }}%)</small>
+                        </td>
+                        <td class="text-center">
+                            {{ total_31_40 }}
+                            <br>
+                            <small class="text-muted">({{ (total_31_40 / grand_total * 100)|round(1) if grand_total > 0 else 0 }}%)</small>
+                        </td>
+                        <td class="text-center">
+                            {{ total_41_50 }}
+                            <br>
+                            <small class="text-muted">({{ (total_41_50 / grand_total * 100)|round(1) if grand_total > 0 else 0 }}%)</small>
+                        </td>
+                        <td class="text-center">
+                            {{ total_over_50 }}
+                            <br>
+                            <small class="text-muted">({{ (total_over_50 / grand_total * 100)|round(1) if grand_total > 0 else 0 }}%)</small>
+                        </td>
+                        <td class="text-center">{{ grand_total }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- إضافة مخطط بياني لتوضيح التوزيع -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <canvas id="teamAgeDistributionChart" style="max-height: 400px; width: 100%;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- نصائح وإرشادات -->
 <div class="row mt-4">
     <div class="col-12">
@@ -534,7 +682,7 @@
                 <ul class="mb-0 mt-2">
                     <li>👥 <strong>إجمالي الموظفين:</strong> {{ data|length }} موظف</li>
                     <li>👑 <strong>قادة الفرق:</strong> {{ data|selectattr('profession', 'equalto', 'رئيس فرقة')|list|length }} قائد</li>
-                    <li>📊 <strong>توزيع الأعمار:</strong> تم عرض توزيع الموظفين حسب الفئات العمرية</li>
+                    <li>📊 <strong>توزيع الأعمار:</strong> تم عرض توزيع الموظفين حسب الفئات العمرية لكل فرقة</li>
                     <li>🏠 <strong>السكن:</strong> تم تحليل توزيع الموظفين حسب مناطق السكن</li>
                 </ul>
             </div>
@@ -625,6 +773,135 @@
                 }
             }
         });
+
+        // رسم بياني لتوزيع الأعمار حسب الفرق
+        var teamNames = [];
+        var under20Data = [];
+        var age20_30Data = [];
+        var age31_40Data = [];
+        var age41_50Data = [];
+        var over50Data = [];
+
+        {% for team_name, groups in teams_age_groups.items()|sort %}
+            teamNames.push('{{ team_name }}');
+            under20Data.push({{ groups['أقل من 20'] }});
+            age20_30Data.push({{ groups['20-30'] }});
+            age31_40Data.push({{ groups['31-40'] }});
+            age41_50Data.push({{ groups['41-50'] }});
+            over50Data.push({{ groups['أكثر من 50'] }});
+        {% endfor %}
+
+        if (teamNames.length > 0) {
+            var ctx3 = document.getElementById('teamAgeDistributionChart').getContext('2d');
+            new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: teamNames,
+                    datasets: [
+                        {
+                            label: 'أقل من 20',
+                            data: under20Data,
+                            backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                            borderColor: '#28a745',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '20-30',
+                            data: age20_30Data,
+                            backgroundColor: 'rgba(23, 162, 184, 0.7)',
+                            borderColor: '#17a2b8',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '31-40',
+                            data: age31_40Data,
+                            backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                            borderColor: '#ffc107',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '41-50',
+                            data: age41_50Data,
+                            backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                            borderColor: '#dc3545',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'أكثر من 50',
+                            data: over50Data,
+                            backgroundColor: 'rgba(102, 126, 234, 0.7)',
+                            borderColor: '#667eea',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                callback: function(value) {
+                                    return value + ' موظف';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'عدد الموظفين',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'الفرق',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    var label = context.dataset.label || '';
+                                    var value = context.raw;
+                                    var total = 0;
+                                    {% for team_name, groups in teams_age_groups.items() %}
+                                        if (context.label === '{{ team_name }}') {
+                                            total = {{ groups['total'] }};
+                                        }
+                                    {% endfor %}
+                                    var percentage = total > 0 ? (value / total * 100).toFixed(1) : 0;
+                                    return label + ': ' + value + ' موظف (' + percentage + '%)';
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'توزيع الفئات العمرية حسب الفرق',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                }
+            });
+        }
     });
 
     // دالة تعيين نطاق التاريخ

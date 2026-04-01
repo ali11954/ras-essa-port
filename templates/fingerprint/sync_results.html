@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}نتائج المزامنة{% endblock %}
+
+{% block page_title %}نتائج مزامنة أجهزة البصمة{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">📡 نتائج مزامنة أجهزة البصمة</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>اسم الجهاز</th>
+                        <th>عنوان IP</th>
+                        <th>الحالة</th>
+                        <th>عدد السجلات</th>
+                     </thead>
+                <tbody>
+                    {% for result in results %}
+                    <tr class="{% if result.status == 'success' %}table-success{% else %}table-danger{% endif %}">
+                        <td><strong>{{ result.device_name }}</strong>  </tr>
+                         <td><code>{{ result.device_ip }}</code>  </tr>
+                         <td>
+                            {% if result.status == 'success' %}
+                                <span class="badge bg-success">✅ متصل</span>
+                            {% else %}
+                                <span class="badge bg-danger">❌ خطأ</span>
+                            {% endif %}
+                         </tr>
+                         <td class="text-center">
+                            {% if result.status == 'success' %}
+                                {{ result.records_count }} سجل
+                            {% else %}
+                                {{ result.error }}
+                            {% endif %}
+                         </tr>
+                     </tr>
+                    {% endfor %}
+                </tbody>
+             </table>
+        </div>
+
+        <div class="mt-3">
+            <a href="{{ url_for('fingerprint_attendance_list') }}" class="btn btn-primary">
+                عرض سجلات الحضور
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

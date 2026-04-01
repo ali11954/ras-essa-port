@@ -3,6 +3,7 @@
 {% block title %}إضافة موظف جديد - ميناء رأس عيسى{% endblock %}
 
 {% block page_title %}إضافة موظف جديد{% endblock %}
+{% block page_icon %}fas fa-user-plus{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
@@ -24,9 +25,35 @@
                 <form method="POST" id="employeeForm">
                     {{ form.hidden_tag() }}
 
+                    <!-- كود الموظف للبصمة - حقل مهم -->
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-fingerprint me-2"></i>
+                        <strong>كود البصمة:</strong> هذا الكود سيتم استخدامه في جهاز البصمة للتعرف على الموظف
+                    </div>
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">الاسم الكامل</label>
+                            <label class="form-label">
+                                <i class="fas fa-qrcode text-primary me-1"></i>
+                                كود الموظف للبصمة
+                            </label>
+                            {{ form.employee_code(class="form-control", placeholder="مثال: 3456 (كود مخصص) أو اتركه فارغاً للتوليد التلقائي") }}
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                يمكنك إدخال كود مخصص (أرقام فقط) أو ترك الحقل فارغاً ليتم توليد كود تلقائي (يبدأ من 100001)
+                            </small>
+                            {% if form.employee_code.errors %}
+                                {% for error in form.employee_code.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-user text-primary me-1"></i>
+                                الاسم الكامل <span class="text-danger">*</span>
+                            </label>
                             {{ form.name(class="form-control", placeholder="أدخل الاسم الكامل") }}
                             {% if form.name.errors %}
                                 <div class="text-danger">
@@ -34,9 +61,14 @@
                                 </div>
                             {% endif %}
                         </div>
+                    </div>
 
+                    <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">الرقم الوطني</label>
+                            <label class="form-label">
+                                <i class="fas fa-id-card text-primary me-1"></i>
+                                الرقم الوطني <span class="text-danger">*</span>
+                            </label>
                             {{ form.national_id(class="form-control", placeholder="أدخل الرقم الوطني") }}
                             {% if form.national_id.errors %}
                                 <div class="text-danger">
@@ -44,45 +76,99 @@
                                 </div>
                             {% endif %}
                         </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-phone text-primary me-1"></i>
+                                رقم الهاتف
+                            </label>
+                            {{ form.phone(class="form-control", placeholder="أدخل رقم الهاتف") }}
+                        </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">مكان الميلاد</label>
+                            <label class="form-label">
+                                <i class="fas fa-map-marker-alt text-primary me-1"></i>
+                                مكان الميلاد
+                            </label>
                             {{ form.birth_place(class="form-control", placeholder="أدخل مكان الميلاد") }}
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">السكن الحالي</label>
+                            <label class="form-label">
+                                <i class="fas fa-home text-primary me-1"></i>
+                                السكن الحالي
+                            </label>
                             {{ form.current_address(class="form-control", placeholder="أدخل عنوان السكن") }}
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">تاريخ الميلاد</label>
+                            <label class="form-label">
+                                <i class="fas fa-calendar-alt text-primary me-1"></i>
+                                تاريخ الميلاد <span class="text-danger">*</span>
+                            </label>
                             {{ form.birth_date(class="form-control", type="date") }}
+                            {% if form.birth_date.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.birth_date.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
 
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">المهنة</label>
+                            <label class="form-label">
+                                <i class="fas fa-briefcase text-primary me-1"></i>
+                                المهنة <span class="text-danger">*</span>
+                            </label>
                             {{ form.profession(class="form-control", placeholder="أدخل المهنة") }}
+                            {% if form.profession.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.profession.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
 
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">الفرقة</label>
-                            {{ form.team_id(class="form-select") }}  <!-- تغيير team_number إلى team_id -->
+                            <label class="form-label">
+                                <i class="fas fa-users text-primary me-1"></i>
+                                الفرقة
+                            </label>
+                            {{ form.team_id(class="form-select") }}
+                            <small class="text-muted">اختر الفرقة التي ينتمي إليها الموظف</small>
                         </div>
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">رقم الهاتف</label>
-                            {{ form.phone(class="form-control", placeholder="أدخل رقم الهاتف") }}
+                        <div class="col-md-12 mb-3">
+                            <div class="form-check">
+                                {{ form.is_active(class="form-check-input") }}
+                                <label class="form-check-label">
+                                    <i class="fas fa-check-circle text-success me-1"></i>
+                                    {{ form.is_active.label }}
+                                </label>
+                            </div>
                         </div>
-
+                    </div>
 
                     <hr>
+
+                    <!-- أمثلة على الأكواد -->
+                    <div class="alert alert-secondary small">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        <strong>أمثلة على أكواد البصمة:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li><code>3456</code> - كود مخصص للموظف علي أحمد علي مبارك</li>
+                            <li><code>100001</code> - كود تلقائي للموظف الأول</li>
+                            <li><code>100002</code> - كود تلقائي للموظف الثاني</li>
+                        </ul>
+                        <div class="mt-2 text-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>ملاحظة مهمة:</strong> الكود المستخدم هنا يجب أن يكون مطابقاً للكود المسجل في جهاز البصمة
+                        </div>
+                    </div>
 
                     <div class="text-center">
                         <button type="submit" class="btn btn-primary px-5">
@@ -99,4 +185,41 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // تحويل حقل المهنة إلى select إذا كانت الاختيارات محددة مسبقاً
+        // أو يمكن تركه كـ input text
+
+        // إضافة تحقق من صحة الكود
+        $('#employee_code').on('blur', function() {
+            var code = $(this).val();
+            if (code && !/^\d+$/.test(code)) {
+                $(this).addClass('is-invalid');
+                $(this).after('<div class="invalid-feedback">الكود يجب أن يحتوي على أرقام فقط</div>');
+            } else {
+                $(this).removeClass('is-invalid');
+                $('.invalid-feedback').remove();
+            }
+        });
+
+        // عرض رسالة تأكيد قبل الحفظ
+        $('#employeeForm').on('submit', function(e) {
+            var employeeCode = $('#employee_code').val();
+            var message = '';
+
+            if (employeeCode) {
+                message = `سيتم إضافة الموظف بالكود: ${employeeCode}`;
+            } else {
+                message = 'سيتم توليد كود تلقائي للموظف (يبدأ من 100001)';
+            }
+
+            if (!confirm('هل أنت متأكد من إضافة هذا الموظف؟\n' + message)) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>
 {% endblock %}

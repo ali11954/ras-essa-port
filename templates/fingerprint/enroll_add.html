@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}تسجيل بصمة جديدة - نظام إدارة الميناء{% endblock %}
+
+{% block page_title %}تسجيل بصمة جديدة{% endblock %}
+{% block page_icon %}fas fa-plus-circle{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('fingerprint_devices_list') }}">أجهزة البصمة</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('fingerprint_enroll_list') }}">تسجيلات البصمة</a></li>
+<li class="breadcrumb-item active">تسجيل جديد</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-fingerprint me-2"></i>
+                    تسجيل بصمة موظف
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.employee_id.label }}</label>
+                        {{ form.employee_id(class="form-select") }}
+                        {% if form.employee_id.errors %}
+                            {% for error in form.employee_id.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                        <small class="text-muted">اختر الموظف الذي تريد تسجيل بصمته</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.device_id.label }}</label>
+                        {{ form.device_id(class="form-select") }}
+                        <div class="form-text">اختر الجهاز الذي تريد تسجيل البصمة عليه</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.finger_index.label }}</label>
+                        {{ form.finger_index(class="form-select") }}
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>تعليمات:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>تأكد من أن جهاز البصمة متصل بالشبكة ومشغل</li>
+                            <li>اطلب من الموظف وضع إصبعه على الجهاز عند الطلب</li>
+                            <li>سيتم تخزين البصمة على الجهاز وفي قاعدة البيانات</li>
+                            <li>يمكن تسجيل أكثر من إصبع لكل موظف على نفس الجهاز</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('fingerprint_enroll_list') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-right"></i> إلغاء
+                        </a>
+                        <button type="submit" class="btn btn-success" onclick="return confirm('هل أنت متأكد من بدء عملية تسجيل البصمة؟ تأكد من أن جهاز البصمة جاهز.')">
+                            <i class="fas fa-fingerprint"></i> بدء التسجيل
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    معلومات مهمة
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul>
+                    <li>📌 <strong>كود الموظف:</strong> تأكد من أن الموظف لديه كود بصمة (employee_code) في النظام</li>
+                    <li>🔍 <strong>اختبار الاتصال:</strong> يمكنك اختبار اتصال الجهاز قبل التسجيل</li>
+                    <li>✅ <strong>بعد التسجيل:</strong> سيظهر الموظف في قائمة المسجلين بصمة</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

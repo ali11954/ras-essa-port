@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}تسجيلات البصمة - نظام إدارة الميناء{% endblock %}
+
+{% block page_title %}تسجيلات البصمة{% endblock %}
+{% block page_icon %}fas fa-address-card{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('fingerprint_devices_list') }}">أجهزة البصمة</a></li>
+<li class="breadcrumb-item active">تسجيلات البصمة</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <a href="{{ url_for('fingerprint_enroll_add') }}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus"></i> تسجيل بصمة جديدة
+    </a>
+    <button class="btn btn-danger btn-sm" onclick="deleteAllEnrollments()">
+        <i class="fas fa-trash-alt"></i> حذف جميع البصمات
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-fingerprint me-2"></i>
+                    قائمة تسجيلات البصمة
+                </h5>
+                <span class="badge bg-light text-dark">{{ enrollments|length }} تسجيل</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered" id="enrollmentsTable">
+                        <thead class="table-info">
+                            <tr>
+                                <th width="50">
+                                    <input type="checkbox" id="selectAll" onclick="toggleSelectAll()">
+                                </th>
+                                <th>#</th>
+                                <th>الموظف</th>
+                                <th>الكود</th>
+                                <th>المهنة</th>
+                                <th>الفرقة</th>
+                                <th>الجهاز</th>
+                                <th>الإصبع</th>
+                                <th>تاريخ التسجيل</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </thead>
+                        <tbody>
+                            {% for enrollment in enrollments %}
+                            <tr id="row-{{ enrollment.id }}">
+                                <td class="text-center">
+                                    <input type="checkbox" class="enrollment-checkbox" value="{{ enrollment.id }}">
+                                </td>
+                                <td class="text-center">{{ loop.index }}   </td>
+                                <td>
+                                    <strong>{{ enrollment.employee.name }}</strong>
+                                 </td>
+                                <td><code>{{ enrollment.employee.employee_code }}</code> </td>
+                                <td>{{ enrollment.employee.profession }} </td>
+                                <td>
+                                    {% if enrollment.employee.team %}
+                                        <span class="badge bg-primary">{{ enrollment.employee.team.name }}</span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                 </td>
+                                <td>{{ enrollment.device.device_name }} </td>
+                                <td>
+                                    {% set fingers = {1: 'الإبهام', 2: 'السبابة', 3: 'الوسطى', 4: 'البنصر', 5: 'الخنصر'} %}
+                                    <span class="badge bg-secondary">{{ fingers[enrollment.fingerprint_index] }}</span>
+                                 </td>
+                                <td>{{ enrollment.enrolled_at.strftime('%Y-%m-%d %H:%M') }} </td>
+                                <td>
+                                    {% if enrollment.is_active %}
+                                        <span class="badge bg-success">نشطة</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">غير نشطة</span>
+                                    {% endif %}
+                                 </td>
+                                 <td class="text-center">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-danger" onclick="deleteEnrollment({{ enrollment.id }}, '{{ enrollment.employee.name }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                 </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center text-muted py-4">
+                                    <i class="fas fa-fingerprint fa-3x mb-3"></i>
+                                    <p>لا توجد تسجيلات بصمة</p>
+                                    <a href="{{ url_for('fingerprint_enroll_add') }}" class="btn btn-primary btn-sm">تسجيل بصمة جديدة</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if enrollments %}
+                <div class="mt-3" id="bulkActions" style="display: none;">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle"></i>
+                        <span id="selectedCount">0</span> تسجيل محدد
+                        <button class="btn btn-danger btn-sm float-end" onclick="deleteSelected()">
+                            <i class="fas fa-trash-alt"></i> حذف المحدد
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('#enrollmentsTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
+            },
+            pageLength: 25,
+            order: [[2, 'asc']],
+            columnDefs: [
+                { orderable: false, targets: [0, 10] }
+            ]
+        });
+
+        // تحديث عدد المحددين
+        $('.enrollment-checkbox').on('change', function() {
+            updateSelectedCount();
+        });
+    });
+
+    function updateSelectedCount() {
+        const selected = $('.enrollment-checkbox:checked').length;
+        if (selected > 0) {
+            $('#bulkActions').show();
+            $('#selectedCount').text(selected);
+        } else {
+            $('#bulkActions').hide();
+        }
+    }
+
+    function toggleSelectAll() {
+        const isChecked = $('#selectAll').prop('checked');
+        $('.enrollment-checkbox').prop('checked', isChecked);
+        updateSelectedCount();
+    }
+
+    function deleteEnrollment(id, employeeName) {
+        Swal.fire({
+            title: 'تأكيد الحذف',
+            text: `هل أنت متأكد من حذف بصمة الموظف ${employeeName}؟`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'نعم، حذف',
+            cancelButtonText: 'إلغاء'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = '/fingerprint/enroll/delete/' + id;
+            }
+        });
+    }
+
+    function deleteSelected() {
+        const selected = $('.enrollment-checkbox:checked');
+        const count = selected.length;
+
+        if (count === 0) return;
+
+        Swal.fire({
+            title: 'تأكيد الحذف الجماعي',
+            text: `هل أنت متأكد من حذف ${count} تسجيل بصمة؟`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'نعم، حذف الكل',
+            cancelButtonText: 'إلغاء'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // جمع المعرفات
+                const ids = [];
+                selected.each(function() {
+                    ids.push($(this).val());
+                });
+
+                // إرسال طلب حذف جماعي
+                fetch('/fingerprint/enroll/delete-multiple', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ids: ids })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم الحذف',
+                            text: `تم حذف ${data.deleted} تسجيل بنجاح`,
+                            timer: 2000
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ',
+                            text: data.error || 'حدث خطأ أثناء الحذف'
+                        });
+                    }
+                })
+                .catch(error => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'حدث خطأ في الاتصال بالخادم'
+                    });
+                });
+            }
+        });
+    }
+
+    function deleteAllEnrollments() {
+        Swal.fire({
+            title: '⚠️ تحذير شديد!',
+            text: 'هل أنت متأكد من حذف جميع تسجيلات البصمة؟ هذه العملية لا يمكن التراجع عنها!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'نعم، حذف الكل',
+            cancelButtonText: 'إلغاء'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/fingerprint/enroll/delete-all', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم الحذف',
+                            text: `تم حذف ${data.deleted} تسجيل بنجاح`,
+                            timer: 2000
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ',
+                            text: data.error || 'حدث خطأ أثناء الحذف'
+                        });
+                    }
+                })
+                .catch(error => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'حدث خطأ في الاتصال بالخادم'
+                    });
+                });
+            }
+        });
+    }
+</script>
+{% endblock %}

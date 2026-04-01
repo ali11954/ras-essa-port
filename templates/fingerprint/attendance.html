@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}سجل الحضور والانصراف - نظام إدارة الميناء{% endblock %}
+
+{% block page_title %}سجل الحضور والانصراف{% endblock %}
+{% block page_icon %}fas fa-clock{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('fingerprint_devices_list') }}">أجهزة البصمة</a></li>
+<li class="breadcrumb-item active">سجل الحضور</li>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-filter me-2"></i>
+                    تصفية السجل
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">من تاريخ</label>
+                        <input type="date" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">إلى تاريخ</label>
+                        <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">{{ form.employee_id.label }}</label>
+                        {{ form.employee_id(class="form-select") }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">{{ form.status.label }}</label>
+                        {{ form.status(class="form-select") }}
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> بحث
+                        </button>
+                        <a href="{{ url_for('fingerprint_attendance_list') }}" class="btn btn-secondary">
+                            <i class="fas fa-undo"></i> إعادة تعيين
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-calendar-day stat-icon"></i>
+            <div class="stat-title">سجل اليوم</div>
+            <div class="stat-value">{{ stats.today }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-check-circle stat-icon"></i>
+            <div class="stat-title">ناجح</div>
+            <div class="stat-value text-success">{{ stats.success }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-times-circle stat-icon"></i>
+            <div class="stat-title">مرفوض</div>
+            <div class="stat-value text-danger">{{ stats.denied }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-exclamation-triangle stat-icon"></i>
+            <div class="stat-title">خطأ</div>
+            <div class="stat-value text-warning">{{ stats.error }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    سجل الحضور والانصراف
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered" id="attendanceTable">
+                        <thead class="table-info">
+                            <tr>
+                                <th>#</th>
+                                <th>الموظف</th>
+                                <th>الفرقة</th>
+                                <th>الجهاز</th>
+                                <th>الوقت</th>
+                                <th>النوع</th>
+                                <th>العملية</th>
+                                <th>الحالة</th>
+                                <th>السبب</th>
+                            </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>
+                                    {% if log.employee %}
+                                        <strong>{{ log.employee.name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ log.employee.profession }}</small>
+                                    {% else %}
+                                        <span class="text-muted">غير معروف</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if log.employee and log.employee.team %}
+                                        <span class="badge bg-primary">{{ log.employee.team.name }}</span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ log.device.device_name }}</td>
+                                <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td>
+                                    {% if log.attendance_type == 'check_in' %}
+                                        <span class="badge bg-success">دخول</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">خروج</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if log.operation %}
+                                        <span class="badge bg-info">{{ log.operation.ship.name }}</span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if log.status == 'success' %}
+                                        <span class="badge bg-success">ناجح</span>
+                                    {% elif log.status == 'denied' %}
+                                        <span class="badge bg-danger">مرفوض</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">خطأ</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ log.reason or '—' }}</small>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">
+                                    <i class="fas fa-clock fa-3x mb-3"></i>
+                                    <p>لا توجد سجلات حضور</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        $('#attendanceTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
+            },
+            pageLength: 25,
+            order: [[4, 'desc']],
+            responsive: true
+        });
+    });
+</script>
+{% endblock %}

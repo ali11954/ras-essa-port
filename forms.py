@@ -1,8 +1,10 @@
-
+from wtforms import (
+    StringField, IntegerField, SelectField, BooleanField, DateField,
+    TextAreaField, PasswordField, FloatField, HiddenField, DateTimeField, FileField
+)
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, DateField, DateTimeField, SelectField, SelectMultipleField, TextAreaField, FloatField, BooleanField
 from wtforms.validators import DataRequired, Email, Length, Optional, ValidationError
-from datetime import datetime
 
 # دوال التحقق المخصصة
 def validate_national_id(form, field):
@@ -24,20 +26,29 @@ class LoginForm(FlaskForm):
     username = StringField('اسم المستخدم', validators=[DataRequired()])
     password = PasswordField('كلمة المرور', validators=[DataRequired()])
 
+    # forms.py - إضافة حقل employee_code
+
+
+# forms.py - إضافة حقل employee_code في EmployeeForm
 
 class EmployeeForm(FlaskForm):
-    name = StringField('الاسم الكامل', validators=[DataRequired(), Length(max=100)])
-    national_id = StringField('الرقم الوطني', validators=[DataRequired(), validate_national_id])
-    birth_place = StringField('مكان الميلاد', validators=[DataRequired(), Length(max=100)])
-    current_address = StringField('السكن الحالي', validators=[DataRequired(), Length(max=200)])
-    birth_date = DateField('تاريخ الميلاد', validators=[DataRequired()])
+    """نموذج إضافة/تعديل موظف"""
+    employee_code = StringField('كود الموظف للبصمة', validators=[Optional(), Length(min=1, max=20)])
+    name = StringField('الاسم', validators=[DataRequired(), Length(min=3, max=100)])
+    national_id = StringField('الرقم الوطني', validators=[DataRequired(), Length(min=9, max=20)])
+    birth_place = StringField('مكان الميلاد', validators=[Length(max=100)])
+    current_address = StringField('السكن الحالي', validators=[Length(max=200)])
+    birth_date = DateField('تاريخ الميلاد', validators=[DataRequired()], format='%Y-%m-%d')
     profession = StringField('المهنة', validators=[DataRequired(), Length(max=100)])
-    team_id = SelectField('الفرقة', coerce=int, validators=[Optional()])
-    phone = StringField('رقم الهاتف')  # بدون validators
+    team_id = SelectField('الفرقة', coerce=int, choices=[], validators=[Optional()])
+    phone = StringField('رقم الهاتف', validators=[Length(max=20), Optional()])
+    is_active = BooleanField('نشط', default=True)
 
-    def validate_phone(self, field):
-        """تجاوز أي تحقق - يقبل أي قيمة"""
-        return True
+    def validate_employee_code(self, field):
+        """التحقق من أن الكود يحتوي على أرقام فقط"""
+        if field.data:
+            if not field.data.isdigit():
+                raise ValidationError('الكود يجب أن يحتوي على أرقام فقط')
 
 
 
@@ -176,3 +187,47 @@ class BerthForm(FlaskForm):
             if hasattr(self, '_obj') and self._obj and self._obj.id == berth.id:
                 return
             raise ValidationError(f'رقم الرصيف "{field.data}" موجود مسبقاً')
+
+
+# أضف هذه النماذج في ملف forms.py
+
+class FingerprintDeviceForm(FlaskForm):
+    """نموذج إضافة/تعديل جهاز بصمة"""
+    device_name = StringField('اسم الجهاز', validators=[DataRequired(), Length(max=100)])
+    device_ip = StringField('عنوان IP', validators=[Length(max=50)])
+    device_port = IntegerField('المنفذ', default=80)
+    device_type = SelectField('نوع الجهاز', choices=[
+        ('', 'اختر نوع الجهاز'),
+        ('zkteco', 'ZKTeco'),
+        ('suprema', 'Suprema'),
+        ('other', 'أخرى')
+    ])
+    berth_id = SelectField('الرصيف المرتبط', coerce=int, choices=[(0, 'غير مرتبط برصيف')])
+    is_active = BooleanField('نشط', default=True)
+
+
+class EnrollFingerprintForm(FlaskForm):
+    """نموذج تسجيل بصمة"""
+    employee_id = SelectField('الموظف', coerce=int, validators=[DataRequired()])
+    device_id = SelectField('الجهاز', coerce=int, validators=[DataRequired()])
+    finger_index = SelectField('رقم الإصبع', choices=[
+        (1, 'الإبهام'),
+        (2, 'السبابة'),
+        (3, 'الوسطى'),
+        (4, 'البنصر'),
+        (5, 'الخنصر')
+    ], coerce=int, default=1)
+
+
+class AttendanceFilterForm(FlaskForm):
+    """نموذج تصفية سجلات الحضور"""
+    date_from = DateField('من تاريخ', format='%Y-%m-%d')
+    date_to = DateField('إلى تاريخ', format='%Y-%m-%d')
+    employee_id = SelectField('الموظف', coerce=int, choices=[(0, 'الكل')])
+    operation_id = SelectField('العملية', coerce=int, choices=[(0, 'الكل')])
+    status = SelectField('الحالة', choices=[
+        ('', 'الكل'),
+        ('success', 'ناجح'),
+        ('denied', 'مرفوض'),
+        ('error', 'خطأ')
+    ])
