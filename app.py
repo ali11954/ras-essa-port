@@ -604,7 +604,6 @@ def test_enroll_from_device():
     """
 
 
-from zk import ZK
 # محاولة استيراد مكتبة البصمة (اختيارية)
 try:
     from zk import ZK
